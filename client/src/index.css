@@ -1,0 +1,390 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* JSON Tree View Container */
+.json-tree-container {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Compact tree view for item cards */
+.json-tree-container.text-xs .json-view-lite {
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+.json-tree-container.text-xs .json-view-lite div {
+  margin-left: 16px !important;
+  padding-left: 2px !important;
+}
+
+/* Ensure dark mode works in all tree views */
+.dark .json-tree-container,
+.dark-theme .json-tree-container {
+  background: transparent !important;
+  color: #e5e7eb !important;
+}
+
+/* Force dark mode for any json-view-lite inside dark theme */
+.dark .json-tree-container .json-view-lite,
+.dark-theme .json-tree-container .json-view-lite {
+  background: transparent !important;
+  color: #e5e7eb !important;
+}
+
+.dark .json-tree-container .json-view-lite *,
+.dark-theme .json-tree-container .json-view-lite * {
+  background: transparent !important;
+  color: #e5e7eb !important;
+}
+
+/* JSON Tree View Styling - Base */
+.json-view-lite,
+.json-view-lite *,
+.json-view-lite > *,
+.json-view-lite div,
+.json-view-lite span,
+.json-view-lite button {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Indentation and nesting structure */
+.json-view-lite > div {
+  margin-left: 0 !important;
+}
+
+.json-view-lite div[style*="margin-left"] {
+  margin-left: 24px !important;
+  position: relative;
+}
+
+.json-view-lite div div {
+  margin-left: 24px !important;
+  padding-left: 4px !important;
+}
+
+.json-view-lite div div div {
+  margin-left: 24px !important;
+}
+
+.json-view-lite div div div div {
+  margin-left: 24px !important;
+}
+
+/* Add visual guides for nesting */
+.json-view-lite div[style*="margin-left"]::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: hsl(var(--border));
+  opacity: 0.3;
+}
+
+.dark .json-view-lite div[style*="margin-left"]::before {
+  background: hsl(var(--border));
+  opacity: 0.5;
+}
+
+/* Light theme colors */
+.light-theme .json-view-lite,
+.light-theme .json-view-lite *,
+.light-theme .json-view-lite div,
+.light-theme .json-view-lite span,
+.light-theme .json-view-lite button {
+  color: #374151 !important;
+}
+
+.light-theme .json-view-lite .json-key,
+.light-theme .json-view-lite [class*="key"],
+.light-theme .json-view-lite [data-testid*="key"] {
+  color: #1e40af !important;
+  font-weight: 500 !important;
+}
+
+.light-theme .json-view-lite .json-string,
+.light-theme .json-view-lite [class*="string"],
+.light-theme .json-view-lite [data-testid*="string"] {
+  color: #059669 !important;
+}
+
+.light-theme .json-view-lite .json-number,
+.light-theme .json-view-lite [class*="number"],
+.light-theme .json-view-lite [data-testid*="number"] {
+  color: #d97706 !important;
+}
+
+.light-theme .json-view-lite .json-boolean,
+.light-theme .json-view-lite [class*="boolean"],
+.light-theme .json-view-lite [data-testid*="boolean"] {
+  color: #dc2626 !important;
+}
+
+.light-theme .json-view-lite .json-null,
+.light-theme .json-view-lite .json-undefined,
+.light-theme .json-view-lite [class*="null"],
+.light-theme .json-view-lite [class*="undefined"] {
+  color: #6b7280 !important;
+}
+
+/* Array index styling - light theme */
+.light-theme .json-view-lite .json-key[data-testid*="["],
+.light-theme .json-view-lite [class*="key"][data-testid*="["],
+.light-theme .json-view-lite span:contains("[") {
+  color: #7c3aed !important;
+  font-weight: 600 !important;
+}
+
+/* Dark theme colors */
+.dark-theme .json-view-lite,
+.dark-theme .json-view-lite *,
+.dark-theme .json-view-lite > *,
+.dark-theme .json-view-lite div,
+.dark-theme .json-view-lite span,
+.dark-theme .json-view-lite button,
+.dark .json-view-lite,
+.dark .json-view-lite *,
+.dark .json-view-lite > *,
+.dark .json-view-lite div,
+.dark .json-view-lite span,
+.dark .json-view-lite button {
+  color: #e5e7eb !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.dark-theme .json-view-lite .json-key,
+.dark-theme .json-view-lite [class*="key"],
+.dark-theme .json-view-lite [data-testid*="key"],
+.dark .json-view-lite .json-key,
+.dark .json-view-lite [class*="key"],
+.dark .json-view-lite [data-testid*="key"] {
+  color: #60a5fa !important;
+  font-weight: 500 !important;
+}
+
+.dark-theme .json-view-lite .json-string,
+.dark-theme .json-view-lite [class*="string"],
+.dark-theme .json-view-lite [data-testid*="string"],
+.dark .json-view-lite .json-string,
+.dark .json-view-lite [class*="string"],
+.dark .json-view-lite [data-testid*="string"] {
+  color: #34d399 !important;
+}
+
+.dark-theme .json-view-lite .json-number,
+.dark-theme .json-view-lite [class*="number"],
+.dark-theme .json-view-lite [data-testid*="number"],
+.dark .json-view-lite .json-number,
+.dark .json-view-lite [class*="number"],
+.dark .json-view-lite [data-testid*="number"] {
+  color: #fbbf24 !important;
+}
+
+.dark-theme .json-view-lite .json-boolean,
+.dark-theme .json-view-lite [class*="boolean"],
+.dark-theme .json-view-lite [data-testid*="boolean"],
+.dark .json-view-lite .json-boolean,
+.dark .json-view-lite [class*="boolean"],
+.dark .json-view-lite [data-testid*="boolean"] {
+  color: #f87171 !important;
+}
+
+.dark-theme .json-view-lite .json-null,
+.dark-theme .json-view-lite .json-undefined,
+.dark-theme .json-view-lite [class*="null"],
+.dark-theme .json-view-lite [class*="undefined"],
+.dark .json-view-lite .json-null,
+.dark .json-view-lite .json-undefined,
+.dark .json-view-lite [class*="null"],
+.dark .json-view-lite [class*="undefined"] {
+  color: #9ca3af !important;
+}
+
+.dark-theme .json-view-lite .json-key[data-testid*="["],
+.dark-theme .json-view-lite [class*="key"][data-testid*="["],
+.dark-theme .json-view-lite span:contains("["),
+.dark .json-view-lite .json-key[data-testid*="["],
+.dark .json-view-lite [class*="key"][data-testid*="["],
+.dark .json-view-lite span:contains("[") {
+  color: #a78bfa !important;
+  font-weight: 600 !important;
+}
+
+/* Arrows and expand/collapse buttons - Dark theme */
+.dark-theme .json-view-lite button,
+.dark-theme .json-view-lite button *,
+.dark-theme .json-view-lite [role="button"],
+.dark-theme .json-view-lite [role="button"] *,
+.dark-theme .json-view-lite .expand-icon,
+.dark-theme .json-view-lite .collapse-icon,
+.dark-theme .json-view-lite .toggle-icon,
+.dark-theme .json-view-lite .arrow,
+.dark-theme .json-view-lite .chevron,
+.dark .json-view-lite button,
+.dark .json-view-lite button *,
+.dark .json-view-lite [role="button"],
+.dark .json-view-lite [role="button"] *,
+.dark .json-view-lite .expand-icon,
+.dark .json-view-lite .collapse-icon,
+.dark .json-view-lite .toggle-icon,
+.dark .json-view-lite .arrow,
+.dark .json-view-lite .chevron {
+  color: #e5e7eb !important;
+  fill: #e5e7eb !important;
+  stroke: #e5e7eb !important;
+}
+
+/* Punctuation and symbols - Dark theme */
+.dark-theme .json-view-lite .punctuation,
+.dark-theme .json-view-lite .colon,
+.dark-theme .json-view-lite .comma,
+.dark-theme .json-view-lite .bracket,
+.dark-theme .json-view-lite .brace,
+.dark-theme .json-view-lite .quote,
+.dark-theme .json-view-lite [class*="punctuation"],
+.dark-theme .json-view-lite [class*="symbol"],
+.dark .json-view-lite .punctuation,
+.dark .json-view-lite .colon,
+.dark .json-view-lite .comma,
+.dark .json-view-lite .bracket,
+.dark .json-view-lite .brace,
+.dark .json-view-lite .quote,
+.dark .json-view-lite [class*="punctuation"],
+.dark .json-view-lite [class*="symbol"] {
+  color: #e5e7eb !important;
+}
+
+/* Target specific characters that might be styled - Dark theme */
+.dark-theme .json-view-lite span:contains(":"),
+.dark-theme .json-view-lite span:contains(","),
+.dark-theme .json-view-lite span:contains("{"),
+.dark-theme .json-view-lite span:contains("}"),
+.dark-theme .json-view-lite span:contains("["),
+.dark-theme .json-view-lite span:contains("]"),
+.dark-theme .json-view-lite span:contains('"') {
+  color: #e5e7eb !important;
+}
+
+/* SVG icons and arrows - Dark theme */
+.dark-theme .json-view-lite svg,
+.dark-theme .json-view-lite svg *,
+.dark-theme .json-view-lite path,
+.dark-theme .json-view-lite polygon,
+.dark-theme .json-view-lite circle,
+.dark-theme .json-view-lite rect {
+  fill: #e5e7eb !important;
+  stroke: #e5e7eb !important;
+  color: #e5e7eb !important;
+}
+
+/* Unicode arrows and symbols - Dark theme */
+.dark-theme .json-view-lite::before,
+.dark-theme .json-view-lite::after,
+.dark-theme .json-view-lite *::before,
+.dark-theme .json-view-lite *::after {
+  color: #e5e7eb !important;
+}
+
+/* Any remaining text nodes - Dark theme */
+.dark-theme .json-view-lite text,
+.dark-theme .json-view-lite textPath,
+.dark-theme .json-view-lite tspan {
+  fill: #e5e7eb !important;
+  color: #e5e7eb !important;
+}
+
+/* Ultimate fallback for any missed elements - Dark theme */
+.dark-theme .json-view-lite [style*="color"] {
+  color: #e5e7eb !important;
+}
+
+/* Force all text elements to be visible - Dark theme */
+.dark-theme .json-view-lite pre,
+.dark-theme .json-view-lite code,
+.dark-theme .json-view-lite text {
+  color: #e5e7eb !important;
+}
+
+/* Specific targeting for common arrow characters - Dark theme */
+.dark-theme .json-view-lite span[title*="expand"],
+.dark-theme .json-view-lite span[title*="collapse"],
+.dark-theme .json-view-lite span[aria-label*="expand"],
+.dark-theme .json-view-lite span[aria-label*="collapse"] {
+  color: #e5e7eb !important;
+}
+
+/* Target any element that might contain arrow characters - Dark theme */
+.dark-theme .json-view-lite *:contains("▶"),
+.dark-theme .json-view-lite *:contains("▼"),
+.dark-theme .json-view-lite *:contains("►"),
+.dark-theme .json-view-lite *:contains("▲"),
+.dark-theme .json-view-lite *:contains("▽"),
+.dark-theme .json-view-lite *:contains("△"),
+.dark-theme .json-view-lite *:contains("→"),
+.dark-theme .json-view-lite *:contains("↓") {
+  color: #e5e7eb !important;
+}
