@@ -8,6 +8,7 @@ interface AppState {
   selectedKeys: Set<string>;
   theme: 'light' | 'dark';
   showConnectionsPanel: boolean;
+  expandedValueItems: Set<string>;
   
   setConnections: (connections: RedisConnection[]) => void;
   addConnection: (connection: RedisConnection) => void;
@@ -18,6 +19,9 @@ interface AppState {
   clearSelection: () => void;
   toggleTheme: () => void;
   toggleConnectionsPanel: () => void;
+  toggleValueItemExpansion: (itemId: string) => void;
+  expandAllValueItems: (itemIds: string[]) => void;
+  collapseAllValueItems: () => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -26,6 +30,7 @@ export const useStore = create<AppState>((set) => ({
   selectedKeys: new Set(),
   theme: (localStorage.getItem('theme') as 'light' | 'dark') || 'light',
   showConnectionsPanel: (localStorage.getItem('showConnectionsPanel') !== 'false'), // Default to true
+  expandedValueItems: new Set(),
   
   setConnections: (connections) => {
     saveConnections(connections);
@@ -73,7 +78,6 @@ export const useStore = create<AppState>((set) => ({
     set((state) => {
       const newTheme = state.theme === 'light' ? 'dark' : 'light';
       localStorage.setItem('theme', newTheme);
-      document.documentElement.classList.toggle('dark');
       return { theme: newTheme };
     }),
   
@@ -83,4 +87,21 @@ export const useStore = create<AppState>((set) => ({
       localStorage.setItem('showConnectionsPanel', newShowPanel.toString());
       return { showConnectionsPanel: newShowPanel };
     }),
+  
+  toggleValueItemExpansion: (itemId) =>
+    set((state) => {
+      const newExpanded = new Set(state.expandedValueItems);
+      if (newExpanded.has(itemId)) {
+        newExpanded.delete(itemId);
+      } else {
+        newExpanded.add(itemId);
+      }
+      return { expandedValueItems: newExpanded };
+    }),
+  
+  expandAllValueItems: (itemIds) =>
+    set({ expandedValueItems: new Set(itemIds) }),
+  
+  collapseAllValueItems: () =>
+    set({ expandedValueItems: new Set() }),
 }));

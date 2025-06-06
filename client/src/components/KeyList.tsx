@@ -15,7 +15,7 @@ interface KeyListProps {
 }
 
 export const KeyList: React.FC<KeyListProps> = ({ onKeySelect }) => {
-  const { activeConnectionId, selectedKeys, toggleKeySelection, selectAllKeys, clearSelection, showConnectionsPanel, toggleConnectionsPanel } = useStore();
+  const { activeConnectionId, selectedKeys, toggleKeySelection, selectAllKeys, clearSelection, showConnectionsPanel, toggleConnectionsPanel, setActiveConnection } = useStore();
   const [keys, setKeys] = useState<RedisKey[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchPattern, setSearchPattern] = useState('*');
@@ -50,8 +50,16 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect }) => {
       // Auto-expand paths for selected keys
       const autoExpandPaths = getExpandedPaths(selectedKeys, tree);
       setExpandedNodes(new Set([...expandedNodes, ...autoExpandPaths]));
-    } catch (error) {
-      toast.error('Failed to fetch keys');
+    } catch (error: any) {
+      // Check if it's a connection error (likely because server restarted)
+      if (error.response?.status === 404 || error.response?.status === 400) {
+        toast.error('Connection lost. Please reconnect using the refresh button in the connections panel.');
+        // Clear the active connection since it's no longer valid
+        setActiveConnection(null);
+      } else {
+        toast.error('Failed to fetch keys');
+      }
+      console.error('Error fetching keys:', error);
     } finally {
       setLoading(false);
     }

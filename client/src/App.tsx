@@ -18,11 +18,13 @@ function App() {
   useConnectionRestore();
 
   useEffect(() => {
-    // Apply theme on mount
+    // Apply theme whenever it changes
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
-  }, []);
+  }, [theme]);
 
   return (
     <QueryClientProvider client={queryClient}>

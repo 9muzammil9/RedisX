@@ -62,6 +62,16 @@ export const ConnectionList: React.FC = () => {
     return activeConnectionId === connectionId;
   };
 
+  // Test if a connection is actually valid by trying to get connection info
+  const testConnection = async (connectionId: string): Promise<boolean> => {
+    try {
+      await connectionsApi.getInfo(connectionId);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
   return (
     <div className="w-64 border-r border-border bg-card">
       <div className="p-4">
@@ -87,7 +97,14 @@ export const ConnectionList: React.FC = () => {
                   ? 'bg-accent text-accent-foreground'
                   : 'hover:bg-accent/50 opacity-70'
               )}
-              onClick={() => isConnected(connection.id) ? setActiveConnection(connection.id) : null}
+              onClick={() => {
+                if (isConnected(connection.id)) {
+                  setActiveConnection(connection.id);
+                } else {
+                  // Try to reconnect if clicking on a disconnected connection
+                  handleReconnect(connection, { stopPropagation: () => {} } as React.MouseEvent);
+                }
+              }}
             >
               <div className="flex items-center space-x-2">
                 <Server className={cn("h-4 w-4", isConnected(connection.id) ? "text-green-500" : "text-gray-400")} />
@@ -103,17 +120,16 @@ export const ConnectionList: React.FC = () => {
               </div>
               
               <div className="flex items-center space-x-1">
-                {!isConnected(connection.id) && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={(e) => handleReconnect(connection, e)}
-                    className="h-8 w-8 p-0"
-                    disabled={reconnectingId === connection.id}
-                  >
-                    <RefreshCw className={cn("h-4 w-4", reconnectingId === connection.id && "animate-spin")} />
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={(e) => handleReconnect(connection, e)}
+                  className="h-8 w-8 p-0"
+                  disabled={reconnectingId === connection.id}
+                  title={isConnected(connection.id) ? "Refresh connection" : "Reconnect"}
+                >
+                  <RefreshCw className={cn("h-4 w-4", reconnectingId === connection.id && "animate-spin")} />
+                </Button>
                 <Button
                   size="sm"
                   variant="ghost"

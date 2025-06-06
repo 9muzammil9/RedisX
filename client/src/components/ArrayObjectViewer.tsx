@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, CheckSquare, Square } from 'lucide-react';
-import { JsonView } from 'react-json-view-lite';
+import { Plus, Trash2, CheckSquare, Square, Expand, Minimize2 } from 'lucide-react';
 import { Button } from './ui/Button';
-import { Checkbox } from './ui/Checkbox';
 import { ItemEditor } from './ItemEditor';
+import { KeyEditModal } from './KeyEditModal';
+import { ViewerItem } from './ViewerItem';
 import { useStore } from '../store/useStore';
 
 interface ArrayObjectViewerProps {
@@ -17,7 +17,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
   type,
   onUpdate,
 }) => {
-  const { theme } = useStore();
+  const { theme, expandedValueItems, toggleValueItemExpansion, expandAllValueItems, collapseAllValueItems } = useStore();
   const [editingItem, setEditingItem] = useState<{
     index?: number;
     key?: string;
@@ -25,10 +25,23 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
     isNew?: boolean;
   } | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string | number>>(new Set());
+  const [editingKey, setEditingKey] = useState<{
+    key: string;
+    index?: number;
+  } | null>(null);
 
   const isArray = type === 'list';
   const items = isArray ? (Array.isArray(data) ? data : []) : (data || {});
   const itemKeys = isArray ? Array.from({ length: items.length }, (_, i) => i) : Object.keys(items);
+  
+  // Generate unique item IDs for expand/collapse state
+  const getItemId = (index?: number, key?: string): string => {
+    return isArray ? `list-${index}` : `hash-${key}`;
+  };
+  
+  const allItemIds = itemKeys.map(key => getItemId(isArray ? key as number : undefined, isArray ? undefined : key as string));
+  const allExpanded = allItemIds.every(id => expandedValueItems.has(id));
+  const anyExpanded = allItemIds.some(id => expandedValueItems.has(id));
 
   const detectValueType = (value: any): 'string' | 'number' | 'boolean' | 'object' => {
     if (typeof value === 'number') return 'number';
@@ -186,6 +199,26 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
     setSelectedItems(new Set());
   };
 
+  const handleKeyRename = (newKey: string) => {
+    if (!editingKey || !newKey.trim()) return;
+
+    let updatedData;
+
+    if (isArray) {
+      // For arrays, we can't really rename indices, but this shouldn't happen
+      return;
+    } else {
+      // For objects/hashes, rename the key
+      updatedData = { ...items };
+      const value = updatedData[editingKey.key];
+      delete updatedData[editingKey.key];
+      updatedData[newKey] = value;
+    }
+
+    onUpdate(updatedData);
+    setEditingKey(null);
+  };
+
   const getTitle = (): string => {
     if (editingItem?.isNew) {
       return `Add New ${isArray ? 'Item' : 'Field'}`;
@@ -237,6 +270,26 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
                   Delete Selected
                 </Button>
               )}
+              
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  if (allExpanded) {
+                    collapseAllValueItems();
+                  } else {
+                    expandAllValueItems(allItemIds);
+                  }
+                }}
+                className="h-8"
+              >
+                {allExpanded ? (
+                  <Minimize2 className="h-4 w-4 mr-1" />
+                ) : (
+                  <Expand className="h-4 w-4 mr-1" />
+                )}
+                {allExpanded ? 'Collapse All' : 'Expand All'}
+              </Button>
             </>
           )}
           
@@ -249,97 +302,56 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
 
       <div className="flex-1 space-y-2 overflow-auto">
         {isArray ? (
-          items.map((item: any, index: number) => (
-            <div
-              key={index}
-              className={`group flex items-start space-x-3 p-3 border border-border rounded-md hover:bg-accent/50 cursor-pointer bg-card ${
-                selectedItems.has(String(index)) ? 'bg-accent' : ''
-              }`}
-              onDoubleClick={() => handleEdit(index)}
-            >
-              <Checkbox
-                checked={selectedItems.has(String(index))}
-                onCheckedChange={() => toggleItemSelection(String(index))}
-                onClick={(e) => e.stopPropagation()}
-                className="mt-1"
+          items.map((item: any, index: number) => {
+            const itemId = getItemId(index);
+            const isExpanded = expandedValueItems.has(itemId);
+            const hasTreeView = shouldUseTreeView(item);
+            
+            return (
+              <ViewerItem
+                key={index}
+                itemKey={index}
+                value={item}
+                isArray={true}
+                isSelected={selectedItems.has(String(index))}
+                isExpanded={isExpanded}
+                hasTreeView={hasTreeView}
+                theme={theme}
+                onToggleSelection={toggleItemSelection}
+                onEdit={handleEdit}
+                onToggleExpansion={toggleValueItemExpansion}
+                getItemId={getItemId}
+                getTreeViewData={getTreeViewData}
+                formatDisplayValue={formatDisplayValue}
               />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-purple-600 dark:text-purple-400">
-                  [{index}]
-                </div>
-                <div className="text-sm text-foreground mt-1 break-words">
-                  {shouldUseTreeView(item) ? (
-                    <div className={`json-tree-container ${theme === 'dark' ? 'dark-theme' : 'light-theme'} text-xs`}>
-                      <JsonView
-                        data={getTreeViewData(item)}
-                      />
-                    </div>
-                  ) : (
-                    <pre className="whitespace-pre-wrap font-mono text-xs">
-                      {formatDisplayValue(item)}
-                    </pre>
-                  )}
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEdit(index);
-                }}
-                className="opacity-0 group-hover:opacity-100 ml-2"
-              >
-                <Edit2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))
+            );
+          })
         ) : (
-          Object.entries(items).map(([key, value]) => (
-            <div
-              key={key}
-              className={`group flex items-start space-x-3 p-3 border border-border rounded-md hover:bg-accent/50 cursor-pointer bg-card ${
-                selectedItems.has(key) ? 'bg-accent' : ''
-              }`}
-              onDoubleClick={() => handleEdit(undefined, key)}
-            >
-              <Checkbox
-                checked={selectedItems.has(key)}
-                onCheckedChange={() => toggleItemSelection(key)}
-                onClick={(e) => e.stopPropagation()}
-                className="mt-1"
+          Object.entries(items).map(([key, value]) => {
+            const itemId = getItemId(undefined, key);
+            const isExpanded = expandedValueItems.has(itemId);
+            const hasTreeView = shouldUseTreeView(value);
+            
+            return (
+              <ViewerItem
+                key={key}
+                itemKey={key}
+                value={value}
+                isArray={false}
+                isSelected={selectedItems.has(key)}
+                isExpanded={isExpanded}
+                hasTreeView={hasTreeView}
+                theme={theme}
+                onToggleSelection={toggleItemSelection}
+                onEdit={handleEdit}
+                onToggleExpansion={toggleValueItemExpansion}
+                onKeyRename={(key: string) => setEditingKey({ key })}
+                getItemId={getItemId}
+                getTreeViewData={getTreeViewData}
+                formatDisplayValue={formatDisplayValue}
               />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                  {key}
-                </div>
-                <div className="text-sm text-foreground mt-1 break-words">
-                  {shouldUseTreeView(value) ? (
-                    <div className={`json-tree-container ${theme === 'dark' ? 'dark-theme' : 'light-theme'} text-xs`}>
-                      <JsonView
-                        data={getTreeViewData(value)}
-                      />
-                    </div>
-                  ) : (
-                    <pre className="whitespace-pre-wrap font-mono text-xs">
-                      {formatDisplayValue(value)}
-                    </pre>
-                  )}
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEdit(undefined, key);
-                }}
-                className="opacity-0 group-hover:opacity-100 ml-2"
-              >
-                <Edit2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -354,6 +366,16 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
           initialKey={editingItem.key}
           valueType={detectValueType(editingItem.value)}
           isKeyEditable={!isArray && editingItem.isNew}
+        />
+      )}
+
+      {editingKey && (
+        <KeyEditModal
+          isOpen={true}
+          onClose={() => setEditingKey(null)}
+          onSave={handleKeyRename}
+          currentKey={editingKey.key}
+          title="Rename Key"
         />
       )}
     </div>

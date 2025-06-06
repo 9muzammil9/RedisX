@@ -49,6 +49,8 @@ export const KeyTreeNodeComponent: React.FC<KeyTreeNodeProps> = ({
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
+    console.log('Checkbox clicked for key:', node.keyData?.key);
     handleCheckboxChange();
   };
 
@@ -83,10 +85,19 @@ export const KeyTreeNodeComponent: React.FC<KeyTreeNodeProps> = ({
 
         {/* Checkbox for keys */}
         {node.isKey && node.keyData && (
-          <div onClick={handleCheckboxClick} className="mr-3 flex-shrink-0">
+          <div className="mr-3 flex-shrink-0">
             <Checkbox
               checked={isSelected}
-              onCheckedChange={handleCheckboxChange}
+              onCheckedChange={(checked) => {
+                console.log('Checkbox onCheckedChange called for key:', node.keyData?.key, 'checked:', checked);
+                if (node.isKey && node.keyData) {
+                  onToggleSelected(node.keyData.key);
+                }
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('Checkbox onClick called for key:', node.keyData?.key);
+              }}
             />
           </div>
         )}
