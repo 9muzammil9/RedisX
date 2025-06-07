@@ -43,17 +43,19 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
 
   return (
     <div
-      className={`group flex items-start space-x-3 p-3 border border-border rounded-md hover:bg-accent/50 cursor-pointer bg-card ${
+      className={`group flex items-start space-x-3 p-3 border border-border rounded-md hover:bg-accent/50 cursor-pointer bg-transparent ${
         isSelected ? 'bg-accent' : ''
       }`}
       onDoubleClick={() => onEdit(index, key)}
     >
-      <Checkbox
-        checked={isSelected}
-        onCheckedChange={() => onToggleSelection(itemKey)}
-        onClick={(e) => e.stopPropagation()}
-        className="mt-1"
-      />
+      <div style={{ position: 'relative', zIndex: 10 }}>
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={() => onToggleSelection(itemKey)}
+          onClick={(e) => e.stopPropagation()}
+          className="mt-1"
+        />
+      </div>
       <div className="flex-1 min-w-0">
         <div className={isArray ? "text-sm font-medium text-purple-600 dark:text-purple-400" : "flex items-center space-x-2"}>
           {isArray ? (
@@ -66,13 +68,13 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
               {onKeyRename && (
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="secondary"
                   onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
                     onKeyRename(key as string);
                   }}
-                  className="h-9 w-9 p-0 border-blue-300"
+                  className="h-9 w-9 p-0 border border-blue-300"
                   title="Rename key"
                 >
                   <Tag className="h-6 w-6 text-blue-600" />
@@ -92,10 +94,6 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
             >
               <JsonView 
                 data={getTreeViewData(value)} 
-                style={theme === 'dark' ? {
-                  backgroundColor: 'transparent',
-                  color: '#ffffff'
-                } : {}}
               />
             </div>
           ) : hasTreeView && !isExpanded ? (

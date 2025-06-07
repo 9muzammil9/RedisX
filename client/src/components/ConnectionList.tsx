@@ -3,6 +3,7 @@ import { Plus, Trash2, Server, RefreshCw } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useStore } from '../store/useStore';
 import { ConnectionModal } from './ConnectionModal';
+import { ConfirmationModal } from './ConfirmationModal';
 import { connectionsApi } from '../services/api';
 import toast from 'react-hot-toast';
 import { cn } from '../utils/cn';
@@ -11,12 +12,31 @@ export const ConnectionList: React.FC = () => {
   const { connections, activeConnectionId, setActiveConnection, removeConnection, addConnection } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reconnectingId, setReconnectingId] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    connectionId: string | null;
+    connectionName: string | null;
+  }>({
+    isOpen: false,
+    connectionId: null,
+    connectionName: null,
+  });
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (connection: any, e: React.MouseEvent) => {
     e.stopPropagation();
+    setDeleteConfirmation({
+      isOpen: true,
+      connectionId: connection.id,
+      connectionName: connection.name,
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmation.connectionId) return;
+    
     try {
-      await connectionsApi.delete(id);
-      removeConnection(id);
+      await connectionsApi.delete(deleteConfirmation.connectionId);
+      removeConnection(deleteConfirmation.connectionId);
       toast.success('Connection deleted');
     } catch (error) {
       toast.error('Failed to delete connection');
@@ -28,12 +48,12 @@ export const ConnectionList: React.FC = () => {
     setReconnectingId(connection.id);
     
     try {
-      // Try to reconnect without password first (for connections that don't need passwords)
+      // Try to reconnect with stored connection data including password
       const connectionData = {
         name: connection.name,
         host: connection.host,
         port: connection.port,
-        password: undefined, // Will prompt in modal if needed
+        password: connection.password, // Use stored password
         db: connection.db,
         username: connection.username,
         tls: connection.tls,
@@ -48,9 +68,13 @@ export const ConnectionList: React.FC = () => {
       setActiveConnection(data.id);
       
       toast.success(`Reconnected to ${connection.name}`);
-    } catch (error) {
-      // If reconnection fails, open the connection modal for password re-entry
-      toast.error(`Reconnection failed. Please re-enter connection details.`);
+    } catch (error: any) {
+      // Check if it's an authentication error
+      if (error.response?.data?.message?.includes('NOAUTH') || error.message?.includes('NOAUTH')) {
+        toast.error(`Authentication required for ${connection.name}. Please re-enter password.`);
+      } else {
+        toast.error(`Reconnection failed for ${connection.name}. Please check connection details.`);
+      }
       setIsModalOpen(true);
     } finally {
       setReconnectingId(null);
@@ -81,9 +105,9 @@ export const ConnectionList: React.FC = () => {
             size="sm"
             variant="ghost"
             onClick={() => setIsModalOpen(true)}
-            className="h-8 w-8 p-0"
+            className="h-10 w-10 p-0"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-6 w-6" />
           </Button>
         </div>
         
@@ -124,19 +148,19 @@ export const ConnectionList: React.FC = () => {
                   size="sm"
                   variant="ghost"
                   onClick={(e) => handleReconnect(connection, e)}
-                  className="h-8 w-8 p-0"
+                  className="h-10 w-10 p-0"
                   disabled={reconnectingId === connection.id}
                   title={isConnected(connection.id) ? "Refresh connection" : "Reconnect"}
                 >
-                  <RefreshCw className={cn("h-4 w-4", reconnectingId === connection.id && "animate-spin")} />
+                  <RefreshCw className={cn("h-5 w-5", reconnectingId === connection.id && "animate-spin")} />
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={(e) => handleDelete(connection.id, e)}
-                  className="h-8 w-8 p-0"
+                  onClick={(e) => handleDeleteClick(connection, e)}
+                  className="h-10 w-10 p-0"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-5 w-5" />
                 </Button>
               </div>
             </div>
@@ -145,6 +169,16 @@ export const ConnectionList: React.FC = () => {
       </div>
       
       <ConnectionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      
+      <ConfirmationModal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, connectionId: null, connectionName: null })}
+        onConfirm={handleConfirmDelete}
+        title="Delete Connection"
+        message={`Are you sure you want to delete the connection "${deleteConfirmation.connectionName}"? This action cannot be undone.`}
+        confirmText="Delete"
+        isDestructive={true}
+      />
     </div>
   );
 };

@@ -5,12 +5,8 @@ const ACTIVE_CONNECTION_STORAGE_KEY = 'redis-viewer-active-connection';
 
 export const saveConnections = (connections: RedisConnection[]): void => {
   try {
-    // Don't save passwords for security reasons
-    const connectionsToSave = connections.map(conn => ({
-      ...conn,
-      password: undefined, // Remove password from storage
-    }));
-    localStorage.setItem(CONNECTIONS_STORAGE_KEY, JSON.stringify(connectionsToSave));
+    // Save all connection data including passwords
+    localStorage.setItem(CONNECTIONS_STORAGE_KEY, JSON.stringify(connections));
   } catch (error) {
     console.error('Failed to save connections to localStorage:', error);
   }

@@ -35,46 +35,58 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey }) => {
     }
   }, [selectedKey, activeConnectionId]);
 
-  // Apply dark theme styles directly to JSON view elements
+  // Apply theme styles directly to JSON view elements
   useEffect(() => {
-    if (theme === 'dark') {
-      // Apply styles to ALL elements aggressively
-      const applyDarkStyles = () => {
-        // Target everything possible
-        const allElements = document.querySelectorAll('*');
-        allElements.forEach((element: any) => {
-          // Check if element is inside a json-tree-container
-          if (element.closest('.json-tree-container')) {
+    const applyThemeStyles = () => {
+      // Target everything possible
+      const allElements = document.querySelectorAll('*');
+      allElements.forEach((element: any) => {
+        // Check if element is inside a json-tree-container but exclude checkboxes and their children
+        const isInsideJsonContainer = element.closest('.json-tree-container');
+        const isCheckboxOrChild = element.closest('[role="checkbox"]') || 
+                                 element.hasAttribute('data-state') ||
+                                 element.getAttribute('role') === 'checkbox' ||
+                                 element.parentElement?.getAttribute('role') === 'checkbox';
+        
+        if (isInsideJsonContainer && !isCheckboxOrChild) {
+          if (theme === 'dark') {
             element.style.setProperty('background-color', 'transparent', 'important');
             element.style.setProperty('color', '#ffffff', 'important');
             element.style.setProperty('background', 'transparent', 'important');
             element.style.setProperty('fill', '#ffffff', 'important');
             element.style.setProperty('stroke', '#ffffff', 'important');
+          } else {
+            // Light mode - force transparent background like dark mode
+            element.style.setProperty('background-color', 'transparent', 'important');
+            element.style.setProperty('background', 'transparent', 'important');
+            element.style.setProperty('color', 'hsl(var(--foreground))', 'important');
+            element.style.setProperty('fill', 'hsl(var(--foreground))', 'important');
+            element.style.setProperty('stroke', 'hsl(var(--foreground))', 'important');
           }
-        });
-      };
-      
-      // Apply immediately and repeatedly
-      applyDarkStyles();
-      const interval = setInterval(applyDarkStyles, 100);
-      
-      // Also use MutationObserver to catch any new elements
-      const observer = new MutationObserver(() => {
-        applyDarkStyles();
+        }
       });
-      
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['style', 'class']
-      });
-      
-      return () => {
-        clearInterval(interval);
-        observer.disconnect();
-      };
-    }
+    };
+    
+    // Apply immediately and repeatedly
+    applyThemeStyles();
+    const interval = setInterval(applyThemeStyles, 100);
+    
+    // Also use MutationObserver to catch any new elements
+    const observer = new MutationObserver(() => {
+      applyThemeStyles();
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    });
+    
+    return () => {
+      clearInterval(interval);
+      observer.disconnect();
+    };
   }, [theme, value, viewMode]);
 
 
@@ -465,7 +477,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey }) => {
             />
           </div>
         ) : (
-          <div className="h-full overflow-auto bg-muted/30 min-w-0">
+          <div className={`h-full overflow-auto min-w-0 ${theme === 'dark' ? 'bg-muted/30' : 'bg-background'}`}>
             {viewMode === 'raw' ? (
               <div className="h-full flex flex-col">
                 <div className="p-2 text-xs text-muted-foreground border-b flex-shrink-0">Raw JSON View</div>

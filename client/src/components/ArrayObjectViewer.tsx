@@ -161,10 +161,11 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
 
   const toggleItemSelection = (itemKey: string | number) => {
     const newSelection = new Set(selectedItems);
-    if (newSelection.has(itemKey)) {
-      newSelection.delete(itemKey);
+    const keyStr = String(itemKey);
+    if (newSelection.has(keyStr)) {
+      newSelection.delete(keyStr);
     } else {
-      newSelection.add(itemKey);
+      newSelection.add(keyStr);
     }
     setSelectedItems(newSelection);
   };

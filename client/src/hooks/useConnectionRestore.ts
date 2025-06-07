@@ -3,7 +3,7 @@ import { useStore } from '../store/useStore';
 import toast from 'react-hot-toast';
 
 export const useConnectionRestore = () => {
-  const { connections } = useStore();
+  const { connections, activeConnectionId } = useStore();
 
   useEffect(() => {
     // Show a message if there are saved connections
@@ -12,6 +12,11 @@ export const useConnectionRestore = () => {
         `${connections.length} saved connection(s) loaded. Click to reconnect.`,
         { duration: 4000 }
       );
+    }
+
+    // Clear any stale active connection if it doesn't exist in saved connections
+    if (activeConnectionId && !connections.find(conn => conn.id === activeConnectionId)) {
+      useStore.getState().setActiveConnection(null);
     }
   }, []); // Empty dependency array means this runs only once on mount
 };
