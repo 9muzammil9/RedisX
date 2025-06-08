@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Key } from 'lucide-react';
 import { Checkbox } from './ui/Checkbox';
 import { KeyTreeNode } from '../utils/keyTree';
+import { KeyContextMenu } from './KeyContextMenu';
 import { cn } from '../utils/cn';
 
 interface KeyTreeNodeProps {
@@ -12,6 +13,12 @@ interface KeyTreeNodeProps {
   onToggleSelected: (key: string) => void;
   onKeySelect: (key: string) => void;
   selectedKey?: string;
+  onExportKey?: (key: string) => void;
+  onExportGroup?: (pattern: string) => void;
+  onCopyKeyName?: (keyName: string) => void;
+  onCopyValue?: (key: string) => void;
+  onEditKey?: (key: string) => void;
+  onDeleteKey?: (key: string) => void;
 }
 
 export const KeyTreeNodeComponent: React.FC<KeyTreeNodeProps> = ({
@@ -22,6 +29,12 @@ export const KeyTreeNodeComponent: React.FC<KeyTreeNodeProps> = ({
   onToggleSelected,
   onKeySelect,
   selectedKey,
+  onExportKey,
+  onExportGroup,
+  onCopyKeyName,
+  onCopyValue,
+  onEditKey,
+  onDeleteKey,
 }) => {
   const hasChildren = node.children.length > 0;
   const paddingLeft = node.level * 16 + 8; // 16px per level + 8px base padding
@@ -58,15 +71,24 @@ export const KeyTreeNodeComponent: React.FC<KeyTreeNodeProps> = ({
 
   return (
     <>
-      <div
-        className={cn(
-          'flex items-center py-2 hover:bg-accent/50 cursor-pointer transition-colors',
-          isCurrentlySelected && 'bg-accent',
-          isSelected && 'bg-accent/30'
-        )}
-        style={{ paddingLeft }}
-        onClick={handleClick}
+      <KeyContextMenu
+        node={node}
+        onExportKey={onExportKey}
+        onExportGroup={onExportGroup}
+        onCopyKeyName={onCopyKeyName}
+        onCopyValue={onCopyValue}
+        onEditKey={onEditKey}
+        onDeleteKey={onDeleteKey}
       >
+        <div
+          className={cn(
+            'flex items-center py-2 hover:bg-accent/50 cursor-pointer transition-colors',
+            isCurrentlySelected && 'bg-accent',
+            isSelected && 'bg-accent/30'
+          )}
+          style={{ paddingLeft }}
+          onClick={handleClick}
+        >
         {/* Expand/Collapse Icon */}
         <div className="w-4 h-4 mr-2 flex-shrink-0">
           {hasChildren && (
@@ -130,7 +152,8 @@ export const KeyTreeNodeComponent: React.FC<KeyTreeNodeProps> = ({
             </p>
           )}
         </div>
-      </div>
+        </div>
+      </KeyContextMenu>
 
       {/* Render children if expanded */}
       {hasChildren && isExpanded && (
@@ -145,6 +168,12 @@ export const KeyTreeNodeComponent: React.FC<KeyTreeNodeProps> = ({
               onToggleSelected={onToggleSelected}
               onKeySelect={onKeySelect}
               selectedKey={selectedKey}
+              onExportKey={onExportKey}
+              onExportGroup={onExportGroup}
+              onCopyKeyName={onCopyKeyName}
+              onCopyValue={onCopyValue}
+              onEditKey={onEditKey}
+              onDeleteKey={onDeleteKey}
             />
           ))}
         </div>

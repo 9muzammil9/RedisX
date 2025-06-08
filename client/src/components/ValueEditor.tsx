@@ -13,11 +13,13 @@ import toast from 'react-hot-toast';
 
 interface ValueEditorProps {
   selectedKey: string | null;
+  forceEditMode?: boolean;
+  onForceEditModeUsed?: () => void;
 }
 
 type ViewMode = 'raw' | 'json' | 'formatted' | 'editor';
 
-export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey }) => {
+export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEditMode, onForceEditModeUsed }) => {
   const { activeConnectionId, theme } = useStore();
   const [value, setValue] = useState<RedisValue | null>(null);
   const [editedValue, setEditedValue] = useState<string>('');
@@ -34,6 +36,14 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey }) => {
       fetchValue(true); // Reset view mode when key changes
     }
   }, [selectedKey, activeConnectionId]);
+
+  // Handle force edit mode
+  useEffect(() => {
+    if (forceEditMode && value) {
+      setIsEditing(true);
+      onForceEditModeUsed?.();
+    }
+  }, [forceEditMode, value, onForceEditModeUsed]);
 
   // Apply theme styles directly to JSON view elements
   useEffect(() => {

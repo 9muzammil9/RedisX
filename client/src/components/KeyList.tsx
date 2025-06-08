@@ -9,12 +9,14 @@ import toast from 'react-hot-toast';
 import { NewKeyModal } from './NewKeyModal';
 import { buildKeyTree, getExpandedPaths, KeyTreeNode } from '../utils/keyTree';
 import { KeyTreeNodeComponent } from './KeyTreeNode';
+import { exportSingleKey, copyToClipboard, ExportedKey } from '../utils/exportUtils';
 
 interface KeyListProps {
   onKeySelect: (key: string) => void;
+  onKeySelectForEdit?: (key: string) => void;
 }
 
-export const KeyList: React.FC<KeyListProps> = ({ onKeySelect }) => {
+export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdit }) => {
   const { activeConnectionId, selectedKeys, toggleKeySelection, selectAllKeys, clearSelection, showConnectionsPanel, toggleConnectionsPanel, setActiveConnection } = useStore();
   const [keys, setKeys] = useState<RedisKey[]>([]);
   const [loading, setLoading] = useState(false);
@@ -121,6 +123,125 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect }) => {
     onKeySelect(key);
   };
 
+  const handleExportKey = async (key: string) => {
+    if (!activeConnectionId) return;
+    
+    try {
+      const { data } = await keysApi.getValue(activeConnectionId, key);
+      const keyData = keys.find(k => k.key === key);
+      if (!keyData) return;
+      
+      const exportData: ExportedKey = {
+        key: keyData.key,
+        value: data.value,
+        type: keyData.type,
+        ttl: keyData.ttl,
+        timestamp: new Date().toISOString(),
+      };
+      
+      exportSingleKey(exportData);
+      toast.success(`Exported key: ${key}`);
+    } catch (error) {
+      toast.error('Failed to export key');
+      console.error('Export error:', error);
+    }
+  };
+
+  const handleExportGroup = async (pattern: string) => {
+    if (!activeConnectionId) return;
+    
+    try {
+      const { data } = await keysApi.getAll(activeConnectionId, pattern);
+      const keysToExport = data.keys.slice(0, 100); // Limit to 100 keys
+      
+      if (keysToExport.length === 0) {
+        toast.error('No keys found matching pattern');
+        return;
+      }
+      
+      // Get values for all keys
+      const exportPromises = keysToExport.map(async (keyData) => {
+        try {
+          const { data: valueData } = await keysApi.getValue(activeConnectionId, keyData.key);
+          return {
+            key: keyData.key,
+            value: valueData.value,
+            type: keyData.type,
+            ttl: keyData.ttl,
+            timestamp: new Date().toISOString(),
+          };
+        } catch (error) {
+          console.error(`Failed to get value for key ${keyData.key}:`, error);
+          return null;
+        }
+      });
+      
+      const exportedKeys = (await Promise.all(exportPromises)).filter(Boolean) as ExportedKey[];
+      
+      if (exportedKeys.length > 0) {
+        const { exportMultipleKeys } = await import('../utils/exportUtils');
+        exportMultipleKeys(exportedKeys, `redis-keys-${pattern.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        toast.success(`Exported ${exportedKeys.length} keys`);
+      }
+    } catch (error) {
+      toast.error('Failed to export group');
+      console.error('Export group error:', error);
+    }
+  };
+
+  const handleCopyKeyName = async (keyName: string) => {
+    const success = await copyToClipboard(keyName);
+    if (success) {
+      toast.success('Key name copied to clipboard');
+    } else {
+      toast.error('Failed to copy key name');
+    }
+  };
+
+  const handleCopyValue = async (key: string) => {
+    if (!activeConnectionId) return;
+    
+    try {
+      const { data } = await keysApi.getValue(activeConnectionId, key);
+      const valueStr = typeof data.value === 'string' 
+        ? data.value 
+        : JSON.stringify(data.value, null, 2);
+      
+      const success = await copyToClipboard(valueStr);
+      if (success) {
+        toast.success('Value copied to clipboard');
+      } else {
+        toast.error('Failed to copy value');
+      }
+    } catch (error) {
+      toast.error('Failed to get key value');
+      console.error('Copy value error:', error);
+    }
+  };
+
+  const handleEditKey = (key: string) => {
+    if (onKeySelectForEdit) {
+      onKeySelectForEdit(key);
+      toast.success('Key opened in edit mode');
+    } else {
+      handleKeySelect(key);
+      toast.success('Key selected for editing');
+    }
+  };
+
+  const handleDeleteKey = async (key: string) => {
+    if (!activeConnectionId) return;
+    
+    try {
+      await keysApi.deleteKeys(activeConnectionId, [key]);
+      toast.success(`Deleted key: ${key}`);
+      fetchKeys(searchPattern, '0');
+    } catch (error) {
+      toast.error('Failed to delete key');
+      console.error('Delete key error:', error);
+    }
+  };
+
   if (!activeConnectionId) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-4">
@@ -220,6 +341,12 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect }) => {
                 onToggleSelected={toggleKeySelection}
                 onKeySelect={handleKeySelect}
                 selectedKey={selectedKey || undefined}
+                onExportKey={handleExportKey}
+                onExportGroup={handleExportGroup}
+                onCopyKeyName={handleCopyKeyName}
+                onCopyValue={handleCopyValue}
+                onEditKey={handleEditKey}
+                onDeleteKey={handleDeleteKey}
               />
             ))}
           </div>

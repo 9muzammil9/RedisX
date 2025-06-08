@@ -10,10 +10,11 @@ import toast from 'react-hot-toast';
 interface ConnectionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  editingConnection?: any;
 }
 
-export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClose }) => {
-  const { addConnection, setActiveConnection } = useStore();
+export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClose, editingConnection }) => {
+  const { addConnection, setActiveConnection, removeConnection } = useStore();
   const [formData, setFormData] = useState({
     name: '',
     host: 'localhost',
@@ -23,24 +24,23 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
     username: '',
     tls: false,
   });
+  const [keepExistingPassword, setKeepExistingPassword] = useState(true);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const { data } = await connectionsApi.create({
-        name: formData.name,
-        host: formData.host,
-        port: parseInt(formData.port),
-        password: formData.password || undefined,
-        db: formData.db ? parseInt(formData.db) : undefined,
-        username: formData.username || undefined,
-        tls: formData.tls,
+  // Pre-fill form when editing
+  React.useEffect(() => {
+    if (editingConnection) {
+      setFormData({
+        name: editingConnection.name || '',
+        host: editingConnection.host || 'localhost',
+        port: editingConnection.port?.toString() || '6379',
+        password: '', // Will be handled by keepExistingPassword logic
+        db: editingConnection.db?.toString() || '0',
+        username: editingConnection.username || '',
+        tls: editingConnection.tls || false,
       });
-      
-      addConnection(data);
-      setActiveConnection(data.id);
-      toast.success('Connected successfully');
-      onClose();
+      setKeepExistingPassword(true);
+    } else {
+      // Reset form for new connections
       setFormData({
         name: '',
         host: 'localhost',
@@ -50,8 +50,50 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
         username: '',
         tls: false,
       });
+      setKeepExistingPassword(false);
+    }
+  }, [editingConnection, isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingConnection) {
+        // Update existing connection
+        const { data } = await connectionsApi.create({
+          name: formData.name,
+          host: formData.host,
+          port: parseInt(formData.port),
+          password: keepExistingPassword ? editingConnection.password : (formData.password || undefined),
+          db: formData.db ? parseInt(formData.db) : undefined,
+          username: formData.username || undefined,
+          tls: formData.tls,
+        });
+        
+        // Remove old connection and add updated one
+        removeConnection(editingConnection.id);
+        addConnection(data);
+        setActiveConnection(data.id);
+        toast.success('Connection updated successfully');
+      } else {
+        // Create new connection
+        const { data } = await connectionsApi.create({
+          name: formData.name,
+          host: formData.host,
+          port: parseInt(formData.port),
+          password: formData.password || undefined,
+          db: formData.db ? parseInt(formData.db) : undefined,
+          username: formData.username || undefined,
+          tls: formData.tls,
+        });
+        
+        addConnection(data);
+        setActiveConnection(data.id);
+        toast.success('Connected successfully');
+      }
+      
+      onClose();
     } catch (error) {
-      toast.error('Failed to connect');
+      toast.error(editingConnection ? 'Failed to update connection' : 'Failed to connect');
     }
   };
 
@@ -61,7 +103,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
         <Dialog.Overlay className="fixed inset-0 bg-black/50" />
         <Dialog.Content className="fixed left-[50%] top-[50%] max-h-[85vh] w-[90vw] max-w-[500px] translate-x-[-50%] translate-y-[-50%] rounded-lg bg-background p-6 shadow-lg">
           <Dialog.Title className="text-lg font-semibold mb-4">
-            Add Redis Connection
+            {editingConnection ? 'Edit Connection' : 'Add Redis Connection'}
           </Dialog.Title>
           
           <Dialog.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
@@ -104,11 +146,31 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
             
             <div>
               <label className="text-sm font-medium">Password (optional)</label>
+              {editingConnection && (
+                <div className="flex items-center space-x-2 mb-2">
+                  <input
+                    type="checkbox"
+                    id="keepPassword"
+                    checked={keepExistingPassword}
+                    onChange={(e) => {
+                      setKeepExistingPassword(e.target.checked);
+                      if (e.target.checked) {
+                        setFormData({ ...formData, password: '' });
+                      }
+                    }}
+                    className="rounded border-gray-300"
+                  />
+                  <label htmlFor="keepPassword" className="text-sm text-muted-foreground">
+                    Keep existing password
+                  </label>
+                </div>
+              )}
               <Input
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Password"
+                placeholder={editingConnection && keepExistingPassword ? "Using existing password" : "Password"}
+                disabled={editingConnection && keepExistingPassword}
               />
             </div>
             

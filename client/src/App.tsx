@@ -12,10 +12,25 @@ const queryClient = new QueryClient();
 
 function App() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [forceEditMode, setForceEditMode] = useState(false);
   const { theme, showConnectionsPanel } = useStore();
   
   // Restore connections on app load
   useConnectionRestore();
+
+  const handleKeySelect = (key: string) => {
+    setSelectedKey(key);
+    setForceEditMode(false); // Reset edit mode when selecting normally
+  };
+
+  const handleKeySelectForEdit = (key: string) => {
+    setSelectedKey(key);
+    setForceEditMode(true);
+  };
+
+  const handleForceEditModeUsed = () => {
+    setForceEditMode(false);
+  };
 
   useEffect(() => {
     // Apply theme whenever it changes
@@ -34,9 +49,9 @@ function App() {
           {showConnectionsPanel && <ConnectionList />}
           <div className="flex-1 flex">
             <div className={`${showConnectionsPanel ? 'w-96' : 'w-80'} border-r border-border`}>
-              <KeyList onKeySelect={setSelectedKey} />
+              <KeyList onKeySelect={handleKeySelect} onKeySelectForEdit={handleKeySelectForEdit} />
             </div>
-            <ValueEditor selectedKey={selectedKey} />
+            <ValueEditor selectedKey={selectedKey} forceEditMode={forceEditMode} onForceEditModeUsed={handleForceEditModeUsed} />
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { cn } from '../utils/cn';
 export const ConnectionList: React.FC = () => {
   const { connections, activeConnectionId, setActiveConnection, removeConnection, addConnection } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingConnection, setEditingConnection] = useState<any>(null);
   const [reconnectingId, setReconnectingId] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
@@ -21,6 +22,12 @@ export const ConnectionList: React.FC = () => {
     connectionId: null,
     connectionName: null,
   });
+
+  const handleEditClick = (connection: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingConnection(connection);
+    setIsModalOpen(true);
+  };
 
   const handleDeleteClick = (connection: any, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -104,7 +111,10 @@ export const ConnectionList: React.FC = () => {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setEditingConnection(null);
+              setIsModalOpen(true);
+            }}
             className="h-10 w-10 p-0"
           >
             <Plus className="h-6 w-6" />
@@ -131,7 +141,11 @@ export const ConnectionList: React.FC = () => {
               }}
             >
               <div className="flex items-center space-x-2">
-                <Server className={cn("h-4 w-4", isConnected(connection.id) ? "text-green-500" : "text-gray-400")} />
+                <Server 
+                  className={cn("h-4 w-4 cursor-pointer hover:opacity-70", isConnected(connection.id) ? "text-green-500" : "text-gray-400")} 
+                  onClick={(e) => handleEditClick(connection, e)}
+                  title="Edit connection"
+                />
                 <div>
                   <p className="text-sm font-medium">{connection.name}</p>
                   <p className="text-xs text-muted-foreground">
@@ -168,7 +182,14 @@ export const ConnectionList: React.FC = () => {
         </div>
       </div>
       
-      <ConnectionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <ConnectionModal 
+        isOpen={isModalOpen} 
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingConnection(null);
+        }} 
+        editingConnection={editingConnection}
+      />
       
       <ConfirmationModal
         isOpen={deleteConfirmation.isOpen}
