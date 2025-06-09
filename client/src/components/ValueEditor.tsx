@@ -51,14 +51,16 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
       // Target everything possible
       const allElements = document.querySelectorAll('*');
       allElements.forEach((element: any) => {
-        // Check if element is inside a json-tree-container but exclude checkboxes and their children
+        // Check if element is inside a json-tree-container but exclude checkboxes and buttons
         const isInsideJsonContainer = element.closest('.json-tree-container');
         const isCheckboxOrChild = element.closest('[role="checkbox"]') || 
                                  element.hasAttribute('data-state') ||
                                  element.getAttribute('role') === 'checkbox' ||
                                  element.parentElement?.getAttribute('role') === 'checkbox';
+        const isButton = element.tagName === 'BUTTON' || element.closest('button');
+        const isInsideModal = element.closest('.fixed.inset-0') || element.closest('[role="dialog"]') || element.closest('.z-50');
         
-        if (isInsideJsonContainer && !isCheckboxOrChild) {
+        if (isInsideJsonContainer && !isCheckboxOrChild && !isButton && !isInsideModal) {
           if (theme === 'dark') {
             element.style.setProperty('background-color', 'transparent', 'important');
             element.style.setProperty('color', '#ffffff', 'important');
@@ -127,12 +129,21 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
           } else {
             setViewMode('editor'); // Editor for simple hashes
           }
+        } else if (data.type === 'zset') {
+          // Always default to editor view for Redis sorted sets
+          setViewMode('editor');
         } else {
           setViewMode(shouldUseJsonView(data.value, data.type) ? 'json' : 'formatted');
         }
       }
-    } catch (error) {
-      toast.error('Failed to fetch value');
+    } catch (error: any) {
+      // Check if it's a key not found error
+      if (error.response?.status === 404 || error.message?.includes('not found')) {
+        setValue(null);
+        toast.error(`Key "${selectedKey}" not found`);
+      } else {
+        toast.error('Failed to fetch value');
+      }
     } finally {
       setLoading(false);
     }
@@ -339,12 +350,17 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
   }
 
   if (!value) {
-    return null;
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+        <p className="text-lg mb-2">Key not found</p>
+        <p className="text-sm">The key "{selectedKey}" no longer exists</p>
+      </div>
+    );
   }
 
   const jsonData = parseValueForJsonView(value.value, value.type);
   const canShowJson = shouldUseJsonView(value.value, value.type);
-  const canShowEditor = value.type === 'list' || value.type === 'hash';
+  const canShowEditor = value.type === 'list' || value.type === 'hash' || value.type === 'zset';
 
   return (
     <div className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'flex-1'} min-h-0`}>
@@ -441,10 +457,6 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
             {/* Edit mode buttons - visible when in text editing mode */}
             {isEditing && (
               <>
-                <Button size="sm" onClick={handleSave}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save
-                </Button>
                 <Button
                   size="sm"
                   variant="secondary"
@@ -456,6 +468,10 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
                 >
                   <X className="h-4 w-4 mr-2" />
                   Cancel
+                </Button>
+                <Button size="sm" onClick={handleSave}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save
                 </Button>
               </>
             )}
@@ -534,7 +550,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
                 <div className={`json-tree-container ${theme === 'dark' ? 'dark-theme' : 'light-theme'}`}>
                   <ArrayObjectViewer
                     data={value.value}
-                    type={value.type as 'list' | 'hash'}
+                    type={value.type as 'list' | 'hash' | 'zset'}
                     onUpdate={handleArrayObjectUpdate}
                   />
                 </div>

@@ -53,7 +53,15 @@ export class RedisService {
         value = await this.redis.smembers(key);
         break;
       case 'zset':
-        value = await this.redis.zrange(key, 0, -1, 'WITHSCORES');
+        const zsetData = await this.redis.zrange(key, 0, -1, 'WITHSCORES');
+        // Convert flat array [member1, score1, member2, score2] to [{member, score}, ...]
+        value = [];
+        for (let i = 0; i < zsetData.length; i += 2) {
+          value.push({
+            member: zsetData[i],
+            score: parseFloat(zsetData[i + 1])
+          });
+        }
         break;
       case 'hash':
         value = await this.redis.hgetall(key);
@@ -89,6 +97,21 @@ export class RedisService {
         await this.redis.del(key);
         if (typeof value === 'object' && Object.keys(value).length > 0) {
           await this.redis.hmset(key, value);
+        }
+        break;
+      case 'zset':
+        await this.redis.del(key);
+        if (Array.isArray(value) && value.length > 0) {
+          // Flatten the array: [score1, member1, score2, member2, ...]
+          const flatArgs: (string | number)[] = [];
+          for (const item of value) {
+            if (typeof item === 'object' && 'score' in item && 'member' in item) {
+              flatArgs.push(item.score, item.member);
+            }
+          }
+          if (flatArgs.length > 0) {
+            await this.redis.zadd(key, ...flatArgs);
+          }
         }
         break;
       default:

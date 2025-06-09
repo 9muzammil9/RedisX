@@ -32,6 +32,14 @@ function App() {
     setForceEditMode(false);
   };
 
+  const handleKeyDeleted = (deletedKey: string) => {
+    // If the currently selected key was deleted, clear the selection
+    if (selectedKey === deletedKey) {
+      setSelectedKey(null);
+      setForceEditMode(false);
+    }
+  };
+
   useEffect(() => {
     // Apply theme whenever it changes
     if (theme === 'dark') {
@@ -49,7 +57,7 @@ function App() {
           {showConnectionsPanel && <ConnectionList />}
           <div className="flex-1 flex">
             <div className={`${showConnectionsPanel ? 'w-96' : 'w-80'} border-r border-border`}>
-              <KeyList onKeySelect={handleKeySelect} onKeySelectForEdit={handleKeySelectForEdit} />
+              <KeyList onKeySelect={handleKeySelect} onKeySelectForEdit={handleKeySelectForEdit} onKeyDeleted={handleKeyDeleted} />
             </div>
             <ValueEditor selectedKey={selectedKey} forceEditMode={forceEditMode} onForceEditModeUsed={handleForceEditModeUsed} />
           </div>

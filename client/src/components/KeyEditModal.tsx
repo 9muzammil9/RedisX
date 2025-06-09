@@ -43,8 +43,8 @@ export const KeyEditModal: React.FC<KeyEditModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className={`bg-background border border-border rounded-lg p-6 ${
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className={`bg-card border border-border rounded-lg shadow-lg p-6 ${
         isFullscreen ? 'w-full h-full max-w-none max-h-none m-4 flex flex-col' : 'w-96 max-w-[90vw]'
       }`}>
         <div className="flex items-center justify-between mb-4">

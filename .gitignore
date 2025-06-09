@@ -104,3 +104,4 @@ storybook-static
 # Temporary folders
 tmp/
 temp/
+test-files/

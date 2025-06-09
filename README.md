@@ -268,13 +268,13 @@ npm run typecheck --workspaces
 - [x] Export/Import functionality for key data
 - [x] Right-click context menus for key operations
 - [x] Smart connection editing with password management
+- [x] Bulk import functionality
 - [ ] Redis pub/sub monitoring
 - [ ] Query builder for complex Redis operations
 - [ ] Performance monitoring and metrics
 - [ ] Multi-database support within single connection
 - [ ] Key diff and comparison tools
 - [ ] Backup and restore functionality
-- [ ] Bulk import functionality
 - [ ] Advanced export filtering options
 
 ## License

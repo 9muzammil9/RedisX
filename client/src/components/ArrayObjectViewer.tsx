@@ -8,7 +8,7 @@ import { useStore } from '../store/useStore';
 
 interface ArrayObjectViewerProps {
   data: any;
-  type: 'list' | 'hash';
+  type: 'list' | 'hash' | 'zset';
   onUpdate: (newData: any) => void;
 }
 
@@ -31,15 +31,18 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
   } | null>(null);
 
   const isArray = type === 'list';
-  const items = isArray ? (Array.isArray(data) ? data : []) : (data || {});
-  const itemKeys = isArray ? Array.from({ length: items.length }, (_, i) => i) : Object.keys(items);
+  const isZset = type === 'zset';
+  const items = isArray || isZset ? (Array.isArray(data) ? data : []) : (data || {});
+  const itemKeys = isArray || isZset ? Array.from({ length: items.length }, (_, i) => i) : Object.keys(items);
   
   // Generate unique item IDs for expand/collapse state
   const getItemId = (index?: number, key?: string): string => {
-    return isArray ? `list-${index}` : `hash-${key}`;
+    if (isArray) return `list-${index}`;
+    if (isZset) return `zset-${index}`;
+    return `hash-${key}`;
   };
   
-  const allItemIds = itemKeys.map(key => getItemId(isArray ? key as number : undefined, isArray ? undefined : key as string));
+  const allItemIds = itemKeys.map(key => getItemId((isArray || isZset) ? key as number : undefined, (isArray || isZset) ? undefined : key as string));
   const allExpanded = allItemIds.every(id => expandedValueItems.has(id));
   const anyExpanded = allItemIds.some(id => expandedValueItems.has(id));
 
@@ -95,7 +98,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
   };
 
   const handleEdit = (index?: number, key?: string) => {
-    const value = isArray ? items[index!] : items[key!];
+    const value = (isArray || isZset) ? items[index!] : items[key!];
     setEditingItem({
       index,
       key,
@@ -106,7 +109,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
 
   const handleAdd = () => {
     setEditingItem({
-      value: isArray ? '' : {},
+      value: isArray ? '' : isZset ? { score: 0, member: '' } : {},
       isNew: true,
     });
   };
@@ -116,7 +119,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
 
     let updatedData;
 
-    if (isArray) {
+    if (isArray || isZset) {
       updatedData = [...items];
       if (editingItem.isNew) {
         updatedData.push(newValue);
@@ -146,9 +149,9 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
 
     let updatedData;
 
-    if (isArray && editingItem.index !== undefined) {
+    if ((isArray || isZset) && editingItem.index !== undefined) {
       updatedData = items.filter((_: any, i: number) => i !== editingItem.index);
-    } else if (!isArray && editingItem.key) {
+    } else if (!isArray && !isZset && editingItem.key) {
       updatedData = { ...items };
       delete updatedData[editingItem.key];
     } else {
@@ -183,8 +186,8 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
 
     let updatedData: any;
 
-    if (isArray) {
-      // For arrays, filter out selected indices
+    if (isArray || isZset) {
+      // For arrays and zsets, filter out selected indices
       const selectedIndices = Array.from(selectedItems).map(item => Number(item));
       updatedData = items.filter((_: any, index: number) => !selectedIndices.includes(index));
     } else {
@@ -205,8 +208,8 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
 
     let updatedData;
 
-    if (isArray) {
-      // For arrays, we can't really rename indices, but this shouldn't happen
+    if (isArray || isZset) {
+      // For arrays and zsets, we can't really rename indices, but this shouldn't happen
       return;
     } else {
       // For objects/hashes, rename the key
@@ -222,10 +225,13 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
 
   const getTitle = (): string => {
     if (editingItem?.isNew) {
-      return `Add New ${isArray ? 'Item' : 'Field'}`;
+      return `Add New ${isArray ? 'Item' : isZset ? 'Member' : 'Field'}`;
     }
     if (isArray) {
       return `Edit Item [${editingItem?.index}]`;
+    }
+    if (isZset) {
+      return `Edit Member [${editingItem?.index}]`;
     }
     return `Edit Field "${editingItem?.key}"`;
   };
@@ -235,7 +241,9 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <div className="flex items-center space-x-4">
           <h4 className="text-sm font-medium text-muted-foreground">
-            {isArray ? `Array (${items.length} items)` : `Object (${Object.keys(items).length} fields)`}
+            {isArray ? `List (${items.length} items)` : 
+             isZset ? `Sorted Set (${items.length} members)` : 
+             `Hash (${Object.keys(items).length} fields)`}
           </h4>
           {selectedItems.size > 0 && (
             <span className="text-sm text-muted-foreground">
@@ -247,6 +255,22 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
         <div className="flex items-center space-x-2">
           {itemKeys.length > 0 && (
             <>
+              {selectedItems.size > 0 && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleBulkDelete}
+                  className="!bg-red-600 hover:!bg-red-700 !text-white"
+                  style={{ 
+                    backgroundColor: '#dc2626 !important', 
+                    color: 'white !important' 
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete Selected
+                </Button>
+              )}
+              
               <Button
                 size="sm"
                 variant="ghost"
@@ -260,17 +284,6 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
                 )}
                 {selectedItems.size === itemKeys.length ? 'Deselect All' : 'Select All'}
               </Button>
-              
-              {selectedItems.size > 0 && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={handleBulkDelete}
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Delete Selected
-                </Button>
-              )}
               
               <Button
                 size="sm"
@@ -296,13 +309,13 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
           
           <Button size="sm" variant="ghost" onClick={handleAdd}>
             <Plus className="h-4 w-4 mr-1" />
-            Add {isArray ? 'Item' : 'Field'}
+            Add {isArray ? 'Item' : isZset ? 'Member' : 'Field'}
           </Button>
         </div>
       </div>
 
       <div className="flex-1 space-y-2 overflow-auto">
-        {isArray ? (
+        {isArray || isZset ? (
           items.map((item: any, index: number) => {
             const itemId = getItemId(index);
             const isExpanded = expandedValueItems.has(itemId);
@@ -314,6 +327,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
                 itemKey={index}
                 value={item}
                 isArray={true}
+                isZset={isZset}
                 isSelected={selectedItems.has(String(index))}
                 isExpanded={isExpanded}
                 hasTreeView={hasTreeView}

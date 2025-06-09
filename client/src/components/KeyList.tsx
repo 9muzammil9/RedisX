@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Trash2, RefreshCw, CheckSquare, Square, Plus } from 'lucide-react';
+import { Search, Trash2, RefreshCw, CheckSquare, Square, Plus, Upload } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { useStore } from '../store/useStore';
@@ -7,6 +7,7 @@ import { keysApi } from '../services/api';
 import { RedisKey } from '../types';
 import toast from 'react-hot-toast';
 import { NewKeyModal } from './NewKeyModal';
+import { BulkImportModal } from './BulkImportModal';
 import { buildKeyTree, getExpandedPaths, KeyTreeNode } from '../utils/keyTree';
 import { KeyTreeNodeComponent } from './KeyTreeNode';
 import { exportSingleKey, copyToClipboard, ExportedKey } from '../utils/exportUtils';
@@ -14,9 +15,10 @@ import { exportSingleKey, copyToClipboard, ExportedKey } from '../utils/exportUt
 interface KeyListProps {
   onKeySelect: (key: string) => void;
   onKeySelectForEdit?: (key: string) => void;
+  onKeyDeleted?: (key: string) => void;
 }
 
-export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdit }) => {
+export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdit, onKeyDeleted }) => {
   const { activeConnectionId, selectedKeys, toggleKeySelection, selectAllKeys, clearSelection, showConnectionsPanel, toggleConnectionsPanel, setActiveConnection } = useStore();
   const [keys, setKeys] = useState<RedisKey[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,6 +26,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
   const [cursor, setCursor] = useState('0');
   const [hasMore, setHasMore] = useState(false);
   const [isNewKeyModalOpen, setIsNewKeyModalOpen] = useState(false);
+  const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
   const [keyTree, setKeyTree] = useState<KeyTreeNode[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -87,6 +90,10 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
       const keysToDelete = Array.from(selectedKeys);
       await keysApi.deleteKeys(activeConnectionId, keysToDelete);
       toast.success(`Deleted ${keysToDelete.length} keys`);
+      
+      // Notify parent about deleted keys
+      keysToDelete.forEach(key => onKeyDeleted?.(key));
+      
       clearSelection();
       fetchKeys(searchPattern, '0');
     } catch (error) {
@@ -103,6 +110,10 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
   };
 
   const handleKeyCreated = () => {
+    fetchKeys(searchPattern, '0');
+  };
+
+  const handleImportComplete = () => {
     fetchKeys(searchPattern, '0');
   };
 
@@ -235,6 +246,10 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
     try {
       await keysApi.deleteKeys(activeConnectionId, [key]);
       toast.success(`Deleted key: ${key}`);
+      
+      // Notify parent about deleted key
+      onKeyDeleted?.(key);
+      
       fetchKeys(searchPattern, '0');
     } catch (error) {
       toast.error('Failed to delete key');
@@ -281,6 +296,13 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
             disabled={loading}
           >
             <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsBulkImportModalOpen(true)}
+          >
+            <Upload className="h-4 w-4" />
           </Button>
           <Button
             type="button"
@@ -366,12 +388,19 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
       </div>
       
       {activeConnectionId && (
-        <NewKeyModal
-          isOpen={isNewKeyModalOpen}
-          onClose={() => setIsNewKeyModalOpen(false)}
-          connectionId={activeConnectionId}
-          onKeyCreated={handleKeyCreated}
-        />
+        <>
+          <NewKeyModal
+            isOpen={isNewKeyModalOpen}
+            onClose={() => setIsNewKeyModalOpen(false)}
+            connectionId={activeConnectionId}
+            onKeyCreated={handleKeyCreated}
+          />
+          <BulkImportModal
+            isOpen={isBulkImportModalOpen}
+            onClose={() => setIsBulkImportModalOpen(false)}
+            onImportComplete={handleImportComplete}
+          />
+        </>
       )}
     </div>
   );

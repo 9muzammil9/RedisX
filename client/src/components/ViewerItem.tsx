@@ -8,6 +8,7 @@ interface ViewerItemProps {
   itemKey: string | number;
   value: any;
   isArray: boolean;
+  isZset?: boolean;
   isSelected: boolean;
   isExpanded: boolean;
   hasTreeView: boolean;
@@ -25,6 +26,7 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
   itemKey,
   value,
   isArray,
+  isZset = false,
   isSelected,
   isExpanded,
   hasTreeView,
@@ -37,8 +39,8 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
   getTreeViewData,
   formatDisplayValue,
 }) => {
-  const index = isArray ? itemKey as number : undefined;
-  const key = isArray ? undefined : itemKey as string;
+  const index = (isArray || isZset) ? itemKey as number : undefined;
+  const key = (isArray || isZset) ? undefined : itemKey as string;
   const itemId = getItemId(index, key);
 
   return (
@@ -57,9 +59,16 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
         />
       </div>
       <div className="flex-1 min-w-0">
-        <div className={isArray ? "text-sm font-medium text-purple-600 dark:text-purple-400" : "flex items-center space-x-2"}>
+        <div className={(isArray || isZset) ? "text-sm font-medium text-purple-600 dark:text-purple-400" : "flex items-center space-x-2"}>
           {isArray ? (
             `[${index}]`
+          ) : isZset ? (
+            <div className="flex items-center space-x-2">
+              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                Score: {value?.score || 0}
+              </span>
+              <span>`[${index}]`</span>
+            </div>
           ) : (
             <>
               <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
@@ -68,13 +77,13 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
               {onKeyRename && (
                 <Button
                   size="sm"
-                  variant="secondary"
+                  variant="ghost"
                   onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
                     onKeyRename(key as string);
                   }}
-                  className="h-9 w-9 p-0 border border-blue-300"
+                  className="h-9 w-9 p-0"
                   title="Rename key"
                 >
                   <Tag className="h-6 w-6 text-blue-600" />
@@ -105,7 +114,7 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
             </div>
           ) : (
             <pre className="whitespace-pre-wrap font-mono text-xs">
-              {formatDisplayValue(value)}
+              {isZset ? (value?.member || '') : formatDisplayValue(value)}
             </pre>
           )}
         </div>

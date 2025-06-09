@@ -40,4 +40,21 @@ export const keysApi = {
   
   renameKey: (connectionId: string, oldKey: string, newKey: string) =>
     api.put('/keys/rename', { connectionId, oldKey, newKey }),
+  
+  bulkImport: (connectionId: string, keys: Array<{
+    key: string;
+    value: any;
+    type: string;
+    ttl?: number;
+  }>, options?: {
+    conflictResolution?: 'skip' | 'overwrite';
+    batchSize?: number;
+  }) =>
+    api.post<{
+      total: number;
+      successful: number;
+      failed: number;
+      errors: Array<{ key: string; error: string }>;
+      results: Array<{ key: string; status: 'success' | 'failed' | 'skipped'; error?: string }>;
+    }>('/keys/bulk-import', { connectionId, keys, options }),
 };
