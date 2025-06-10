@@ -22,3 +22,19 @@ export interface RedisValue {
   value: any;
   ttl: number;
 }
+
+export interface ChannelInfo {
+  channel: string;
+  subscribers: number;
+}
+
+export interface PubSubStats {
+  totalChannels: number;
+  channels: ChannelInfo[];
+}
+
+export interface PublishResponse {
+  success: boolean;
+  subscriberCount: number;
+  message: string;
+}

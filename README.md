@@ -1,6 +1,6 @@
 # Redis Viewer
 
-A modern, feature-rich Redis database viewer with support for multiple connections, bulk operations, and a clean UI with dark mode support.
+A modern, feature-rich Redis database viewer with support for multiple connections, bulk operations, real-time pub/sub monitoring, and a clean UI with dark mode support.
 
 ## Features
 
@@ -36,11 +36,24 @@ A modern, feature-rich Redis database viewer with support for multiple connectio
 - **Tree Visualization**: JSON tree view for complex nested data
 - **TTL Management**: View and modify key expiration times
 - **Real-time Updates**: Live data refresh and status updates
+- **Tab State Persistence**: Remembers your active tab (Keys/Values or Pub/Sub) across refreshes
+
+### Pub/Sub Features
+- **Real-time Channel Monitoring**: View all active Redis pub/sub channels
+- **Live Message Streaming**: Real-time message updates via WebSocket connection
+- **Channel Subscriptions**: Subscribe to multiple channels simultaneously
+- **Message Publishing**: Send messages to any channel with instant delivery
+- **Subscription Persistence**: Subscribed channels persist across app restarts
+- **Message History**: Optional message persistence per channel with toggle switches
+- **Channel Statistics**: View subscriber counts and channel activity
+- **WebSocket Auto-reconnect**: Automatic reconnection with subscription restoration
+- **Message Deduplication**: Prevents duplicate messages from appearing
+- **Pattern-based Channel Search**: Filter channels using Redis glob patterns
 
 ## Tech Stack
 
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Zustand, React Query
-- **Backend**: Node.js, Express, TypeScript, ioredis
+- **Backend**: Node.js, Express, TypeScript, ioredis, WebSocket (ws)
 - **UI Components**: Radix UI, Lucide Icons, react-json-view-lite
 - **Development**: ESLint, Prettier, Concurrently
 
@@ -68,7 +81,7 @@ npm install
 npm run dev
 ```
 
-This will start both the backend server (port 4000) and frontend client (port 3000).
+This will start both the backend server (port 4000) with WebSocket support and frontend client (port 3000).
 
 ## Environment Variables
 
@@ -100,6 +113,15 @@ ALLOWED_ORIGINS=http://localhost:3000
 6. **Right-click Actions**: Right-click on keys for quick access to export, copy, edit, and delete options
 7. **Export Data**: Export individual keys or entire groups in multiple formats (JSON, Redis CLI, CSV)
 
+### Working with Pub/Sub
+1. **Access Pub/Sub**: Click the "Pub/Sub" tab in the main interface
+2. **View Channels**: Browse all active channels with subscriber counts
+3. **Subscribe to Channels**: Use the Subscribe tab to monitor channels in real-time
+4. **Publish Messages**: Send messages to any channel via the Publish tab
+5. **Message History**: Toggle message persistence per channel for history across restarts
+6. **Statistics**: View channel statistics and subscriber information
+7. **Pattern Filtering**: Use Redis glob patterns to filter channels (e.g., `user:*`, `notification:*`)
+
 ### Advanced Features
 - **Collapsible Groups**: Click folder icons to expand/collapse key groups
 - **Individual Element Editing**: For lists and arrays, edit individual elements instead of the entire structure
@@ -109,6 +131,8 @@ ALLOWED_ORIGINS=http://localhost:3000
 - **Dark Mode**: Toggle theme using the switch in the header
 - **Hide Panels**: Collapse the connections panel for more workspace
 - **Persistent Connections**: Your connections are saved and can be reconnected after server restarts
+- **Real-time Pub/Sub**: WebSocket-based real-time message monitoring with auto-reconnect
+- **Tab Persistence**: Application remembers your active tab and sub-tabs across page refreshes
 
 ## Project Structure
 
@@ -146,6 +170,12 @@ redis-viewer/
 - `PUT /api/keys/value` - Update key value
 - `DELETE /api/keys` - Delete multiple keys
 - `PUT /api/keys/rename` - Rename a key
+
+### Pub/Sub
+- `GET /api/pubsub/channels` - Get all active channels
+- `GET /api/pubsub/stats` - Get channel statistics
+- `POST /api/pubsub/publish` - Publish message to a channel
+- `WebSocket /ws` - Real-time pub/sub messaging (subscribe, unsubscribe, message streaming)
 
 ## Development
 
@@ -207,10 +237,17 @@ This is a monorepo using npm workspaces with:
 - Verify you have READ permissions on the database
 - Try refreshing the connection
 
+**Pub/Sub Issues**
+- Ensure WebSocket connection is active (green indicator)
+- Check browser console for WebSocket connection errors
+- Verify Redis server supports pub/sub operations
+- Try disconnecting and reconnecting WebSocket
+
 **Performance Issues**
 - Use key patterns to limit results (e.g., `user:*` instead of `*`)
 - Enable pagination for large datasets
 - Consider using more specific search patterns
+- Limit pub/sub subscriptions to essential channels only
 
 **UI Issues**
 - Hard refresh (Ctrl+F5) to clear cache
@@ -269,13 +306,19 @@ npm run typecheck --workspaces
 - [x] Right-click context menus for key operations
 - [x] Smart connection editing with password management
 - [x] Bulk import functionality
-- [ ] Redis pub/sub monitoring
+- [x] Redis pub/sub monitoring with WebSocket
+- [x] Real-time message streaming and subscriptions
+- [x] Message persistence and history
+- [x] Tab state persistence across refreshes
 - [ ] Query builder for complex Redis operations
 - [ ] Performance monitoring and metrics
 - [ ] Multi-database support within single connection
 - [ ] Key diff and comparison tools
 - [ ] Backup and restore functionality
 - [ ] Advanced export filtering options
+- [ ] Redis Cluster support
+- [ ] Authentication and user management
+- [ ] Advanced message filtering and search
 
 ## License
 

@@ -3,6 +3,7 @@ import { RedisConnection } from '../types';
 
 class RedisManager {
   private connections: Map<string, Redis> = new Map();
+  private connectionConfigs: Map<string, RedisConnection> = new Map();
 
   async connect(config: RedisConnection): Promise<void> {
     const { id, host, port, password, db, username, tls } = config;
@@ -22,6 +23,7 @@ class RedisManager {
 
     await redis.ping();
     this.connections.set(id, redis);
+    this.connectionConfigs.set(id, config);
   }
 
   getConnection(id: string): Redis {
@@ -37,6 +39,7 @@ class RedisManager {
     if (connection) {
       await connection.quit();
       this.connections.delete(id);
+      this.connectionConfigs.delete(id);
     }
   }
 
@@ -44,11 +47,16 @@ class RedisManager {
     for (const [id, connection] of this.connections) {
       await connection.quit();
       this.connections.delete(id);
+      this.connectionConfigs.delete(id);
     }
   }
 
   getAllConnections(): Map<string, Redis> {
     return this.connections;
+  }
+
+  getConnectionDetails(id: string): RedisConnection | undefined {
+    return this.connectionConfigs.get(id);
   }
 }
 

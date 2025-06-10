@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { RedisConnection, RedisValue, KeysResponse } from '../types';
+import { RedisConnection, RedisValue, KeysResponse, PubSubStats, PublishResponse } from '../types';
 
 const api = axios.create({
   baseURL: '/api',
@@ -57,4 +57,19 @@ export const keysApi = {
       errors: Array<{ key: string; error: string }>;
       results: Array<{ key: string; status: 'success' | 'failed' | 'skipped'; error?: string }>;
     }>('/keys/bulk-import', { connectionId, keys, options }),
+};
+
+export const pubsubApi = {
+  getChannels: (connectionId: string, pattern = '*') =>
+    api.get<{ channels: string[] }>('/pubsub/channels', {
+      params: { connectionId, pattern },
+    }),
+  
+  getStats: (connectionId: string, channels?: string[], pattern?: string) =>
+    api.get<PubSubStats>('/pubsub/stats', {
+      params: { connectionId, channels, pattern },
+    }),
+  
+  publishMessage: (connectionId: string, channel: string, message: string) =>
+    api.post<PublishResponse>('/pubsub/publish', { connectionId, channel, message }),
 };

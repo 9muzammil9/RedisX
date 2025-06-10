@@ -27,3 +27,19 @@ export interface KeysResponse {
   keys: RedisKey[];
   nextCursor: string;
 }
+
+export interface ChannelInfo {
+  channel: string;
+  subscribers: number;
+}
+
+export interface PubSubStats {
+  totalChannels: number;
+  channels: ChannelInfo[];
+}
+
+export interface PublishResponse {
+  success: boolean;
+  subscriberCount: number;
+  message: string;
+}

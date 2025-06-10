@@ -5,14 +5,37 @@ import { Header } from './components/Header';
 import { ConnectionList } from './components/ConnectionList';
 import { KeyList } from './components/KeyList';
 import { ValueEditor } from './components/ValueEditor';
+import { PubSubPanel } from './components/PubSubPanel';
 import { useStore } from './store/useStore';
 import { useConnectionRestore } from './hooks/useConnectionRestore';
 
 const queryClient = new QueryClient();
 
+type RightPanelTab = 'keys' | 'pubsub';
+
+// Helper functions for tab persistence
+const saveActiveTab = (tab: RightPanelTab) => {
+  try {
+    localStorage.setItem('redis-viewer-active-tab', tab);
+  } catch (error) {
+    console.error('Failed to save active tab:', error);
+  }
+};
+
+const loadActiveTab = (): RightPanelTab => {
+  try {
+    const saved = localStorage.getItem('redis-viewer-active-tab');
+    return (saved === 'keys' || saved === 'pubsub') ? saved : 'keys';
+  } catch (error) {
+    console.error('Failed to load active tab:', error);
+    return 'keys';
+  }
+};
+
 function App() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [forceEditMode, setForceEditMode] = useState(false);
+  const [activeRightTab, setActiveRightTab] = useState<RightPanelTab>(loadActiveTab());
   const { theme, showConnectionsPanel } = useStore();
   
   // Restore connections on app load
@@ -40,6 +63,11 @@ function App() {
     }
   };
 
+  const handleTabChange = (tab: RightPanelTab) => {
+    setActiveRightTab(tab);
+    saveActiveTab(tab);
+  };
+
   useEffect(() => {
     // Apply theme whenever it changes
     if (theme === 'dark') {
@@ -59,7 +87,47 @@ function App() {
             <div className={`${showConnectionsPanel ? 'w-96' : 'w-80'} border-r border-border`}>
               <KeyList onKeySelect={handleKeySelect} onKeySelectForEdit={handleKeySelectForEdit} onKeyDeleted={handleKeyDeleted} />
             </div>
-            <ValueEditor selectedKey={selectedKey} forceEditMode={forceEditMode} onForceEditModeUsed={handleForceEditModeUsed} />
+            
+            {/* Right Panel with Tabs */}
+            <div className="flex-1 flex flex-col">
+              {/* Tab Navigation */}
+              <div className="border-b border-border">
+                <div className="flex">
+                  <button
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                      activeRightTab === 'keys'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                    }`}
+                    onClick={() => handleTabChange('keys')}
+                  >
+                    Keys & Values
+                  </button>
+                  <button
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                      activeRightTab === 'pubsub'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                    }`}
+                    onClick={() => handleTabChange('pubsub')}
+                  >
+                    Pub/Sub
+                  </button>
+                </div>
+              </div>
+
+              {/* Tab Content */}
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {activeRightTab === 'keys' && (
+                  <ValueEditor 
+                    selectedKey={selectedKey} 
+                    forceEditMode={forceEditMode} 
+                    onForceEditModeUsed={handleForceEditModeUsed} 
+                  />
+                )}
+                {activeRightTab === 'pubsub' && <PubSubPanel />}
+              </div>
+            </div>
           </div>
         </div>
       </div>
