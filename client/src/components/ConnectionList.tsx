@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import { cn } from '../utils/cn';
 
 export const ConnectionList: React.FC = () => {
-  const { connections, activeConnectionId, setActiveConnection, removeConnection, addConnection } = useStore();
+  const { connections, activeConnectionId, setActiveConnection, removeConnection, addConnection, refreshActiveConnection } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<any>(null);
   const [reconnectingId, setReconnectingId] = useState<string | null>(null);
@@ -55,8 +55,9 @@ export const ConnectionList: React.FC = () => {
     setReconnectingId(connection.id);
     
     try {
-      // Try to reconnect with stored connection data including password
+      // Try to reconnect with stored connection data including password and original ID
       const connectionData = {
+        id: connection.id, // Preserve the original ID
         name: connection.name,
         host: connection.host,
         port: connection.port,
@@ -68,11 +69,18 @@ export const ConnectionList: React.FC = () => {
 
       const { data } = await connectionsApi.create(connectionData);
       
-      // Update the stored connection with new server ID
-      const updatedConnection = { ...connection, id: data.id };
-      removeConnection(connection.id); // Remove old entry
-      addConnection(updatedConnection); // Add with new ID
-      setActiveConnection(data.id);
+      // Since we preserve the connection ID, the connection should have the same ID
+      console.log(`✅ Reconnected to ${connection.name} with preserved ID: ${data.id}`);
+      
+      // Since the connection ID is preserved, just refresh the active connection state
+      console.log(`🔄 Setting ${data.id} as active connection after reconnect`);
+      setActiveConnection(data.id, true); // Force reload to refresh UI state
+      
+      // Verify the connection is working by testing it
+      setTimeout(async () => {
+        const isWorking = await testConnection(data.id);
+        console.log(`🔍 Connection ${data.id} test result:`, isWorking ? 'WORKING' : 'FAILED');
+      }, 1000);
       
       toast.success(`Reconnected to ${connection.name}`);
     } catch (error: any) {
@@ -133,7 +141,8 @@ export const ConnectionList: React.FC = () => {
               )}
               onClick={() => {
                 if (isConnected(connection.id)) {
-                  setActiveConnection(connection.id);
+                  // Force reload subscriptions and messages when clicking on active connection
+                  refreshActiveConnection();
                 } else {
                   // Try to reconnect if clicking on a disconnected connection
                   handleReconnect(connection, { stopPropagation: () => {} } as React.MouseEvent);

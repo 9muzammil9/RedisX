@@ -7,6 +7,7 @@ import { randomUUID } from 'crypto';
 const router = Router();
 
 const connectionSchema = z.object({
+  id: z.string().optional(), // Allow passing existing ID
   name: z.string().min(1),
   host: z.string().min(1),
   port: z.number().int().positive(),
@@ -24,12 +25,27 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: result.error.flatten() });
   }
 
-  const id = randomUUID();
-  const connection: RedisConnection = { id, ...result.data };
+  // Use provided ID or generate a new one
+  const id = result.data.id || randomUUID();
+  const { id: _providedId, ...connectionData } = result.data; // Remove id from data
+  const connection: RedisConnection = { id, ...connectionData };
+
+  // Check if connection with this ID already exists
+  if (connections.has(id)) {
+    console.log(`🔄 Connection ${id} already exists, updating it`);
+    // Update existing connection instead of throwing error
+    try {
+      await redisManager.disconnect(id); // Disconnect old connection first
+    } catch (error) {
+      // Ignore disconnect errors (connection might already be disconnected)
+      console.log(`⚠️ Could not disconnect old connection ${id}:`, error);
+    }
+  }
 
   try {
     await redisManager.connect(connection);
     connections.set(id, connection);
+    console.log(`✅ Created/restored connection ${id} (${connection.name})`);
     res.json(connection);
   } catch (error) {
     res.status(400).json({ error: 'Failed to connect to Redis server' });
@@ -51,6 +67,12 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     res.status(404).json({ error: 'Connection not found' });
   }
+});
+
+router.get('/:id/exists', (req, res) => {
+  const { id } = req.params;
+  const exists = connections.has(id);
+  res.json({ exists });
 });
 
 router.get('/:id/info', async (req, res) => {

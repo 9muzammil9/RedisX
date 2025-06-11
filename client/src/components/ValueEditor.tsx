@@ -536,10 +536,6 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
                     >
                       <JsonView
                         data={jsonData}
-                        style={theme === 'dark' ? {
-                          backgroundColor: 'transparent',
-                          color: '#ffffff'
-                        } : {}}
                       />
                     </div>
                   </div>

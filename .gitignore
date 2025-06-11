@@ -105,3 +105,5 @@ storybook-static
 tmp/
 temp/
 test-files/
+# Local development files
+server/data

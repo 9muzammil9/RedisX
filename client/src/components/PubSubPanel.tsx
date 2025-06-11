@@ -12,9 +12,13 @@ import toast from 'react-hot-toast';
 type PubSubView = 'channels' | 'publish' | 'stats' | 'subscribe' | 'messages';
 
 // Helper functions for PubSub tab persistence
+import * as persistence from '../services/persistence';
+
 const savePubSubView = (view: PubSubView) => {
   try {
+    // Save to both localStorage (for quick access) and SQLite
     localStorage.setItem('redis-viewer-pubsub-view', view);
+    persistence.saveAppState('pubsubView', view);
   } catch (error) {
     console.error('Failed to save pubsub view:', error);
   }

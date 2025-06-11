@@ -44,7 +44,20 @@ export function saveChannelMessages(
     if (error instanceof Error && error.name === 'QuotaExceededError') {
       cleanupOldMessages();
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+        // Create minimal data to save after cleanup with limited messages
+        const retryLimitedMessages = messages.slice(0, Math.min(maxMessages, MAX_MESSAGES_PER_CHANNEL));
+        const minimalData = getStoredMessages();
+        
+        if (!minimalData[connectionId]) {
+          minimalData[connectionId] = {};
+        }
+        
+        minimalData[connectionId][channel] = {
+          messages: retryLimitedMessages,
+          lastUpdated: Date.now(),
+          maxMessages
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(minimalData));
       } catch (retryError) {
         console.error('Failed to save messages even after cleanup:', retryError);
       }
@@ -74,6 +87,39 @@ export function loadChannelMessages(connectionId: string, channel: string): PubS
   } catch (error) {
     console.error('Failed to load channel messages:', error);
     return [];
+  }
+}
+
+export function removeSpecificMessage(connectionId: string, channel: string, messageId: string): void {
+  try {
+    const data = getStoredMessages();
+    
+    if (data[connectionId]?.[channel]) {
+      const channelData = data[connectionId][channel];
+      const updatedMessages = channelData.messages.filter((msg: any) => msg.id !== messageId);
+      
+      if (updatedMessages.length === 0) {
+        // If no messages left, remove the channel
+        delete data[connectionId][channel];
+        
+        // Remove connection entry if no channels left
+        if (Object.keys(data[connectionId]).length === 0) {
+          delete data[connectionId];
+        }
+      } else {
+        // Update with filtered messages
+        data[connectionId][channel] = {
+          ...channelData,
+          messages: updatedMessages,
+          lastUpdated: Date.now()
+        };
+      }
+      
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      console.log(`🗑️ Removed message ${messageId} from ${connectionId}:${channel}`);
+    }
+  } catch (error) {
+    console.error('Failed to remove specific message:', error);
   }
 }
 

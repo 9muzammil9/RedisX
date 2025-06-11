@@ -6,7 +6,7 @@ import { useStore } from '../store/useStore';
 import toast from 'react-hot-toast';
 
 export function MessageHistory() {
-  const { messages, clearMessages, maxMessages, setMaxMessages, subscribedChannels } = useStore();
+  const { messages, clearMessages, deleteMessage, maxMessages, setMaxMessages, subscribedChannels } = useStore();
   const [filter, setFilter] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -28,6 +28,11 @@ export function MessageHistory() {
     setCopiedId(messageId);
     setTimeout(() => setCopiedId(null), 2000);
     toast.success('Message copied to clipboard');
+  };
+
+  const handleDeleteMessage = (messageId: string, channel: string) => {
+    deleteMessage(messageId);
+    toast.success(`Message deleted from ${channel}`);
   };
 
   const handleExport = () => {
@@ -93,8 +98,12 @@ export function MessageHistory() {
             <Button
               size="sm"
               variant="secondary"
-              onClick={clearMessages}
+              onClick={() => {
+                clearMessages();
+                toast.success('All messages cleared');
+              }}
               disabled={messages.length === 0}
+              title="Clear all messages"
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -143,18 +152,26 @@ export function MessageHistory() {
                     <Database className="w-3 h-3 text-blue-500" title="Message persisted to storage" />
                   )}
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleCopyMessage(msg.message, msg.id)}
-                  className="h-6 w-6 p-0"
-                >
-                  {copiedId === msg.id ? (
-                    <CheckCheck className="w-3 h-3 text-green-500" />
-                  ) : (
-                    <Copy className="w-3 h-3" />
-                  )}
-                </Button>
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => handleCopyMessage(msg.message, msg.id)}
+                    className="h-6 w-6 p-1 rounded hover:bg-accent/50 transition-colors flex items-center justify-center"
+                    title="Copy message"
+                  >
+                    {copiedId === msg.id ? (
+                      <CheckCheck className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Copy className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteMessage(msg.id, msg.channel)}
+                    className="h-6 w-6 p-1 rounded hover:bg-accent/50 transition-colors flex items-center justify-center group"
+                    title="Delete message"
+                  >
+                    <Trash2 className="w-4 h-4 text-muted-foreground group-hover:text-red-500" />
+                  </button>
+                </div>
               </div>
               <div className="font-mono text-sm whitespace-pre-wrap break-all">
                 {msg.message}

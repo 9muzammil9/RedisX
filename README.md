@@ -6,20 +6,23 @@ A modern, feature-rich Redis database viewer with support for multiple connectio
 
 ### Connection Management
 - **Multiple Database Connections**: Connect to multiple Redis instances simultaneously
-- **Connection Persistence**: Saved connections persist across server restarts
+- **Connection Persistence**: Saved connections persist across server restarts with SQLite backup
 - **Smart Password Management**: Option to keep existing passwords when editing connections
-- **Auto-reconnect**: One-click reconnection to saved Redis instances
+- **Auto-reconnect**: One-click reconnection to saved Redis instances with preserved connection IDs
+- **Connection Recovery**: Automatic connection restoration after server restarts
 - **Connection Status**: Visual indicators showing connection health
 - **Easy Connection Editing**: Click server icons to edit connection details
 
 ### Key Management
 - **Hierarchical Key View**: Nested key visualization with collapsible groups (using `:` separator)
+- **Resizable Keys Panel**: Adjustable panel width with minimum constraints and persistent sizing
 - **Create New Keys**: Add new Redis keys with support for all data types
 - **Key Operations**: View, edit, delete, and update Redis keys and values
 - **Bulk Operations**: Multi-select and bulk delete functionality
 - **Key Search**: Pattern-based search with Redis glob patterns
 - **Right-click Context Menu**: Export, copy, edit, and delete keys via context menu
 - **Export/Import**: Export individual keys or groups in JSON, Redis CLI, and CSV formats
+- **Auto Tab Switching**: Automatically switches to Keys & Values tab when selecting a key
 
 ### Data Type Support
 - **String**: Simple text values
@@ -43,17 +46,20 @@ A modern, feature-rich Redis database viewer with support for multiple connectio
 - **Live Message Streaming**: Real-time message updates via WebSocket connection
 - **Channel Subscriptions**: Subscribe to multiple channels simultaneously
 - **Message Publishing**: Send messages to any channel with instant delivery
-- **Subscription Persistence**: Subscribed channels persist across app restarts
+- **Subscription Persistence**: Subscribed channels persist across app restarts and server restarts
 - **Message History**: Optional message persistence per channel with toggle switches
+- **Message Management**: Delete individual messages or clear all messages
 - **Channel Statistics**: View subscriber counts and channel activity
 - **WebSocket Auto-reconnect**: Automatic reconnection with subscription restoration
 - **Message Deduplication**: Prevents duplicate messages from appearing
 - **Pattern-based Channel Search**: Filter channels using Redis glob patterns
+- **Data Recovery**: Messages and subscriptions automatically restored after connection issues
 
 ## Tech Stack
 
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Zustand, React Query
 - **Backend**: Node.js, Express, TypeScript, ioredis, WebSocket (ws)
+- **Database**: SQLite with better-sqlite3 for data persistence
 - **UI Components**: Radix UI, Lucide Icons, react-json-view-lite
 - **Development**: ESLint, Prettier, Concurrently
 
@@ -106,12 +112,13 @@ ALLOWED_ORIGINS=http://localhost:3000
 
 ### Working with Keys
 1. **Browse Keys**: Use the hierarchical tree view to navigate your key structure
-2. **Search Keys**: Use Redis glob patterns (e.g., `user:*`, `cache:session:*`)
-3. **Create Keys**: Click the "+" button in the key list to create new keys
-4. **Select Multiple**: Use checkboxes to select multiple keys for bulk operations
-5. **Edit Values**: Click on any key to view and edit its value in the right panel
-6. **Right-click Actions**: Right-click on keys for quick access to export, copy, edit, and delete options
-7. **Export Data**: Export individual keys or entire groups in multiple formats (JSON, Redis CLI, CSV)
+2. **Resize Panel**: Drag the panel edge to adjust the keys panel width to your preference
+3. **Search Keys**: Use Redis glob patterns (e.g., `user:*`, `cache:session:*`)
+4. **Create Keys**: Click the "+" button in the key list to create new keys
+5. **Select Multiple**: Use checkboxes to select multiple keys for bulk operations
+6. **Edit Values**: Click on any key to automatically switch to Keys & Values tab and view/edit its value
+7. **Right-click Actions**: Right-click on keys for quick access to export, copy, edit, and delete options
+8. **Export Data**: Export individual keys or entire groups in multiple formats (JSON, Redis CLI, CSV)
 
 ### Working with Pub/Sub
 1. **Access Pub/Sub**: Click the "Pub/Sub" tab in the main interface
@@ -119,8 +126,10 @@ ALLOWED_ORIGINS=http://localhost:3000
 3. **Subscribe to Channels**: Use the Subscribe tab to monitor channels in real-time
 4. **Publish Messages**: Send messages to any channel via the Publish tab
 5. **Message History**: Toggle message persistence per channel for history across restarts
-6. **Statistics**: View channel statistics and subscriber information
-7. **Pattern Filtering**: Use Redis glob patterns to filter channels (e.g., `user:*`, `notification:*`)
+6. **Message Management**: Delete individual messages or clear all messages with database persistence
+7. **Statistics**: View channel statistics and subscriber information
+8. **Pattern Filtering**: Use Redis glob patterns to filter channels (e.g., `user:*`, `notification:*`)
+9. **Auto Recovery**: Subscriptions and messages automatically restored after server restarts
 
 ### Advanced Features
 - **Collapsible Groups**: Click folder icons to expand/collapse key groups
@@ -133,6 +142,10 @@ ALLOWED_ORIGINS=http://localhost:3000
 - **Persistent Connections**: Your connections are saved and can be reconnected after server restarts
 - **Real-time Pub/Sub**: WebSocket-based real-time message monitoring with auto-reconnect
 - **Tab Persistence**: Application remembers your active tab and sub-tabs across page refreshes
+- **Resizable Interface**: Drag panel edges to customize layout with persistent sizing
+- **Auto Tab Switching**: Clicking keys automatically switches to the appropriate tab
+- **Data Persistence**: SQLite backup ensures data survives server restarts
+- **Keyboard Accessibility**: Full keyboard navigation support for all interactive elements
 
 ## Project Structure
 
@@ -310,6 +323,12 @@ npm run typecheck --workspaces
 - [x] Real-time message streaming and subscriptions
 - [x] Message persistence and history
 - [x] Tab state persistence across refreshes
+- [x] SQLite data persistence and backup
+- [x] Connection recovery after server restarts
+- [x] Individual message deletion
+- [x] Resizable interface panels
+- [x] Auto tab switching for improved UX
+- [x] Keyboard accessibility support
 - [ ] Query builder for complex Redis operations
 - [ ] Performance monitoring and metrics
 - [ ] Multi-database support within single connection

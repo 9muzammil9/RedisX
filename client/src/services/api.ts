@@ -6,7 +6,7 @@ const api = axios.create({
 });
 
 export const connectionsApi = {
-  create: (connection: Omit<RedisConnection, 'id'>) => 
+  create: (connection: Omit<RedisConnection, 'id'> | RedisConnection) => 
     api.post<RedisConnection>('/connections', connection),
   
   getAll: () => 
@@ -17,6 +17,9 @@ export const connectionsApi = {
   
   getInfo: (id: string) => 
     api.get<{ info: string }>(`/connections/${id}/info`),
+  
+  exists: (id: string) => 
+    api.get(`/connections/${id}/exists`),
 };
 
 export const keysApi = {

@@ -1,35 +1,21 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { wsClient } from '../services/websocket';
 import { cleanupOldSubscriptions } from '../utils/subscriptionStorage';
 
 export function useSubscriptionRestore() {
-  const { activeConnectionId, loadSubscribedChannels, subscribedChannels } = useStore();
-  const hasRestoredRef = useRef<string | null>(null);
+  const { activeConnectionId, subscribedChannels, refreshActiveConnection } = useStore();
 
   useEffect(() => {
     // Cleanup old subscription data on app start
     cleanupOldSubscriptions();
-  }, []);
-
-  useEffect(() => {
-    if (!activeConnectionId) {
-      hasRestoredRef.current = null;
-      return;
-    }
-
-    // Only restore once per connection
-    if (hasRestoredRef.current === activeConnectionId) {
-      return;
-    }
-
-    console.log(`🔄 Restoring subscriptions for connection: ${activeConnectionId}`);
     
-    // Load subscribed channels from localStorage
-    loadSubscribedChannels(activeConnectionId);
-    hasRestoredRef.current = activeConnectionId;
-    
-  }, [activeConnectionId, loadSubscribedChannels]);
+    // Refresh subscriptions for the active connection on app start
+    if (activeConnectionId) {
+      console.log('🔄 App started - refreshing active connection data');
+      refreshActiveConnection();
+    }
+  }, [activeConnectionId, refreshActiveConnection]);
 
   useEffect(() => {
     if (!activeConnectionId || subscribedChannels.size === 0) {
