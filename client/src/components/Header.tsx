@@ -1,5 +1,5 @@
 import React from 'react';
-import { Moon, Sun, Database, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Moon, Sun, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Switch } from './ui/Switch';
 import { Button } from './ui/Button';
 import { useStore } from '../store/useStore';
@@ -19,8 +19,8 @@ export const Header: React.FC = () => {
           >
             {showConnectionsPanel ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
           </Button>
-          <Database className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-semibold">Redis Viewer</h1>
+          <img src="/logo.svg" alt="RedisX Logo" className="h-8 w-8" />
+          <h1 className="text-xl font-semibold">RedisX</h1>
         </div>
         
         <div className="flex items-center space-x-2">

@@ -10,6 +10,12 @@ export async function checkAndRecoverConnection(connection: RedisConnection): Pr
       // Connection exists, return as-is
       return connection;
     } else {
+      // Skip auto-recovery for local instance connections
+      if (connection.name.startsWith('Local -')) {
+        console.log(`⏭️ Skipping auto-recovery for local instance connection: ${connection.name}`);
+        return connection;
+      }
+      
       // Connection doesn't exist on server, recreate it with the same ID
       console.log(`🔄 Connection ${connection.id} not found on server, recreating with same ID...`);
       

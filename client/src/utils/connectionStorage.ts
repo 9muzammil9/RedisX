@@ -1,7 +1,7 @@
 import { RedisConnection } from '../types';
 
-const CONNECTIONS_STORAGE_KEY = 'redis-viewer-connections';
-const ACTIVE_CONNECTION_STORAGE_KEY = 'redis-viewer-active-connection';
+const CONNECTIONS_STORAGE_KEY = 'redisx-connections';
+const ACTIVE_CONNECTION_STORAGE_KEY = 'redisx-active-connection';
 
 export const saveConnections = (connections: RedisConnection[]): void => {
   try {

@@ -1,7 +1,7 @@
 {
-  "name": "redis-viewer",
+  "name": "redisx",
   "version": "1.0.0",
-  "description": "A modern Redis database viewer with multi-connection support",
+  "description": "RedisX - See Everything. Control Everything. A modern Redis database viewer with multi-connection support",
   "private": true,
   "workspaces": [
     "client",

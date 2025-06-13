@@ -97,6 +97,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
       clearSelection();
       fetchKeys(searchPattern, '0');
     } catch (error) {
+      console.error('Failed to delete keys:', error);
       toast.error('Failed to delete keys');
     }
   };
@@ -277,7 +278,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
   }
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="h-full flex flex-col">
       <div className="p-4 border-b border-border">
         <form onSubmit={handleSearch} className="flex space-x-2 mb-3">
           <Input
@@ -347,32 +348,36 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
       </div>
       
       <div className="flex-1 overflow-auto">
-        {loading && keys.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground">Loading...</div>
-        ) : keys.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground">No keys found</div>
-        ) : (
-          <div>
-            {keyTree.map((node) => (
-              <KeyTreeNodeComponent
-                key={node.id}
-                node={node}
-                expandedNodes={expandedNodes}
-                selectedKeys={selectedKeys}
-                onToggleExpanded={handleToggleExpanded}
-                onToggleSelected={toggleKeySelection}
-                onKeySelect={handleKeySelect}
-                selectedKey={selectedKey || undefined}
-                onExportKey={handleExportKey}
-                onExportGroup={handleExportGroup}
-                onCopyKeyName={handleCopyKeyName}
-                onCopyValue={handleCopyValue}
-                onEditKey={handleEditKey}
-                onDeleteKey={handleDeleteKey}
-              />
-            ))}
-          </div>
-        )}
+        {(() => {
+          if (loading && keys.length === 0) {
+            return <div className="p-4 text-center text-muted-foreground">Loading...</div>;
+          }
+          if (keys.length === 0) {
+            return <div className="p-4 text-center text-muted-foreground">No keys found</div>;
+          }
+          return (
+            <div>
+              {keyTree.map((node) => (
+                <KeyTreeNodeComponent
+                  key={node.id}
+                  node={node}
+                  expandedNodes={expandedNodes}
+                  selectedKeys={selectedKeys}
+                  onToggleExpanded={handleToggleExpanded}
+                  onToggleSelected={toggleKeySelection}
+                  onKeySelect={handleKeySelect}
+                  selectedKey={selectedKey ?? undefined}
+                  onExportKey={handleExportKey}
+                  onExportGroup={handleExportGroup}
+                  onCopyKeyName={handleCopyKeyName}
+                  onCopyValue={handleCopyValue}
+                  onEditKey={handleEditKey}
+                  onDeleteKey={handleDeleteKey}
+                />
+              ))}
+            </div>
+          );
+        })()}
         
         {hasMore && (
           <div className="p-4 text-center">

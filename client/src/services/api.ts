@@ -76,3 +76,54 @@ export const pubsubApi = {
   publishMessage: (connectionId: string, channel: string, message: string) =>
     api.post<PublishResponse>('/pubsub/publish', { connectionId, channel, message }),
 };
+
+export const instancesApi = {
+  checkRedisInstalled: () =>
+    api.get<{ installed: boolean; version: string | null }>('/instances/check'),
+  
+  getAll: () =>
+    api.get<RedisInstance[]>('/instances'),
+  
+  getById: (id: string) =>
+    api.get<RedisInstance>(`/instances/${id}`),
+  
+  getLogs: (id: string) =>
+    api.get<{ logs: string[] }>(`/instances/${id}/logs`),
+  
+  create: (name: string, config: RedisInstanceConfig) =>
+    api.post<RedisInstance>('/instances', { name, config }),
+  
+  start: (id: string) =>
+    api.post<RedisInstance>(`/instances/${id}/start`),
+  
+  stop: (id: string) =>
+    api.post<RedisInstance>(`/instances/${id}/stop`),
+  
+  delete: (id: string) =>
+    api.delete(`/instances/${id}`),
+};
+
+export interface RedisInstanceConfig {
+  port: number;
+  maxmemory?: string;
+  maxmemoryPolicy?: string;
+  appendonly?: boolean;
+  save?: boolean;
+  password?: string;
+  bind?: string;
+  databases?: number;
+  timeout?: number;
+  loglevel?: 'debug' | 'verbose' | 'notice' | 'warning';
+}
+
+export interface RedisInstance {
+  id: string;
+  name: string;
+  config: RedisInstanceConfig;
+  status: 'running' | 'stopped' | 'error';
+  pid?: number;
+  startedAt?: Date;
+  logs: string[];
+  configPath?: string;
+  dataDir?: string;
+}

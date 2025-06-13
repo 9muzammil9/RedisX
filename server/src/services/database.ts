@@ -38,6 +38,16 @@ export interface AppStateRecord {
   updated_at: string;
 }
 
+export interface InstanceRecord {
+  id: string;
+  name: string;
+  config: string; // JSON stringified config
+  status: 'running' | 'stopped' | 'error';
+  was_running: boolean; // Track if instance was running before shutdown
+  created_at: string;
+  updated_at: string;
+}
+
 class DatabaseService {
   private db: Database.Database;
   private initialized = false;
@@ -49,7 +59,7 @@ class DatabaseService {
       mkdirSync(dataDir, { recursive: true });
     }
 
-    const dbPath = path.join(dataDir, 'redis-viewer.db');
+    const dbPath = path.join(dataDir, 'redisx.db');
     this.db = new Database(dbPath);
     
     // Enable WAL mode for better performance
@@ -108,6 +118,19 @@ class DatabaseService {
       CREATE TABLE IF NOT EXISTS app_state (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `);
+
+    // Redis instances table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS instances (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        config TEXT NOT NULL,
+        status TEXT NOT NULL,
+        was_running BOOLEAN DEFAULT FALSE,
+        created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )
     `);
@@ -291,6 +314,75 @@ class DatabaseService {
     const stmt = this.db.prepare('SELECT value FROM app_state WHERE key = ?');
     const row = stmt.get(key) as any;
     return row ? row.value : null;
+  }
+
+  // Instance methods
+  saveInstance(instance: Omit<InstanceRecord, 'created_at' | 'updated_at'>): void {
+    const now = new Date().toISOString();
+    const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO instances 
+      (id, name, config, status, was_running, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM instances WHERE id = ?), ?), ?)
+    `);
+    
+    stmt.run(
+      instance.id,
+      instance.name,
+      instance.config,
+      instance.status,
+      instance.was_running ? 1 : 0,
+      instance.id,
+      now,
+      now
+    );
+  }
+
+  getInstances(): InstanceRecord[] {
+    const stmt = this.db.prepare('SELECT * FROM instances ORDER BY created_at DESC');
+    const rows = stmt.all() as any[];
+    
+    return rows.map(row => ({
+      ...row,
+      was_running: Boolean(row.was_running)
+    }));
+  }
+
+  getInstance(id: string): InstanceRecord | null {
+    const stmt = this.db.prepare('SELECT * FROM instances WHERE id = ?');
+    const row = stmt.get(id) as any;
+    
+    if (!row) return null;
+    
+    return {
+      ...row,
+      was_running: Boolean(row.was_running)
+    };
+  }
+
+  updateInstanceStatus(id: string, status: string, wasRunning?: boolean): void {
+    const now = new Date().toISOString();
+    const updates: string[] = ['status = ?', 'updated_at = ?'];
+    const params: any[] = [status, now];
+    
+    if (wasRunning !== undefined) {
+      updates.push('was_running = ?');
+      params.push(wasRunning ? 1 : 0);
+    }
+    
+    params.push(id);
+    
+    const stmt = this.db.prepare(`
+      UPDATE instances 
+      SET ${updates.join(', ')}
+      WHERE id = ?
+    `);
+    
+    stmt.run(...params);
+  }
+
+  deleteInstance(id: string): void {
+    const stmt = this.db.prepare('DELETE FROM instances WHERE id = ?');
+    stmt.run(id);
   }
 
   // Cleanup methods

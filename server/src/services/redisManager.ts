@@ -16,14 +16,32 @@ class RedisManager {
       username,
       tls: tls ? {} : undefined,
       retryStrategy: (times) => {
+        // Only retry a few times for initial connection
+        if (times > 3) {
+          return null; // Stop retrying
+        }
         const delay = Math.min(times * 50, 2000);
         return delay;
       },
+      enableOfflineQueue: false,
+      lazyConnect: true, // Don't connect immediately
     });
 
-    await redis.ping();
-    this.connections.set(id, redis);
-    this.connectionConfigs.set(id, config);
+    // Handle connection errors gracefully
+    redis.on('error', (error) => {
+      console.warn(`Redis connection error for ${id}:`, error.message);
+    });
+
+    try {
+      await redis.connect();
+      await redis.ping();
+      this.connections.set(id, redis);
+      this.connectionConfigs.set(id, config);
+    } catch (error) {
+      // Clean up the failed connection
+      redis.disconnect();
+      throw error;
+    }
   }
 
   getConnection(id: string): Redis {

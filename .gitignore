@@ -57,7 +57,6 @@ out/
 dist
 # Gatsby files
 .cache/
-public
 # Vuepress build output
 .vuepress/dist
 # Serverless directories
@@ -107,3 +106,4 @@ temp/
 test-files/
 # Local development files
 server/data
+redis-instances/

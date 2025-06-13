@@ -1,10 +1,17 @@
-# Redis Viewer
+<p>
+  <img src="/client/public/redisx-banner.png" alt="RedisX" width="600">
+</p>
+
+<p>
+  <strong>See Everything. Control Everything.</strong>
+</p>
 
 A modern, feature-rich Redis database viewer with support for multiple connections, bulk operations, real-time pub/sub monitoring, and a clean UI with dark mode support.
 
 ## Features
 
 ### Connection Management
+
 - **Multiple Database Connections**: Connect to multiple Redis instances simultaneously
 - **Connection Persistence**: Saved connections persist across server restarts with SQLite backup
 - **Smart Password Management**: Option to keep existing passwords when editing connections
@@ -14,6 +21,7 @@ A modern, feature-rich Redis database viewer with support for multiple connectio
 - **Easy Connection Editing**: Click server icons to edit connection details
 
 ### Key Management
+
 - **Hierarchical Key View**: Nested key visualization with collapsible groups (using `:` separator)
 - **Resizable Keys Panel**: Adjustable panel width with minimum constraints and persistent sizing
 - **Create New Keys**: Add new Redis keys with support for all data types
@@ -25,6 +33,7 @@ A modern, feature-rich Redis database viewer with support for multiple connectio
 - **Auto Tab Switching**: Automatically switches to Keys & Values tab when selecting a key
 
 ### Data Type Support
+
 - **String**: Simple text values
 - **List**: Ordered collections with individual element editing
 - **Hash**: Key-value pairs within keys
@@ -32,7 +41,19 @@ A modern, feature-rich Redis database viewer with support for multiple connectio
 - **Sorted Set (ZSet)**: Scored value collections
 - **Individual Element Editing**: Edit list and array elements separately instead of entire structures
 
+### Local Redis Instances
+
+- **Create & Manage**: Spawn and manage local Redis instances directly from the app
+- **Full Configuration Control**: Set ports, memory limits, persistence options, passwords, and more
+- **Instance Persistence**: Instances are saved and can be restarted after server restarts
+- **Auto-Recovery**: Running instances automatically restart when the server starts
+- **Real-time Logs**: View Redis server logs in real-time with auto-scroll and download options
+- **One-Click Operations**: Start, stop, and connect to instances with single clicks
+- **Resource Management**: Each instance runs in isolated data directories
+- **Status Monitoring**: Visual indicators show instance health and running status
+
 ### User Experience
+
 - **Dark Mode**: Toggle between light and dark themes with persistent preference
 - **Collapsible Panels**: Hide/show connections panel for more workspace
 - **Smart View Modes**: Automatic selection of optimal view based on data type and size
@@ -42,6 +63,7 @@ A modern, feature-rich Redis database viewer with support for multiple connectio
 - **Tab State Persistence**: Remembers your active tab (Keys/Values or Pub/Sub) across refreshes
 
 ### Pub/Sub Features
+
 - **Real-time Channel Monitoring**: View all active Redis pub/sub channels
 - **Live Message Streaming**: Real-time message updates via WebSocket connection
 - **Channel Subscriptions**: Subscribe to multiple channels simultaneously
@@ -65,24 +87,28 @@ A modern, feature-rich Redis database viewer with support for multiple connectio
 
 ## Requirements
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or yarn
 - Redis server (for connections)
+- Redis installed locally (optional, only needed for Local Instances feature)
 
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
-cd redis-viewer
+cd redisx
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -105,12 +131,14 @@ ALLOWED_ORIGINS=http://localhost:3000
 ## Usage
 
 ### Getting Started
+
 1. Open http://localhost:3000 in your browser
 2. Click the "+" button in the connections panel to add a new Redis connection
 3. Enter your Redis server details (host, port, password if required)
 4. Click "Connect" to establish the connection
 
 ### Working with Keys
+
 1. **Browse Keys**: Use the hierarchical tree view to navigate your key structure
 2. **Resize Panel**: Drag the panel edge to adjust the keys panel width to your preference
 3. **Search Keys**: Use Redis glob patterns (e.g., `user:*`, `cache:session:*`)
@@ -121,6 +149,7 @@ ALLOWED_ORIGINS=http://localhost:3000
 8. **Export Data**: Export individual keys or entire groups in multiple formats (JSON, Redis CLI, CSV)
 
 ### Working with Pub/Sub
+
 1. **Access Pub/Sub**: Click the "Pub/Sub" tab in the main interface
 2. **View Channels**: Browse all active channels with subscriber counts
 3. **Subscribe to Channels**: Use the Subscribe tab to monitor channels in real-time
@@ -131,7 +160,19 @@ ALLOWED_ORIGINS=http://localhost:3000
 8. **Pattern Filtering**: Use Redis glob patterns to filter channels (e.g., `user:*`, `notification:*`)
 9. **Auto Recovery**: Subscriptions and messages automatically restored after server restarts
 
+### Working with Local Instances
+
+1. **Access Local Instances**: Click the "Local Instances" tab in the main interface
+2. **Create Instance**: Click the "New Instance" button to configure a new Redis instance
+3. **Configure Settings**: Set port, memory limits, persistence, passwords, and other Redis configurations
+4. **Start/Stop Instances**: Use the play/stop buttons to control instance lifecycle
+5. **View Logs**: Click the terminal icon to see real-time Redis server logs
+6. **Connect**: Running instances can be connected to with one click
+7. **Instance Persistence**: All instances and their configurations are saved automatically
+8. **Auto-Recovery**: Instances that were running will automatically restart after server restarts
+
 ### Advanced Features
+
 - **Collapsible Groups**: Click folder icons to expand/collapse key groups
 - **Individual Element Editing**: For lists and arrays, edit individual elements instead of the entire structure
 - **Context Menu Operations**: Right-click any key or group for quick actions
@@ -146,11 +187,12 @@ ALLOWED_ORIGINS=http://localhost:3000
 - **Auto Tab Switching**: Clicking keys automatically switches to the appropriate tab
 - **Data Persistence**: SQLite backup ensures data survives server restarts
 - **Keyboard Accessibility**: Full keyboard navigation support for all interactive elements
+- **Local Instance Management**: Create and manage Redis instances without external setup
 
 ## Project Structure
 
 ```
-redis-viewer/
+redisx/
 ├── client/               # React frontend
 │   ├── src/
 │   │   ├── components/   # UI components
@@ -172,12 +214,14 @@ redis-viewer/
 ## API Endpoints
 
 ### Connections
+
 - `POST /api/connections` - Create a new connection
 - `GET /api/connections` - Get all connections
 - `DELETE /api/connections/:id` - Delete a connection
 - `GET /api/connections/:id/info` - Get Redis server info
 
 ### Keys
+
 - `GET /api/keys` - Get keys (with pagination and pattern matching)
 - `GET /api/keys/value` - Get value for a specific key
 - `PUT /api/keys/value` - Update key value
@@ -185,6 +229,7 @@ redis-viewer/
 - `PUT /api/keys/rename` - Rename a key
 
 ### Pub/Sub
+
 - `GET /api/pubsub/channels` - Get all active channels
 - `GET /api/pubsub/stats` - Get channel statistics
 - `POST /api/pubsub/publish` - Publish message to a channel
@@ -213,6 +258,7 @@ npm run typecheck --workspaces # Type check all workspaces
 ### Project Architecture
 
 This is a monorepo using npm workspaces with:
+
 - **Client**: React SPA with TypeScript and Vite
 - **Server**: Express REST API with TypeScript
 - **Shared**: Common types and utilities
@@ -227,11 +273,13 @@ This is a monorepo using npm workspaces with:
 ## Screenshots
 
 ### Light Mode
+
 - Clean, modern interface with intuitive navigation
 - Hierarchical key browser with expandable groups
 - Tabbed view modes for different data visualizations
 
 ### Dark Mode
+
 - Full dark theme support with consistent styling
 - Automatic theme persistence across sessions
 - Optimized for extended usage and reduced eye strain
@@ -241,28 +289,33 @@ This is a monorepo using npm workspaces with:
 ### Common Issues
 
 **Connection Failed**
+
 - Verify Redis server is running and accessible
 - Check host, port, and authentication credentials
 - Ensure firewall allows connections to Redis port
 
 **Keys Not Loading**
+
 - Check Redis connection status (green indicator)
 - Verify you have READ permissions on the database
 - Try refreshing the connection
 
 **Pub/Sub Issues**
+
 - Ensure WebSocket connection is active (green indicator)
 - Check browser console for WebSocket connection errors
 - Verify Redis server supports pub/sub operations
 - Try disconnecting and reconnecting WebSocket
 
 **Performance Issues**
+
 - Use key patterns to limit results (e.g., `user:*` instead of `*`)
 - Enable pagination for large datasets
 - Consider using more specific search patterns
 - Limit pub/sub subscriptions to essential channels only
 
 **UI Issues**
+
 - Hard refresh (Ctrl+F5) to clear cache
 - Check browser console for JavaScript errors
 - Ensure JavaScript is enabled
@@ -270,12 +323,14 @@ This is a monorepo using npm workspaces with:
 ### Development Issues
 
 **Port Already in Use**
+
 ```bash
 # Kill processes using ports 3000 or 4000
 npx kill-port 3000 4000
 ```
 
 **Module Resolution Errors**
+
 ```bash
 # Clear node_modules and reinstall
 rm -rf node_modules client/node_modules server/node_modules
@@ -283,6 +338,7 @@ npm install
 ```
 
 **TypeScript Errors**
+
 ```bash
 # Run type checking to see all errors
 npm run typecheck --workspaces
@@ -329,6 +385,7 @@ npm run typecheck --workspaces
 - [x] Resizable interface panels
 - [x] Auto tab switching for improved UX
 - [x] Keyboard accessibility support
+- [x] Local Redis instance management
 - [ ] Query builder for complex Redis operations
 - [ ] Performance monitoring and metrics
 - [ ] Multi-database support within single connection
@@ -346,6 +403,7 @@ MIT License - see [LICENSE](LICENSE) file for details
 ## Support
 
 For issues, questions, or contributions:
+
 - Open an issue on GitHub
 - Check existing issues for solutions
 - Contribute via pull requests

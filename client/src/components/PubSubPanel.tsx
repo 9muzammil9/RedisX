@@ -17,7 +17,7 @@ import * as persistence from '../services/persistence';
 const savePubSubView = (view: PubSubView) => {
   try {
     // Save to both localStorage (for quick access) and SQLite
-    localStorage.setItem('redis-viewer-pubsub-view', view);
+    localStorage.setItem('redisx-pubsub-view', view);
     persistence.saveAppState('pubsubView', view);
   } catch (error) {
     console.error('Failed to save pubsub view:', error);
@@ -26,7 +26,7 @@ const savePubSubView = (view: PubSubView) => {
 
 const loadPubSubView = (): PubSubView => {
   try {
-    const saved = localStorage.getItem('redis-viewer-pubsub-view');
+    const saved = localStorage.getItem('redisx-pubsub-view');
     const validViews: PubSubView[] = ['channels', 'publish', 'stats', 'subscribe', 'messages'];
     return validViews.includes(saved as PubSubView) ? (saved as PubSubView) : 'channels';
   } catch (error) {

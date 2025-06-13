@@ -10,7 +10,7 @@ interface PersistedMessages {
   };
 }
 
-const STORAGE_KEY = 'redis-viewer-messages';
+const STORAGE_KEY = 'redisx-messages';
 const MAX_MESSAGES_PER_CHANNEL = 50; // Limit to prevent storage bloat
 const MAX_AGE_HOURS = 24; // Keep messages for 24 hours
 

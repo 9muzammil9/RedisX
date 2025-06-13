@@ -9,7 +9,7 @@ interface SubscriptionData {
   timestamp: number;
 }
 
-const STORAGE_KEY = 'redis-viewer-subscriptions';
+const STORAGE_KEY = 'redisx-subscriptions';
 
 export function saveSubscriptions(connectionId: string, channels: Map<string, boolean>): void {
   try {

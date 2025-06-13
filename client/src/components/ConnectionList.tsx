@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Server, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Server, RefreshCw, HardDrive } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useStore } from '../store/useStore';
 import { ConnectionModal } from './ConnectionModal';
@@ -84,13 +84,18 @@ export const ConnectionList: React.FC = () => {
       
       toast.success(`Reconnected to ${connection.name}`);
     } catch (error: any) {
-      // Check if it's an authentication error
-      if (error.response?.data?.message?.includes('NOAUTH') || error.message?.includes('NOAUTH')) {
+      // Check if it's a local instance connection
+      if (connection.name.startsWith('Local -')) {
+        toast.error('Local instance is not running. Please start it from the Local Instances tab.');
+      } else if (error.response?.data?.message?.includes('NOAUTH') || error.message?.includes('NOAUTH')) {
         toast.error(`Authentication required for ${connection.name}. Please re-enter password.`);
       } else {
         toast.error(`Reconnection failed for ${connection.name}. Please check connection details.`);
       }
-      setIsModalOpen(true);
+      // Only open modal for non-local instance connections
+      if (!connection.name.startsWith('Local -')) {
+        setIsModalOpen(true);
+      }
     } finally {
       setReconnectingId(null);
     }
@@ -150,18 +155,27 @@ export const ConnectionList: React.FC = () => {
               }}
             >
               <div className="flex items-center space-x-2">
-                <Server 
-                  className={cn("h-4 w-4 cursor-pointer hover:opacity-70", isConnected(connection.id) ? "text-green-500" : "text-gray-400")} 
-                  onClick={(e) => handleEditClick(connection, e)}
-                  title="Edit connection"
-                />
+                {connection.name.startsWith('Local -') ? (
+                  <HardDrive 
+                    className={cn("h-4 w-4", isConnected(connection.id) ? "text-green-500" : "text-gray-400")} 
+                    title="Local instance"
+                  />
+                ) : (
+                  <Server 
+                    className={cn("h-4 w-4 cursor-pointer hover:opacity-70", isConnected(connection.id) ? "text-green-500" : "text-gray-400")} 
+                    onClick={(e) => handleEditClick(connection, e)}
+                    title="Edit connection"
+                  />
+                )}
                 <div>
                   <p className="text-sm font-medium">{connection.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {connection.host}:{connection.port}
                   </p>
                   {!isConnected(connection.id) && (
-                    <p className="text-xs text-orange-500">Disconnected</p>
+                    <p className="text-xs text-orange-500">
+                      {connection.name.startsWith('Local -') ? 'Instance stopped' : 'Disconnected'}
+                    </p>
                   )}
                 </div>
               </div>

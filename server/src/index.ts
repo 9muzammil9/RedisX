@@ -8,8 +8,10 @@ import { connectionsRouter } from './routes/connections';
 import { keysRouter } from './routes/keys';
 import { pubsubRouter } from './routes/pubsub';
 import { persistenceRouter } from './routes/persistence';
+import instancesRouter from './routes/instances';
 import { errorHandler } from './middleware/errorHandler';
 import { initializeWebSocketServer } from './services/websocketService';
+import { redisInstanceManager } from './services/redisInstanceManager';
 
 dotenv.config();
 
@@ -23,6 +25,7 @@ app.use('/api/connections', connectionsRouter);
 app.use('/api/keys', keysRouter);
 app.use('/api/pubsub', pubsubRouter);
 app.use('/api/persistence', persistenceRouter);
+app.use('/api/instances', instancesRouter);
 
 app.use(errorHandler);
 
@@ -37,3 +40,26 @@ server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`WebSocket server available at ws://localhost:${PORT}/ws`);
 });
+
+// Graceful shutdown handlers
+const gracefulShutdown = async () => {
+  console.log('\n🛑 Received shutdown signal...');
+  
+  // Shutdown Redis instances
+  await redisInstanceManager.gracefulShutdown();
+  
+  // Close server
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+  
+  // Force exit after 10 seconds
+  setTimeout(() => {
+    console.error('❌ Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);

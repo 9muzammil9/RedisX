@@ -6,12 +6,13 @@ import { ConnectionList } from './components/ConnectionList';
 import { KeyList } from './components/KeyList';
 import { ValueEditor } from './components/ValueEditor';
 import { PubSubPanel } from './components/PubSubPanel';
+import { LocalInstances } from './components/LocalInstances';
 import { useStore } from './store/useStore';
 import { useConnectionRestore } from './hooks/useConnectionRestore';
 
 const queryClient = new QueryClient();
 
-type RightPanelTab = 'keys' | 'pubsub';
+type RightPanelTab = 'keys' | 'pubsub' | 'instances';
 
 // Helper functions for tab and panel persistence
 import * as persistence from './services/persistence';
@@ -19,7 +20,7 @@ import * as persistence from './services/persistence';
 const saveActiveTab = (tab: RightPanelTab) => {
   try {
     // Save to both localStorage (for quick access) and SQLite
-    localStorage.setItem('redis-viewer-active-tab', tab);
+    localStorage.setItem('redisx-active-tab', tab);
     persistence.saveAppState('activeTab', tab);
   } catch (error) {
     console.error('Failed to save active tab:', error);
@@ -28,8 +29,8 @@ const saveActiveTab = (tab: RightPanelTab) => {
 
 const loadActiveTab = (): RightPanelTab => {
   try {
-    const saved = localStorage.getItem('redis-viewer-active-tab');
-    return (saved === 'keys' || saved === 'pubsub') ? saved : 'keys';
+    const saved = localStorage.getItem('redisx-active-tab');
+    return (saved === 'keys' || saved === 'pubsub' || saved === 'instances') ? saved : 'keys';
   } catch (error) {
     console.error('Failed to load active tab:', error);
     return 'keys';
@@ -38,7 +39,7 @@ const loadActiveTab = (): RightPanelTab => {
 
 const saveKeysPanelWidth = (width: number) => {
   try {
-    localStorage.setItem('redis-viewer-keys-panel-width', width.toString());
+    localStorage.setItem('redisx-keys-panel-width', width.toString());
     persistence.saveAppState('keysPanelWidth', width.toString());
   } catch (error) {
     console.error('Failed to save keys panel width:', error);
@@ -47,7 +48,7 @@ const saveKeysPanelWidth = (width: number) => {
 
 const loadKeysPanelWidth = (): number => {
   try {
-    const saved = localStorage.getItem('redis-viewer-keys-panel-width');
+    const saved = localStorage.getItem('redisx-keys-panel-width');
     const width = saved ? parseInt(saved, 10) : 350;
     return isNaN(width) ? 350 : Math.max(350, Math.min(800, width)); // Clamp between 350-800px
   } catch (error) {
@@ -223,6 +224,16 @@ function App() {
                   >
                     Pub/Sub
                   </button>
+                  <button
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                      activeRightTab === 'instances'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                    }`}
+                    onClick={() => handleTabChange('instances')}
+                  >
+                    Local Instances
+                  </button>
                 </div>
               </div>
 
@@ -236,6 +247,7 @@ function App() {
                   />
                 )}
                 {activeRightTab === 'pubsub' && <PubSubPanel />}
+                {activeRightTab === 'instances' && <LocalInstances />}
               </div>
             </div>
           </div>
