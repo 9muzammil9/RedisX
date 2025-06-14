@@ -79,7 +79,10 @@ export const pubsubApi = {
 
 export const instancesApi = {
   checkRedisInstalled: () =>
-    api.get<{ installed: boolean; version: string | null }>('/instances/check'),
+    api.get<{ 
+      redis: { installed: boolean; version: string | null };
+      docker: { installed: boolean; version: string | null };
+    }>('/instances/check'),
   
   getAll: () =>
     api.get<RedisInstance[]>('/instances'),
@@ -101,6 +104,12 @@ export const instancesApi = {
   
   delete: (id: string) =>
     api.delete(`/instances/${id}`),
+  
+  test: (id: string) =>
+    api.get<{ connectable: boolean; status: string; port: number; executionMode: string }>(`/instances/${id}/test`),
+  
+  debug: (id: string) =>
+    api.get<any>(`/instances/${id}/debug`),
 };
 
 export interface RedisInstanceConfig {
@@ -114,6 +123,7 @@ export interface RedisInstanceConfig {
   databases?: number;
   timeout?: number;
   loglevel?: 'debug' | 'verbose' | 'notice' | 'warning';
+  executionMode: 'native' | 'docker';
 }
 
 export interface RedisInstance {

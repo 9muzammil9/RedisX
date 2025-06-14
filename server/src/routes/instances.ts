@@ -3,19 +3,27 @@ import { redisInstanceManager, RedisInstanceConfig } from '../services/redisInst
 
 const router = Router();
 
-// Check if Redis is installed
-router.get('/check', (req, res) => {
-  const isInstalled = redisInstanceManager.checkRedisInstalled();
-  const version = redisInstanceManager.getRedisVersion();
+// Check if Redis and Docker are installed
+router.get('/check', (_req, res) => {
+  const redisInstalled = redisInstanceManager.checkRedisInstalled();
+  const redisVersion = redisInstanceManager.getRedisVersion();
+  const dockerInstalled = redisInstanceManager.checkDockerInstalled();
+  const dockerVersion = redisInstanceManager.getDockerVersion();
   
   res.json({
-    installed: isInstalled,
-    version
+    redis: {
+      installed: redisInstalled,
+      version: redisVersion
+    },
+    docker: {
+      installed: dockerInstalled,
+      version: dockerVersion
+    }
   });
 });
 
 // Get all instances
-router.get('/', (req, res) => {
+router.get('/', (_req, res) => {
   const instances = redisInstanceManager.getAllInstances();
   res.json(instances);
 });
@@ -33,6 +41,65 @@ router.get('/:id', (req, res) => {
 router.get('/:id/logs', (req, res) => {
   const logs = redisInstanceManager.getInstanceLogs(req.params.id);
   res.json({ logs });
+});
+
+// Test instance connectivity
+router.get('/:id/test', async (req, res) => {
+  try {
+    const instance = redisInstanceManager.getInstance(req.params.id);
+    if (!instance) {
+      return res.status(404).json({ error: 'Instance not found' });
+    }
+
+    const isConnectable = await redisInstanceManager.testRedisConnection(instance);
+    res.json({ 
+      connectable: isConnectable,
+      status: instance.status,
+      port: instance.config.port,
+      executionMode: instance.config.executionMode 
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Debug Docker instance
+router.get('/:id/debug', (req, res) => {
+  try {
+    const instance = redisInstanceManager.getInstance(req.params.id);
+    if (!instance) {
+      return res.status(404).json({ error: 'Instance not found' });
+    }
+
+    if (instance.config.executionMode !== 'docker') {
+      return res.json({ error: 'Debug endpoint only available for Docker instances' });
+    }
+
+    const containerName = `redisx-${instance.id}`;
+    const debugInfo: any = {
+      containerName,
+      instanceStatus: instance.status,
+      port: instance.config.port,
+      dataDir: instance.dataDir,
+      logs: instance.logs.slice(-10) // Last 10 log entries
+    };
+
+    // Check container status
+    try {
+      const { execSync } = require('child_process');
+      const runningContainers = execSync(`docker ps -f name=${containerName} --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"`, { encoding: 'utf8' });
+      debugInfo.runningContainers = runningContainers;
+      
+      const allContainers = execSync(`docker ps -a -f name=${containerName} --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"`, { encoding: 'utf8' });
+      debugInfo.allContainers = allContainers;
+    } catch (error: any) {
+      debugInfo.dockerError = error.message;
+    }
+
+    res.json(debugInfo);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Create new instance

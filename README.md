@@ -44,11 +44,13 @@ A modern, feature-rich Redis database viewer with support for multiple connectio
 ### Local Redis Instances
 
 - **Create & Manage**: Spawn and manage local Redis instances directly from the app
+- **Docker & Native Support**: Choose between Docker containers or native Redis execution
+- **Windows-Friendly**: Docker mode recommended for Windows users (no Redis installation needed)
 - **Full Configuration Control**: Set ports, memory limits, persistence options, passwords, and more
 - **Instance Persistence**: Instances are saved and can be restarted after server restarts
 - **Auto-Recovery**: Running instances automatically restart when the server starts
 - **Real-time Logs**: View Redis server logs in real-time with auto-scroll and download options
-- **One-Click Operations**: Start, stop, and connect to instances with single clicks
+- **One-Click Operations**: Start, stop, test connectivity, and connect to instances with single clicks
 - **Resource Management**: Each instance runs in isolated data directories
 - **Status Monitoring**: Visual indicators show instance health and running status
 
@@ -163,13 +165,15 @@ ALLOWED_ORIGINS=http://localhost:3000
 ### Working with Local Instances
 
 1. **Access Local Instances**: Click the "Local Instances" tab in the main interface
-2. **Create Instance**: Click the "New Instance" button to configure a new Redis instance
-3. **Configure Settings**: Set port, memory limits, persistence, passwords, and other Redis configurations
-4. **Start/Stop Instances**: Use the play/stop buttons to control instance lifecycle
-5. **View Logs**: Click the terminal icon to see real-time Redis server logs
-6. **Connect**: Running instances can be connected to with one click
-7. **Instance Persistence**: All instances and their configurations are saved automatically
-8. **Auto-Recovery**: Instances that were running will automatically restart after server restarts
+2. **Choose Execution Mode**: Select Docker (recommended for Windows) or Native Redis
+3. **Create Instance**: Click the "New Instance" button to configure a new Redis instance
+4. **Configure Settings**: Set port, memory limits, persistence, passwords, and other Redis configurations
+5. **Start/Stop Instances**: Use the play/stop buttons to control instance lifecycle
+6. **Test Connectivity**: Use the wifi icon to verify instance is accessible
+7. **View Logs**: Click the terminal icon to see real-time Redis server logs
+8. **Connect**: Running instances can be connected to with one click
+9. **Instance Persistence**: All instances and their configurations are saved automatically
+10. **Auto-Recovery**: Instances that were running will automatically restart after server restarts
 
 ### Advanced Features
 
@@ -306,6 +310,21 @@ This is a monorepo using npm workspaces with:
 - Check browser console for WebSocket connection errors
 - Verify Redis server supports pub/sub operations
 - Try disconnecting and reconnecting WebSocket
+
+**Local Instance Issues**
+
+- **Docker Instance Won't Connect**: 
+  - Check Docker is running: `docker --version`
+  - Verify container is running: `docker ps | grep redisx`
+  - Test Redis inside container: `docker exec redisx-{id} redis-cli ping`
+  - Check port binding: `docker port redisx-{id}`
+  - View container logs: `docker logs redisx-{id}`
+  - Use the "Test Connection" button (wifi icon) for quick diagnostics
+
+- **Native Instance Issues**:
+  - Verify Redis is installed: `redis-server --version`
+  - Check if port is available: `netstat -an | findstr :6379` (Windows) or `lsof -i:6379` (Linux/Mac)
+  - Review instance logs in the application
 
 **Performance Issues**
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -38,8 +38,28 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
     loglevel: 'notice',
     appendonly: false,
     save: true,
+    executionMode: 'native', // Default to native
   });
   const [loading, setLoading] = useState(false);
+  const [availability, setAvailability] = useState<{
+    redis: { installed: boolean; version: string | null };
+    docker: { installed: boolean; version: string | null };
+  } | null>(null);
+
+  useEffect(() => {
+    // Check Redis and Docker availability on mount
+    instancesApi.checkRedisInstalled()
+      .then(response => {
+        setAvailability(response.data);
+        // Auto-select Docker if Redis is not available but Docker is
+        if (!response.data.redis.installed && response.data.docker.installed) {
+          setConfig(prev => ({ ...prev, executionMode: 'docker' }));
+        }
+      })
+      .catch(error => {
+        console.error('Failed to check availability:', error);
+      });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +72,18 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
     if (!config.port || config.port < 1024 || config.port > 65535) {
       toast.error('Please enter a valid port (1024-65535)');
       return;
+    }
+
+    // Check if selected execution mode is available
+    if (availability) {
+      if (config.executionMode === 'native' && !availability.redis.installed) {
+        toast.error('Native Redis is not available. Please install Redis or use Docker mode.');
+        return;
+      }
+      if (config.executionMode === 'docker' && !availability.docker.installed) {
+        toast.error('Docker is not available. Please install Docker or use native mode.');
+        return;
+      }
     }
 
     setLoading(true);
@@ -87,6 +119,63 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
               placeholder="My Redis Instance"
               required
             />
+          </div>
+
+          <div>
+            <Label htmlFor="executionMode">Execution Mode</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="native"
+                  name="executionMode"
+                  value="native"
+                  checked={config.executionMode === 'native'}
+                  onChange={() => setConfig({ ...config, executionMode: 'native' })}
+                  disabled={availability?.redis.installed === false}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="native" className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span>Native Redis ⚙️</span>
+                    <span className={`text-xs ${availability?.redis.installed ? 'text-green-600' : 'text-red-600'}`}>
+                      {availability?.redis.installed 
+                        ? `Available (v${availability.redis.version})` 
+                        : 'Not Available'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Uses Redis installed on your system. Requires redis-server command.
+                  </p>
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="docker"
+                  name="executionMode"
+                  value="docker"
+                  checked={config.executionMode === 'docker'}
+                  onChange={() => setConfig({ ...config, executionMode: 'docker' })}
+                  disabled={availability?.docker.installed === false}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="docker" className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span>Docker Container 🐳</span>
+                    <span className={`text-xs ${availability?.docker.installed ? 'text-green-600' : 'text-red-600'}`}>
+                      {availability?.docker.installed 
+                        ? `Available (v${availability.docker.version})` 
+                        : 'Not Available'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Runs Redis in a Docker container. Recommended for Windows users - no Redis installation needed!
+                  </p>
+                </Label>
+              </div>
+            </div>
           </div>
 
           <div>

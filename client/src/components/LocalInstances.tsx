@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Server, Plus, Play, Square, Trash2, Terminal, AlertCircle } from 'lucide-react';
+import { Server, Plus, Play, Square, Trash2, Terminal, AlertCircle, Wifi } from 'lucide-react';
 import { Button } from './ui/Button';
 import { instancesApi, RedisInstance } from '../services/api';
 import { NewInstanceModal } from './NewInstanceModal';
@@ -10,8 +10,10 @@ import toast from 'react-hot-toast';
 
 export const LocalInstances: React.FC = () => {
   const [instances, setInstances] = useState<RedisInstance[]>([]);
-  const [isRedisInstalled, setIsRedisInstalled] = useState<boolean | null>(null);
-  const [redisVersion, setRedisVersion] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<{
+    redis: { installed: boolean; version: string | null };
+    docker: { installed: boolean; version: string | null };
+  } | null>(null);
   const [showNewInstanceModal, setShowNewInstanceModal] = useState(false);
   const [selectedInstanceForLogs, setSelectedInstanceForLogs] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,11 +27,13 @@ export const LocalInstances: React.FC = () => {
   const checkRedisInstallation = async () => {
     try {
       const { data } = await instancesApi.checkRedisInstalled();
-      setIsRedisInstalled(data.installed);
-      setRedisVersion(data.version);
+      setAvailability(data);
     } catch (error) {
       console.error('Failed to check Redis installation:', error);
-      setIsRedisInstalled(false);
+      setAvailability({
+        redis: { installed: false, version: null },
+        docker: { installed: false, version: null }
+      });
     }
   };
 
@@ -118,22 +122,45 @@ export const LocalInstances: React.FC = () => {
     }
   };
 
-  if (isRedisInstalled === false) {
+  const handleTestConnection = async (instance: RedisInstance) => {
+    try {
+      const { data } = await instancesApi.test(instance.id);
+      if (data.connectable) {
+        toast.success(`✅ Redis instance is connectable on port ${data.port}`);
+      } else {
+        toast.error(`❌ Redis instance is not responding (${data.executionMode} mode)`);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to test connection');
+    }
+  };
+
+  if (availability && !availability.redis.installed && !availability.docker.installed) {
     return (
       <div className="p-6 text-center">
         <AlertCircle className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
-        <h3 className="text-lg font-semibold mb-2">Redis Not Installed</h3>
+        <h3 className="text-lg font-semibold mb-2">Redis & Docker Not Available</h3>
         <p className="text-muted-foreground mb-4">
-          Redis server is not installed on your system. Please install Redis to use local instances.
+          Neither Redis nor Docker is installed on your system. Please install one of them to use local instances.
         </p>
-        <a
-          href="https://redis.io/docs/getting-started/installation/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary hover:underline"
-        >
-          View Installation Guide
-        </a>
+        <div className="space-y-2">
+          <a
+            href="https://redis.io/docs/getting-started/installation/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-primary hover:underline"
+          >
+            Install Redis (Native)
+          </a>
+          <a
+            href="https://docs.docker.com/get-docker/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-primary hover:underline"
+          >
+            Install Docker (Recommended for Windows)
+          </a>
+        </div>
       </div>
     );
   }
@@ -144,8 +171,15 @@ export const LocalInstances: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold">Local Instances</h2>
-            {redisVersion && (
-              <p className="text-sm text-muted-foreground">Redis {redisVersion}</p>
+            {availability && (
+              <div className="text-sm text-muted-foreground space-y-1">
+                {availability.redis.installed && (
+                  <p>⚙️ Redis {availability.redis.version} (Native)</p>
+                )}
+                {availability.docker.installed && (
+                  <p>🐳 Docker {availability.docker.version} (Container)</p>
+                )}
+              </div>
             )}
           </div>
           <Button
@@ -196,6 +230,9 @@ export const LocalInstances: React.FC = () => {
                       >
                         {instance.status}
                       </span>
+                      <span className="px-2 py-0.5 text-xs rounded bg-blue-500/20 text-blue-500">
+                        {instance.config.executionMode === 'docker' ? '🐳 Docker' : '⚙️ Native'}
+                      </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
                       Port: {instance.config.port} | 
@@ -221,7 +258,16 @@ export const LocalInstances: React.FC = () => {
                         <Button
                           size="sm"
                           variant="ghost"
+                          onClick={() => handleTestConnection(instance)}
+                          title="Test connection"
+                        >
+                          <Wifi className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => setSelectedInstanceForLogs(instance.id)}
+                          title="View logs"
                         >
                           <Terminal className="w-4 h-4" />
                         </Button>
@@ -229,6 +275,7 @@ export const LocalInstances: React.FC = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleStopInstance(instance.id)}
+                          title="Stop instance"
                         >
                           <Square className="w-4 h-4" />
                         </Button>
@@ -238,6 +285,7 @@ export const LocalInstances: React.FC = () => {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleStartInstance(instance.id)}
+                        title="Start instance"
                       >
                         <Play className="w-4 h-4" />
                       </Button>
