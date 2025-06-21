@@ -22,7 +22,7 @@ interface RedisClientConfig {
 // Helper function to safely extract error message
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
-    return getErrorMessage(error);
+    return error.message;
   }
   if (typeof error === 'string') {
     return error;
@@ -85,16 +85,21 @@ export class RedisInstanceManager extends EventEmitter {
       mkdirSync(this.dataDir, { recursive: true });
     }
     
-    // Load instances from database on startup
-    this.loadInstancesFromDatabase();
-    
-    // Check for default Redis instance
-    this.checkDefaultRedisInstance();
+    // Load instances from database on startup, then check for default Redis
+    this.initializeInstances();
     
     // Periodically check default Redis status
     setInterval(() => {
       this.refreshDefaultRedisStatus();
     }, 10000); // Check every 10 seconds
+  }
+
+  private async initializeInstances() {
+    // Load instances from database first
+    await this.loadInstancesFromDatabase();
+    
+    // Then check for default Redis instance (after managed instances are loaded)
+    await this.checkDefaultRedisInstance();
   }
 
   private async loadInstancesFromDatabase() {
@@ -140,6 +145,19 @@ export class RedisInstanceManager extends EventEmitter {
       
       if (!settings.enabled) {
         // Default Redis detection is disabled in settings
+        return;
+      }
+
+      // Check if we already have a managed instance on the same host:port
+      const existingManagedInstance = Array.from(this.instances.values())
+        .find(({ instance }) => 
+          instance.id !== this.defaultInstanceId &&
+          (instance.config.bind || '127.0.0.1') === settings.host &&
+          instance.config.port === settings.port
+        );
+
+      if (existingManagedInstance) {
+        // We already have a managed instance on this port, don't create a default instance
         return;
       }
 
@@ -192,6 +210,22 @@ export class RedisInstanceManager extends EventEmitter {
       
       if (!settings.enabled) {
         // If disabled, remove from instances if it exists
+        if (this.instances.has(this.defaultInstanceId)) {
+          this.instances.delete(this.defaultInstanceId);
+        }
+        return;
+      }
+
+      // Check if we already have a managed instance on the same host:port
+      const existingManagedInstance = Array.from(this.instances.values())
+        .find(({ instance }) => 
+          instance.id !== this.defaultInstanceId &&
+          (instance.config.bind || '127.0.0.1') === settings.host &&
+          instance.config.port === settings.port
+        );
+
+      if (existingManagedInstance) {
+        // We have a managed instance on this port, remove default instance if it exists
         if (this.instances.has(this.defaultInstanceId)) {
           this.instances.delete(this.defaultInstanceId);
         }
@@ -941,6 +975,15 @@ export class RedisInstanceManager extends EventEmitter {
     
     // Re-check for default Redis instance with new settings
     await this.checkDefaultRedisInstance();
+  }
+
+  // Method to remove conflicting default Redis instance
+  removeDefaultRedisInstance(): boolean {
+    if (this.instances.has(this.defaultInstanceId)) {
+      this.instances.delete(this.defaultInstanceId);
+      return true;
+    }
+    return false;
   }
 
   // Graceful shutdown - mark running instances before server stops

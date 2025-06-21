@@ -12,7 +12,7 @@ class SettingsService {
     host: 'localhost',
     port: 6379,
     password: undefined,
-    enabled: true
+    enabled: false // Disabled by default to avoid conflicts with managed instances
   };
 
   constructor() {

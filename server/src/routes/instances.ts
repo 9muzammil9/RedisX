@@ -173,6 +173,21 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Remove default Redis instance (for troubleshooting conflicts)
+router.delete('/default-redis', (_req, res) => {
+  try {
+    const removed = redisInstanceManager.removeDefaultRedisInstance();
+    return res.json({ 
+      success: true, 
+      removed,
+      message: removed ? 'Default Redis instance removed' : 'No default Redis instance found'
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ error: message });
+  }
+});
+
 // SSE endpoint for real-time logs
 router.get('/:id/logs/stream', (req, res) => {
   const { id } = req.params;
