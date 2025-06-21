@@ -49,7 +49,7 @@ export interface InstanceRecord {
 }
 
 class DatabaseService {
-  private db: Database.Database;
+  readonly db: Database.Database;
   private initialized = false;
 
   constructor() {
@@ -160,8 +160,8 @@ class DatabaseService {
       connection.name,
       connection.host,
       connection.port,
-      connection.password || null,
-      connection.username || null,
+      connection.password ?? null,
+      connection.username ?? null,
       connection.db,
       connection.tls ? 1 : 0,
       connection.id,
@@ -394,6 +394,29 @@ class DatabaseService {
     if (result.changes > 0) {
       console.log(`🧹 Cleaned up ${result.changes} old messages`);
     }
+  }
+
+  // Default Redis settings methods
+  getDefaultRedisSettings(): any {
+    const stmt = this.db.prepare('SELECT value FROM app_state WHERE key = ?');
+    const row = stmt.get('default_redis_settings') as any;
+    
+    if (!row) return null;
+    
+    try {
+      return JSON.parse(row.value);
+    } catch {
+      return null;
+    }
+  }
+
+  saveDefaultRedisSettings(settings: any): void {
+    const now = new Date().toISOString();
+    const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO app_state (key, value, updated_at)
+      VALUES (?, ?, ?)
+    `);
+    stmt.run('default_redis_settings', JSON.stringify(settings), now);
   }
 
   close(): void {

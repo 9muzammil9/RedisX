@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Trash2, RefreshCw, CheckSquare, Square, Plus, Upload } from 'lucide-react';
+import { Search, Trash2, RefreshCw, CheckSquare, Square, Plus, Upload, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { useStore } from '../store/useStore';
@@ -258,6 +258,165 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
     }
   };
 
+  const handleDeleteAllKeys = async (pattern: string) => {
+    if (!activeConnectionId) return;
+    
+    // First, get all keys matching the pattern to show count in confirmation
+    try {
+      const { data } = await keysApi.getAll(activeConnectionId, pattern, '0', 1000);
+      const keysToDelete = data.keys.map(k => k.key);
+      
+      if (keysToDelete.length === 0) {
+        toast.info('No keys found matching the pattern');
+        return;
+      }
+      
+      const confirmed = confirm(
+        `Are you sure you want to delete ${keysToDelete.length} key(s) matching pattern "${pattern}"?\n\n` +
+        `This action cannot be undone.\n\n` +
+        `Keys to be deleted:\n${keysToDelete.slice(0, 10).join('\n')}` +
+        (keysToDelete.length > 10 ? `\n... and ${keysToDelete.length - 10} more` : '')
+      );
+      
+      if (!confirmed) return;
+      
+      await keysApi.deleteKeys(activeConnectionId, keysToDelete);
+      toast.success(`Deleted ${keysToDelete.length} keys matching pattern: ${pattern}`);
+      
+      // Notify parent about deleted keys
+      keysToDelete.forEach(key => onKeyDeleted?.(key));
+      
+      fetchKeys(searchPattern, '0');
+    } catch (error) {
+      toast.error('Failed to delete keys');
+      console.error('Delete all keys error:', error);
+    }
+  };
+
+  // Helper function to get all expandable node IDs recursively
+  const getAllExpandableNodeIds = (nodes: KeyTreeNode[]): string[] => {
+    const expandableIds: string[] = [];
+    
+    const traverse = (node: KeyTreeNode) => {
+      if (!node.isKey && node.children.length > 0) {
+        expandableIds.push(node.id);
+      }
+      node.children.forEach(traverse);
+    };
+    
+    nodes.forEach(traverse);
+    return expandableIds;
+  };
+
+  const handleExpandAll = () => {
+    const allExpandableIds = getAllExpandableNodeIds(keyTree);
+    if (allExpandableIds.length === 0) {
+      toast.info('No groups to expand');
+      return;
+    }
+    setExpandedNodes(new Set(allExpandableIds));
+    toast.success(`Expanded ${allExpandableIds.length} groups`);
+  };
+
+  const handleCollapseAll = () => {
+    if (expandedNodes.size === 0) {
+      toast.info('No groups to collapse');
+      return;
+    }
+    setExpandedNodes(new Set());
+    toast.success('Collapsed all groups');
+  };
+
+  // Helper function to get all subgroup IDs recursively within a specific group
+  const getAllSubgroupIds = (node: KeyTreeNode): string[] => {
+    const subgroupIds: string[] = [];
+    
+    const traverse = (currentNode: KeyTreeNode) => {
+      if (!currentNode.isKey && currentNode.children.length > 0) {
+        subgroupIds.push(currentNode.id);
+      }
+      currentNode.children.forEach(traverse);
+    };
+    
+    // Include the node itself if it's a group
+    if (!node.isKey && node.children.length > 0) {
+      subgroupIds.push(node.id);
+    }
+    
+    // Then traverse all children
+    node.children.forEach(traverse);
+    
+    return subgroupIds;
+  };
+
+  const handleExpandGroup = (nodeId: string) => {
+    // Find the node in the tree
+    const findNode = (nodes: KeyTreeNode[], targetId: string): KeyTreeNode | null => {
+      for (const node of nodes) {
+        if (node.id === targetId) {
+          return node;
+        }
+        const found = findNode(node.children, targetId);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    const targetNode = findNode(keyTree, nodeId);
+    if (!targetNode) {
+      toast.error('Group not found');
+      return;
+    }
+
+    const subgroupIds = getAllSubgroupIds(targetNode);
+    if (subgroupIds.length === 0) {
+      toast.info('No subgroups to expand');
+      return;
+    }
+
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      subgroupIds.forEach(id => newSet.add(id));
+      return newSet;
+    });
+
+    toast.success(`Expanded ${subgroupIds.length} groups in "${targetNode.name}"`);
+  };
+
+  const handleCollapseGroup = (nodeId: string) => {
+    // Find the node in the tree
+    const findNode = (nodes: KeyTreeNode[], targetId: string): KeyTreeNode | null => {
+      for (const node of nodes) {
+        if (node.id === targetId) {
+          return node;
+        }
+        const found = findNode(node.children, targetId);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    const targetNode = findNode(keyTree, nodeId);
+    if (!targetNode) {
+      toast.error('Group not found');
+      return;
+    }
+
+    const subgroupIds = getAllSubgroupIds(targetNode);
+    if (subgroupIds.length === 0) {
+      toast.info('No subgroups to collapse');
+      return;
+    }
+
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      subgroupIds.forEach(id => newSet.delete(id));
+      return newSet;
+    });
+
+    toast.success(`Collapsed ${subgroupIds.length} groups in "${targetNode.name}"`);
+  };
+
   if (!activeConnectionId) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-4">
@@ -314,36 +473,75 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
           </Button>
         </form>
         
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleSelectAll}
-              className="h-8"
-            >
-              {selectedKeys.size === keys.length && keys.length > 0 ? (
-                <CheckSquare className="h-4 w-4 mr-2" />
-              ) : (
-                <Square className="h-4 w-4 mr-2" />
-              )}
-              Select All
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {selectedKeys.size > 0 && `${selectedKeys.size} selected`}
-            </span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleSelectAll}
+                className="h-8"
+              >
+                {selectedKeys.size === keys.length && keys.length > 0 ? (
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                ) : (
+                  <Square className="h-4 w-4 mr-2" />
+                )}
+                Select All
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {selectedKeys.size > 0 && `${selectedKeys.size} selected`}
+              </span>
+            </div>
+            
+            {selectedKeys.size > 0 && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleDeleteSelected}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Selected
+              </Button>
+            )}
           </div>
           
-          {selectedKeys.size > 0 && (
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={handleDeleteSelected}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Selected
-            </Button>
-          )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {(() => {
+                const allExpandableIds = getAllExpandableNodeIds(keyTree);
+                const isAllExpanded = allExpandableIds.length > 0 && allExpandableIds.every(id => expandedNodes.has(id));
+                const hasExpandableGroups = allExpandableIds.length > 0;
+                
+                if (!hasExpandableGroups) {
+                  return (
+                    <span className="text-sm text-muted-foreground">No groups to expand</span>
+                  );
+                }
+                
+                return (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={isAllExpanded ? handleCollapseAll : handleExpandAll}
+                      className="h-8"
+                    >
+                      {isAllExpanded ? (
+                        <ChevronDown className="h-4 w-4 mr-2" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 mr-2" />
+                      )}
+                      {isAllExpanded ? 'Collapse All' : 'Expand All'}
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      {expandedNodes.size > 0 && `${expandedNodes.size} of ${allExpandableIds.length} groups expanded`}
+                    </span>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
         </div>
       </div>
       
@@ -373,6 +571,9 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
                   onCopyValue={handleCopyValue}
                   onEditKey={handleEditKey}
                   onDeleteKey={handleDeleteKey}
+                  onDeleteAllKeys={handleDeleteAllKeys}
+                  onExpandGroup={handleExpandGroup}
+                  onCollapseGroup={handleCollapseGroup}
                 />
               ))}
             </div>

@@ -26,7 +26,7 @@ export function ChannelSubscriber() {
   const handleSubscribe = async (channels: string[]) => {
     if (!activeConnectionId || channels.length === 0) return;
 
-    console.log('Attempting to subscribe to channels:', channels, 'with connection:', activeConnectionId);
+    // Attempting to subscribe to channels
     setIsSubscribing(true);
     try {
       wsClient.subscribe(activeConnectionId, channels);

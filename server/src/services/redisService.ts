@@ -2,7 +2,7 @@ import { Redis } from 'ioredis';
 import { RedisKey, RedisValue } from '../types';
 
 export class RedisService {
-  constructor(private redis: Redis) {}
+  constructor(readonly redis: Redis) {}
 
   async getAllKeys(pattern = '*', cursor = '0', count = 100): Promise<{
     keys: RedisKey[];
@@ -52,7 +52,7 @@ export class RedisService {
       case 'set':
         value = await this.redis.smembers(key);
         break;
-      case 'zset':
+      case 'zset': {
         const zsetData = await this.redis.zrange(key, 0, -1, 'WITHSCORES');
         // Convert flat array [member1, score1, member2, score2] to [{member, score}, ...]
         value = [];
@@ -63,6 +63,7 @@ export class RedisService {
           });
         }
         break;
+      }
       case 'hash':
         value = await this.redis.hgetall(key);
         break;
@@ -76,43 +77,74 @@ export class RedisService {
     return { key, type, value, ttl };
   }
 
+  private async setStringValue(key: string, value: any): Promise<void> {
+    const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+    await this.redis.set(key, stringValue);
+  }
+
+  private async setListValue(key: string, value: any): Promise<void> {
+    await this.redis.del(key);
+    if (Array.isArray(value) && value.length > 0) {
+      const stringValues = value.map(item => 
+        typeof item === 'string' ? item : JSON.stringify(item)
+      );
+      await this.redis.rpush(key, ...stringValues);
+    }
+  }
+
+  private async setSetValue(key: string, value: any): Promise<void> {
+    await this.redis.del(key);
+    if (Array.isArray(value) && value.length > 0) {
+      const stringValues = value.map(item => 
+        typeof item === 'string' ? item : JSON.stringify(item)
+      );
+      await this.redis.sadd(key, ...stringValues);
+    }
+  }
+
+  private async setHashValue(key: string, value: any): Promise<void> {
+    await this.redis.del(key);
+    if (typeof value === 'object' && Object.keys(value).length > 0) {
+      const stringifiedValue: Record<string, string> = {};
+      for (const [k, v] of Object.entries(value)) {
+        stringifiedValue[k] = typeof v === 'string' ? v : JSON.stringify(v);
+      }
+      await this.redis.hmset(key, stringifiedValue);
+    }
+  }
+
+  private async setZsetValue(key: string, value: any): Promise<void> {
+    await this.redis.del(key);
+    if (Array.isArray(value) && value.length > 0) {
+      const flatArgs: (string | number)[] = [];
+      for (const item of value) {
+        if (typeof item === 'object' && 'score' in item && 'member' in item) {
+          const memberString = typeof item.member === 'string' ? item.member : JSON.stringify(item.member);
+          flatArgs.push(item.score, memberString);
+        }
+      }
+      if (flatArgs.length > 0) {
+        await this.redis.zadd(key, ...flatArgs);
+      }
+    }
+  }
+
   async setValue(key: string, value: any, type: string, ttl?: number): Promise<void> {
     switch (type) {
       case 'string':
-        await this.redis.set(key, value);
+        await this.setStringValue(key, value);
         break;
       case 'list':
-        await this.redis.del(key);
-        if (Array.isArray(value) && value.length > 0) {
-          await this.redis.rpush(key, ...value);
-        }
+        await this.setListValue(key, value);
         break;
       case 'set':
-        await this.redis.del(key);
-        if (Array.isArray(value) && value.length > 0) {
-          await this.redis.sadd(key, ...value);
-        }
+        await this.setSetValue(key, value);
         break;
       case 'hash':
-        await this.redis.del(key);
-        if (typeof value === 'object' && Object.keys(value).length > 0) {
-          await this.redis.hmset(key, value);
-        }
+        await this.setHashValue(key, value);
         break;
       case 'zset':
-        await this.redis.del(key);
-        if (Array.isArray(value) && value.length > 0) {
-          // Flatten the array: [score1, member1, score2, member2, ...]
-          const flatArgs: (string | number)[] = [];
-          for (const item of value) {
-            if (typeof item === 'object' && 'score' in item && 'member' in item) {
-              flatArgs.push(item.score, item.member);
-            }
-          }
-          if (flatArgs.length > 0) {
-            await this.redis.zadd(key, ...flatArgs);
-          }
-        }
+        await this.setZsetValue(key, value);
         break;
       default:
         throw new Error(`Cannot set value for type: ${type}`);

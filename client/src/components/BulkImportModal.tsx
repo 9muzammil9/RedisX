@@ -113,8 +113,8 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
         toast.error(`Failed to import ${data.failed} keys`);
       }
     } catch (error) {
-      toast.error('Import failed');
-      console.error('Import error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Import failed';
+      toast.error(`Import failed: ${errorMessage}`);
     } finally {
       setImporting(false);
     }

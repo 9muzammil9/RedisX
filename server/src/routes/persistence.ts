@@ -18,9 +18,14 @@ const connectionSchema = z.object({
 
 // Save connection
 router.post('/connections', (req, res) => {
-  const connection = connectionSchema.parse(req.body);
-  databaseService.saveConnection(connection);
-  res.json({ success: true });
+  try {
+    const connection = connectionSchema.parse(req.body);
+    databaseService.saveConnection(connection);
+    res.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to save connection';
+    res.status(500).json({ error: message });
+  }
 });
 
 // Get all connections
@@ -135,9 +140,14 @@ router.get('/app-state/:key', (req, res) => {
 
 // Cleanup endpoint
 router.post('/cleanup', (req, res) => {
-  const { maxAge } = req.body;
-  databaseService.cleanupOldMessages(maxAge || 7);
-  res.json({ success: true });
+  try {
+    const { maxAge } = req.body;
+    databaseService.cleanupOldMessages(maxAge ?? 7);
+    res.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Cleanup failed';
+    res.status(500).json({ error: message });
+  }
 });
 
 export { router as persistenceRouter };

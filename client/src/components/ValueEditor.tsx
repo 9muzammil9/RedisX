@@ -15,11 +15,12 @@ interface ValueEditorProps {
   selectedKey: string | null;
   forceEditMode?: boolean;
   onForceEditModeUsed?: () => void;
+  refreshTrigger?: number;
 }
 
 type ViewMode = 'raw' | 'json' | 'formatted' | 'editor';
 
-export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEditMode, onForceEditModeUsed }) => {
+export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEditMode, onForceEditModeUsed, refreshTrigger }) => {
   const { activeConnectionId, theme } = useStore();
   const [value, setValue] = useState<RedisValue | null>(null);
   const [editedValue, setEditedValue] = useState<string>('');
@@ -35,7 +36,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
     if (selectedKey && activeConnectionId) {
       fetchValue(true); // Reset view mode when key changes
     }
-  }, [selectedKey, activeConnectionId]);
+  }, [selectedKey, activeConnectionId, refreshTrigger]);
 
   // Handle force edit mode
   useEffect(() => {

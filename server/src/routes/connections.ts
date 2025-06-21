@@ -26,26 +26,25 @@ router.post('/', async (req, res) => {
   }
 
   // Use provided ID or generate a new one
-  const id = result.data.id || randomUUID();
-  const { id: _providedId, ...connectionData } = result.data; // Remove id from data
+  const id = result.data.id ?? randomUUID();
+  const { id: providedId, ...connectionData } = result.data; // Remove id from data
+  // providedId is intentionally unused as we use the processed id above
   const connection: RedisConnection = { id, ...connectionData };
 
   // Check if connection with this ID already exists
   if (connections.has(id)) {
-    console.log(`🔄 Connection ${id} already exists, updating it`);
     // Update existing connection instead of throwing error
     try {
       await redisManager.disconnect(id); // Disconnect old connection first
     } catch (error) {
       // Ignore disconnect errors (connection might already be disconnected)
-      console.log(`⚠️ Could not disconnect old connection ${id}:`, error);
+      // Error is logged internally by redisManager if needed
     }
   }
 
   try {
     await redisManager.connect(connection);
     connections.set(id, connection);
-    console.log(`✅ Created/restored connection ${id} (${connection.name})`);
     res.json(connection);
   } catch (error) {
     res.status(400).json({ error: 'Failed to connect to Redis server' });

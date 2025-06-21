@@ -6,10 +6,29 @@ import { KeyEditModal } from './KeyEditModal';
 import { ViewerItem } from './ViewerItem';
 import { useStore } from '../store/useStore';
 
+// Type definitions for better type safety
+type RedisValue = string | number | boolean | object | null;
+type ListData = RedisValue[];
+type HashData = Record<string, RedisValue>;
+type ZsetData = Array<{ member: string; score: number }>;
+type RedisData = ListData | HashData | ZsetData;
+
+interface EditingItem {
+  index?: number;
+  key?: string;
+  value: RedisValue;
+  isNew?: boolean;
+}
+
+interface EditingKey {
+  key: string;
+  index?: number;
+}
+
 interface ArrayObjectViewerProps {
-  data: any;
+  data: RedisData;
   type: 'list' | 'hash' | 'zset';
-  onUpdate: (newData: any) => void;
+  onUpdate: (newData: RedisData) => void;
 }
 
 export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
@@ -18,17 +37,9 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
   onUpdate,
 }) => {
   const { theme, expandedValueItems, toggleValueItemExpansion, expandAllValueItems, collapseAllValueItems } = useStore();
-  const [editingItem, setEditingItem] = useState<{
-    index?: number;
-    key?: string;
-    value: any;
-    isNew?: boolean;
-  } | null>(null);
+  const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string | number>>(new Set());
-  const [editingKey, setEditingKey] = useState<{
-    key: string;
-    index?: number;
-  } | null>(null);
+  const [editingKey, setEditingKey] = useState<EditingKey | null>(null);
 
   const isArray = type === 'list';
   const isZset = type === 'zset';
@@ -44,9 +55,10 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
   
   const allItemIds = itemKeys.map(key => getItemId((isArray || isZset) ? key as number : undefined, (isArray || isZset) ? undefined : key as string));
   const allExpanded = allItemIds.every(id => expandedValueItems.has(id));
-  const anyExpanded = allItemIds.some(id => expandedValueItems.has(id));
+  // anyExpanded is used for conditional UI logic
+  const hasExpandedItems = allItemIds.some(id => expandedValueItems.has(id));
 
-  const detectValueType = (value: any): 'string' | 'number' | 'boolean' | 'object' => {
+  const detectValueType = (value: RedisValue): 'string' | 'number' | 'boolean' | 'object' => {
     if (typeof value === 'number') return 'number';
     if (typeof value === 'boolean') return 'boolean';
     if (typeof value === 'object' && value !== null) return 'object';
@@ -114,31 +126,38 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
     });
   };
 
-  const handleSave = (newValue: any, newKey?: string) => {
+  // Helper functions to reduce complexity
+  const updateArrayOrZsetData = (newValue: RedisValue): RedisData => {
+    const updatedData = [...(items as RedisValue[])];
+    if (editingItem?.isNew) {
+      updatedData.push(newValue);
+    } else if (editingItem?.index !== undefined) {
+      updatedData[editingItem.index] = newValue;
+    }
+    return updatedData;
+  };
+
+  const updateHashData = (newValue: RedisValue, newKey?: string): HashData => {
+    const updatedData = { ...(items as HashData) };
+    const finalKey = editingItem?.isNew ? newKey : editingItem?.key;
+    
+    if (!finalKey) return updatedData;
+    
+    // If editing an existing item and key changed, remove old key
+    if (!editingItem?.isNew && editingItem?.key && editingItem.key !== finalKey) {
+      delete updatedData[editingItem.key];
+    }
+    
+    updatedData[finalKey] = newValue;
+    return updatedData;
+  };
+
+  const handleSave = (newValue: RedisValue, newKey?: string) => {
     if (!editingItem) return;
 
-    let updatedData;
-
-    if (isArray || isZset) {
-      updatedData = [...items];
-      if (editingItem.isNew) {
-        updatedData.push(newValue);
-      } else if (editingItem.index !== undefined) {
-        updatedData[editingItem.index] = newValue;
-      }
-    } else {
-      updatedData = { ...items };
-      const finalKey = editingItem.isNew ? newKey : editingItem.key;
-      
-      if (!finalKey) return;
-      
-      // If editing an existing item and key changed, remove old key
-      if (!editingItem.isNew && editingItem.key && editingItem.key !== finalKey) {
-        delete updatedData[editingItem.key];
-      }
-      
-      updatedData[finalKey] = newValue;
-    }
+    const updatedData = (isArray || isZset) 
+      ? updateArrayOrZsetData(newValue)
+      : updateHashData(newValue, newKey);
 
     onUpdate(updatedData);
     setEditingItem(null);
@@ -223,9 +242,21 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
     setEditingKey(null);
   };
 
+  // Helper function to get container description
+  const getContainerDescription = (): string => {
+    if (isArray) {
+      return `List (${items.length} items)`;
+    }
+    if (isZset) {
+      return `Sorted Set (${items.length} members)`;
+    }
+    return `Hash (${Object.keys(items as HashData).length} fields)`;
+  };
+
   const getTitle = (): string => {
     if (editingItem?.isNew) {
-      return `Add New ${isArray ? 'Item' : isZset ? 'Member' : 'Field'}`;
+      const itemType = isArray ? 'Item' : isZset ? 'Member' : 'Field';
+      return `Add New ${itemType}`;
     }
     if (isArray) {
       return `Edit Item [${editingItem?.index}]`;
@@ -241,9 +272,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <div className="flex items-center space-x-4">
           <h4 className="text-sm font-medium text-muted-foreground">
-            {isArray ? `List (${items.length} items)` : 
-             isZset ? `Sorted Set (${items.length} members)` : 
-             `Hash (${Object.keys(items).length} fields)`}
+            {getContainerDescription()}
           </h4>
           {selectedItems.size > 0 && (
             <span className="text-sm text-muted-foreground">

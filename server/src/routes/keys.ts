@@ -1,9 +1,19 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { z } from 'zod';
 import { redisManager } from '../services/redisManager';
 import { RedisService } from '../services/redisService';
 
+
 const router = Router();
+
+// Helper function for consistent error handling
+function handleError(error: unknown, res: Response, defaultMessage: string): void {
+  if (error instanceof Error && error.message.includes('not found')) {
+    res.status(404).json({ error: error.message });
+    return;
+  }
+  res.status(500).json({ error: defaultMessage });
+}
 
 const getValueSchema = z.object({
   connectionId: z.string(),
@@ -58,13 +68,9 @@ router.get('/', async (req, res) => {
       cursor as string,
       parseInt(count as string, 10)
     );
-    res.json(result);
+    return res.json(result);
   } catch (error) {
-    if (error instanceof Error && error.message.includes('not found')) {
-      res.status(404).json({ error: error.message });
-    } else {
-      res.status(500).json({ error: 'Failed to fetch keys' });
-    }
+    return handleError(error, res, 'Failed to fetch keys');
   }
 });
 
@@ -80,13 +86,9 @@ router.get('/value', async (req, res) => {
     const redis = redisManager.getConnection(connectionId);
     const service = new RedisService(redis);
     const value = await service.getValue(key);
-    res.json(value);
+    return res.json(value);
   } catch (error) {
-    if (error instanceof Error && error.message.includes('not found')) {
-      res.status(404).json({ error: error.message });
-    } else {
-      res.status(500).json({ error: 'Failed to fetch value' });
-    }
+    return handleError(error, res, 'Failed to fetch value');
   }
 });
 
@@ -102,13 +104,9 @@ router.put('/value', async (req, res) => {
     const redis = redisManager.getConnection(connectionId);
     const service = new RedisService(redis);
     await service.setValue(key, value, type, ttl);
-    res.json({ message: 'Value updated successfully' });
+    return res.json({ message: 'Value updated successfully' });
   } catch (error) {
-    if (error instanceof Error && error.message.includes('not found')) {
-      res.status(404).json({ error: error.message });
-    } else {
-      res.status(500).json({ error: 'Failed to update value' });
-    }
+    return handleError(error, res, 'Failed to update value');
   }
 });
 
@@ -124,13 +122,9 @@ router.delete('/', async (req, res) => {
     const redis = redisManager.getConnection(connectionId);
     const service = new RedisService(redis);
     const deletedCount = await service.deleteKeys(keys);
-    res.json({ deletedCount });
+    return res.json({ deletedCount });
   } catch (error) {
-    if (error instanceof Error && error.message.includes('not found')) {
-      res.status(404).json({ error: error.message });
-    } else {
-      res.status(500).json({ error: 'Failed to delete keys' });
-    }
+    return handleError(error, res, 'Failed to delete keys');
   }
 });
 
@@ -146,13 +140,9 @@ router.put('/rename', async (req, res) => {
     const redis = redisManager.getConnection(connectionId);
     const service = new RedisService(redis);
     await service.renameKey(oldKey, newKey);
-    res.json({ message: 'Key renamed successfully' });
+    return res.json({ message: 'Key renamed successfully' });
   } catch (error) {
-    if (error instanceof Error && error.message.includes('not found')) {
-      res.status(404).json({ error: error.message });
-    } else {
-      res.status(500).json({ error: 'Failed to rename key' });
-    }
+    return handleError(error, res, 'Failed to rename key');
   }
 });
 
@@ -177,7 +167,7 @@ router.post('/bulk-import', async (req, res) => {
     };
 
     // Process keys in batches
-    const batchSize = options.batchSize || 100;
+    const batchSize = options.batchSize ?? 100;
     for (let i = 0; i < keys.length; i += batchSize) {
       const batch = keys.slice(i, i + batchSize);
       
@@ -219,13 +209,9 @@ router.post('/bulk-import', async (req, res) => {
       }
     }
 
-    res.json(results);
+    return res.json(results);
   } catch (error) {
-    if (error instanceof Error && error.message.includes('not found')) {
-      res.status(404).json({ error: error.message });
-    } else {
-      res.status(500).json({ error: 'Failed to perform bulk import' });
-    }
+    return handleError(error, res, 'Failed to perform bulk import');
   }
 });
 

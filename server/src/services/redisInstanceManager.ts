@@ -4,7 +4,44 @@ import { EventEmitter } from 'events';
 import { existsSync, mkdirSync, writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
+import Redis from 'ioredis';
 import { databaseService } from './database';
+import { settingsService } from './settingsService';
+
+// Type definitions for Redis client configuration
+interface RedisClientConfig {
+  host: string;
+  port: number;
+  password?: string;
+  retryDelayOnFailover: number;
+  maxRetriesPerRequest: number;
+  connectTimeout: number;
+  lazyConnect: boolean;
+}
+
+// Helper function to safely extract error message
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return getErrorMessage(error);
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (error && typeof error === 'object' && 'message' in error && typeof (error as any).message === 'string') {
+    return (error as any).message;
+  }
+  return 'Unknown error';
+}
+
+// Constants
+const REDIS_CONNECTION_TIMEOUT = 2000;
+const REDIS_RETRY_DELAY = 100;
+const MAX_RETRIES_PER_REQUEST = 1;
+const DOCKER_STARTUP_TIMEOUT = 10000;
+const REDIS_STARTUP_DELAY = 5000;
+const MAX_VERIFICATION_RETRIES = 6;
+const VERIFICATION_RETRY_DELAY = 5000;
+const MAX_LOG_ENTRIES = 1000;
 
 export interface RedisInstanceConfig {
   port: number;
@@ -33,12 +70,13 @@ export interface RedisInstance {
 }
 
 export class RedisInstanceManager extends EventEmitter {
-  private instances: Map<string, {
+  readonly instances: Map<string, {
     instance: RedisInstance;
     process?: ChildProcess;
   }> = new Map();
 
-  private dataDir: string;
+  readonly dataDir: string;
+  readonly defaultInstanceId = 'default-redis';
 
   constructor() {
     super();
@@ -49,6 +87,14 @@ export class RedisInstanceManager extends EventEmitter {
     
     // Load instances from database on startup
     this.loadInstancesFromDatabase();
+    
+    // Check for default Redis instance
+    this.checkDefaultRedisInstance();
+    
+    // Periodically check default Redis status
+    setInterval(() => {
+      this.refreshDefaultRedisStatus();
+    }, 10000); // Check every 10 seconds
   }
 
   private async loadInstancesFromDatabase() {
@@ -73,18 +119,116 @@ export class RedisInstanceManager extends EventEmitter {
         
         // Auto-start instances that were running before shutdown
         if (dbInstance.was_running) {
-          console.log(`🔄 Auto-starting instance ${instance.name} (was running before shutdown)`);
+          instance.logs.push(`[${new Date().toISOString()}] 🔄 Auto-starting instance ${instance.name} (was running before shutdown)`);
           try {
             await this.startInstance(dbInstance.id);
-          } catch (error) {
-            console.error(`Failed to auto-start instance ${instance.name}:`, error);
+          } catch (error: unknown) {
+            instance.logs.push(`[${new Date().toISOString()}] [ERROR] Failed to auto-start instance ${instance.name}: ${getErrorMessage(error)}`);
           }
         }
       }
       
-      console.log(`✅ Loaded ${dbInstances.length} instances from database`);
+      // Successfully loaded instances from database
+    } catch (error: unknown) {
+      // Failed to load instances from database - this is logged internally
+    }
+  }
+
+  private async checkDefaultRedisInstance() {
+    try {
+      const settings = settingsService.getDefaultRedisSettings();
+      
+      if (!settings.enabled) {
+        // Default Redis detection is disabled in settings
+        return;
+      }
+
+      // Check if default Redis is running
+      const clientConfig = this.createRedisClientConfig(settings.host, settings.port, settings.password);
+
+      const testClient = new Redis(clientConfig);
+
+      try {
+        await testClient.ping();
+        
+        // Default Redis is running, add it to instances
+        const defaultInstance: RedisInstance = {
+          id: this.defaultInstanceId,
+          name: 'Default Redis (System)',
+          config: {
+            port: settings.port,
+            bind: settings.host,
+            password: settings.password,
+            executionMode: 'native'
+          },
+          status: 'running',
+          logs: [
+            `[${new Date().toISOString()}] Default Redis instance detected on ${settings.host}:${settings.port}`,
+            `[${new Date().toISOString()}] This is an external Redis instance managed by the system`,
+            settings.password ? `[${new Date().toISOString()}] Authentication: Enabled` : `[${new Date().toISOString()}] Authentication: Disabled`
+          ]
+        };
+
+        this.instances.set(this.defaultInstanceId, { instance: defaultInstance });
+        // Default Redis instance detected and added to instances list
+      } catch (error: unknown) {
+        // Default Redis is not running or authentication failed
+        if (getErrorMessage(error).includes('NOAUTH')) {
+          // Default Redis instance found but requires authentication
+        } else {
+          // No default Redis instance detected
+        }
+      } finally {
+        testClient.disconnect();
+      }
+    } catch (error: unknown) {
+      // Failed to check default Redis instance - this is logged internally
+    }
+  }
+
+  private async refreshDefaultRedisStatus() {
+    try {
+      const settings = settingsService.getDefaultRedisSettings();
+      
+      if (!settings.enabled) {
+        // If disabled, remove from instances if it exists
+        if (this.instances.has(this.defaultInstanceId)) {
+          this.instances.delete(this.defaultInstanceId);
+        }
+        return;
+      }
+
+      const instanceData = this.instances.get(this.defaultInstanceId);
+      if (!instanceData) {
+        // Default Redis not in list, check if it's now available
+        return this.checkDefaultRedisInstance();
+      }
+
+      const clientConfig = this.createRedisClientConfig(settings.host, settings.port, settings.password);
+
+      const testClient = new Redis(clientConfig);
+
+      try {
+        await testClient.ping();
+        
+        // Redis is still running
+        if (instanceData.instance.status !== 'running') {
+          instanceData.instance.status = 'running';
+          instanceData.instance.logs.push(`[${new Date().toISOString()}] Default Redis instance is back online`);
+          this.emit('instance-started', instanceData.instance);
+        }
+      } catch (error) {
+        // Redis is no longer running
+        if (instanceData.instance.status === 'running') {
+          instanceData.instance.status = 'stopped';
+          instanceData.instance.logs.push(`[${new Date().toISOString()}] Default Redis instance is no longer running`);
+          this.emit('instance-stopped', { id: this.defaultInstanceId });
+        }
+      } finally {
+        testClient.disconnect();
+      }
     } catch (error) {
-      console.error('Failed to load instances from database:', error);
+      // Ignore refresh errors
     }
   }
 
@@ -217,6 +361,11 @@ export class RedisInstanceManager extends EventEmitter {
       throw new Error('Instance not found');
     }
 
+    // Handle default Redis instance
+    if (id === this.defaultInstanceId) {
+      throw new Error('Cannot start default Redis instance - it is managed by the system');
+    }
+
     const { instance } = instanceData;
     if (instance.status === 'running') {
       throw new Error('Instance is already running');
@@ -256,10 +405,182 @@ export class RedisInstanceManager extends EventEmitter {
       if (instance.status !== 'running') {
         throw new Error('Failed to start Redis instance');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       instance.status = 'error';
-      instance.logs.push(`[${new Date().toISOString()}] [ERROR] Failed to start native instance: ${error.message}`);
+      instance.logs.push(`[${new Date().toISOString()}] [ERROR] Failed to start native instance: ${getErrorMessage(error)}`);
       throw error;
+    }
+  }
+
+  // Helper function to create Redis client configuration
+  private createRedisClientConfig(host: string, port: number, password?: string): RedisClientConfig {
+    const config: RedisClientConfig = {
+      host,
+      port,
+      retryDelayOnFailover: REDIS_RETRY_DELAY,
+      maxRetriesPerRequest: MAX_RETRIES_PER_REQUEST,
+      connectTimeout: REDIS_CONNECTION_TIMEOUT,
+      lazyConnect: true
+    };
+
+    if (password) {
+      config.password = password;
+    }
+
+    return config;
+  }
+
+  // Helper function to build Docker arguments for Redis instance
+  private buildDockerArgs(instance: RedisInstance, containerName: string): string[] {
+    const normalizedDataDir = (instance.dataDir || '').replace(/\\/g, '/');
+    const dockerArgs = [
+      'run', '--rm', '-d',
+      '--name', containerName,
+      '-p', `${instance.config.port}:6379`,
+      '-v', `${normalizedDataDir}:/data`,
+      'redis:alpine', 'redis-server'
+    ];
+
+    // Add Redis configuration arguments
+    dockerArgs.push('--bind', '0.0.0.0');
+    dockerArgs.push('--protected-mode', 'no');
+    dockerArgs.push('--databases', (instance.config.databases || 16).toString());
+    
+    if (instance.config.password) {
+      dockerArgs.push('--requirepass', instance.config.password);
+    }
+    
+    if (instance.config.maxmemory) {
+      dockerArgs.push('--maxmemory', instance.config.maxmemory);
+    }
+    
+    if (instance.config.maxmemoryPolicy) {
+      dockerArgs.push('--maxmemory-policy', instance.config.maxmemoryPolicy);
+    }
+    
+    if (instance.config.appendonly) {
+      dockerArgs.push('--appendonly', 'yes');
+    }
+    
+    if (instance.config.save === false) {
+      dockerArgs.push('--save', '');
+    }
+    
+    dockerArgs.push('--loglevel', instance.config.loglevel || 'notice');
+
+    return dockerArgs;
+  }
+
+  // Helper function to set up Docker process handlers
+  private setupDockerProcessHandlers(
+    process: ChildProcess, 
+    instance: RedisInstance, 
+    id: string
+  ): { dockerOutput: string; dockerErrors: string } {
+    let dockerOutput = '';
+    let dockerErrors = '';
+    
+    process.stdout?.on('data', (data) => {
+      const output = data.toString().trim();
+      dockerOutput += output + '\n';
+      instance.logs.push(`[${new Date().toISOString()}] Docker stdout: ${output}`);
+      
+      // Capture container ID
+      if (output.length === 64 && /^[a-f0-9]+$/.test(output)) {
+        (instance as RedisInstance & { containerId?: string }).containerId = output;
+        instance.logs.push(`[${new Date().toISOString()}] Container ID: ${output}`);
+      }
+      
+      this.emit('instance-log', { id, log: output });
+    });
+
+    process.stderr?.on('data', (data) => {
+      const error = data.toString().trim();
+      dockerErrors += error + '\n';
+      instance.logs.push(`[${new Date().toISOString()}] [ERROR] Docker stderr: ${error}`);
+      this.emit('instance-log', { id, log: error, error: true });
+    });
+
+    return { dockerOutput, dockerErrors };
+  }
+
+  // Helper function to test Redis connection inside container
+  private async testRedisInContainer(containerName: string, instance: RedisInstance): Promise<boolean> {
+    for (let i = 0; i < 3; i++) {
+      try {
+        execSync(`docker exec ${containerName} redis-cli ping`, { stdio: 'ignore', timeout: 5000 });
+        instance.logs.push(`[${new Date().toISOString()}] ✅ Redis server is responding to ping`);
+        return true;
+      } catch {
+        instance.logs.push(`[${new Date().toISOString()}] Redis ping attempt ${i + 1}/3 failed, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+    return false;
+  }
+
+  // Helper function to verify container is running and Redis is accessible
+  private async verifyDockerContainer(containerName: string, instance: RedisInstance): Promise<void> {
+    let retries = 0;
+    
+    while (retries < MAX_VERIFICATION_RETRIES) {
+      try {
+        // Check if container is running
+        const checkResult = execSync(`docker ps -q -f name=${containerName}`, { encoding: 'utf8' });
+        if (!checkResult.trim()) {
+          instance.logs.push(`[${new Date().toISOString()}] Container not found, retry ${retries + 1}/${MAX_VERIFICATION_RETRIES}`);
+          retries++;
+          if (retries < MAX_VERIFICATION_RETRIES) {
+            await new Promise(resolve => setTimeout(resolve, VERIFICATION_RETRY_DELAY));
+            continue;
+          }
+          throw new Error('Container is not running after multiple checks');
+        }
+
+        instance.logs.push(`[${new Date().toISOString()}] Container is running, testing Redis connectivity...`);
+
+        // Test Redis connection inside container
+        const redisReady = await this.testRedisInContainer(containerName, instance);
+        
+        if (!redisReady) {
+          instance.logs.push(`[${new Date().toISOString()}] ⚠️ Redis not responding to ping, but container is running`);
+        }
+        
+        return; // Success!
+        
+      } catch (checkError: unknown) {
+        instance.logs.push(`[${new Date().toISOString()}] Check failed: ${getErrorMessage(checkError)}`);
+        retries++;
+        
+        if (retries >= MAX_VERIFICATION_RETRIES) {
+          await this.logContainerDebugInfo(containerName, instance);
+          throw new Error(`Container verification failed after ${MAX_VERIFICATION_RETRIES} attempts: ${getErrorMessage(checkError)}`);
+        }
+        
+        instance.logs.push(`[${new Date().toISOString()}] Retrying container check in 5 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, VERIFICATION_RETRY_DELAY));
+      }
+    }
+  }
+
+  // Helper function to log container debugging information
+  private async logContainerDebugInfo(containerName: string, instance: RedisInstance): Promise<void> {
+    try {
+      const logs = execSync(`docker logs ${containerName}`, { encoding: 'utf8', timeout: 5000 });
+      instance.logs.push(`[${new Date().toISOString()}] Container logs:\n${logs}`);
+    } catch (logError: unknown) {
+      instance.logs.push(`[${new Date().toISOString()}] Failed to get container logs: ${getErrorMessage(logError)}`);
+    }
+    
+    try {
+      const allContainers = execSync(`docker ps -a -q -f name=${containerName}`, { encoding: 'utf8' });
+      if (allContainers.trim()) {
+        instance.logs.push(`[${new Date().toISOString()}] Container exists but may have exited`);
+      } else {
+        instance.logs.push(`[${new Date().toISOString()}] Container was never created`);
+      }
+    } catch {
+      // Ignore
     }
   }
 
@@ -270,51 +591,15 @@ export class RedisInstanceManager extends EventEmitter {
     try {
       const containerName = `redisx-${id}`;
       
-      // First, ensure any existing container with the same name is removed
+      // Remove any existing container with the same name
       try {
         execSync(`docker rm -f ${containerName}`, { stdio: 'ignore' });
       } catch {
         // Ignore if container doesn't exist
       }
 
-      // Build Docker arguments with Windows-compatible paths
-      const normalizedDataDir = (instance.dataDir || '').replace(/\\/g, '/');
-      const dockerArgs = [
-        'run', '--rm', '-d',
-        '--name', containerName,
-        '-p', `${instance.config.port}:6379`,
-        '-v', `${normalizedDataDir}:/data`
-      ];
-
-      // Build Redis server arguments
-      dockerArgs.push('redis:alpine', 'redis-server');
-      
-      // Add command line arguments instead of config file for better compatibility
-      dockerArgs.push('--bind', '0.0.0.0');
-      dockerArgs.push('--protected-mode', 'no');
-      dockerArgs.push('--databases', (instance.config.databases || 16).toString());
-      
-      if (instance.config.password) {
-        dockerArgs.push('--requirepass', instance.config.password);
-      }
-      
-      if (instance.config.maxmemory) {
-        dockerArgs.push('--maxmemory', instance.config.maxmemory);
-      }
-      
-      if (instance.config.maxmemoryPolicy) {
-        dockerArgs.push('--maxmemory-policy', instance.config.maxmemoryPolicy);
-      }
-      
-      if (instance.config.appendonly) {
-        dockerArgs.push('--appendonly', 'yes');
-      }
-      
-      if (instance.config.save === false) {
-        dockerArgs.push('--save', '');
-      }
-      
-      dockerArgs.push('--loglevel', instance.config.loglevel || 'notice');
+      // Build Docker arguments
+      const dockerArgs = this.buildDockerArgs(instance, containerName);
 
       instance.logs = [
         `[${new Date().toISOString()}] Starting Redis instance (Docker) on port ${instance.config.port}...`,
@@ -325,35 +610,10 @@ export class RedisInstanceManager extends EventEmitter {
         stdio: ['ignore', 'pipe', 'pipe']
       });
 
-      // Set up process handlers before waiting
-      let containerId = '';
-      let dockerOutput = '';
-      let dockerErrors = '';
+      // Set up process handlers
+      const { dockerOutput, dockerErrors } = this.setupDockerProcessHandlers(process, instance, id);
       
-      process.stdout?.on('data', (data) => {
-        const output = data.toString().trim();
-        dockerOutput += output + '\n';
-        instance.logs.push(`[${new Date().toISOString()}] Docker stdout: ${output}`);
-        
-        // Capture container ID
-        if (output.length === 64 && /^[a-f0-9]+$/.test(output)) {
-          containerId = output;
-          (instance as any).containerId = containerId;
-          instance.logs.push(`[${new Date().toISOString()}] Container ID: ${containerId}`);
-        }
-        
-        this.emit('instance-log', { id, log: output });
-      });
-
-      process.stderr?.on('data', (data) => {
-        const error = data.toString().trim();
-        dockerErrors += error + '\n';
-        instance.logs.push(`[${new Date().toISOString()}] [ERROR] Docker stderr: ${error}`);
-        this.emit('instance-log', { id, log: error, error: true });
-      });
-
-      // For docker run -d, the process should exit with code 0 immediately after starting the container
-      // We need to capture the container ID from stdout first
+      // Wait for Docker process to complete
       let dockerProcessCompleted = false;
       
       await new Promise<void>((resolve, reject) => {
@@ -361,7 +621,7 @@ export class RedisInstanceManager extends EventEmitter {
           if (!dockerProcessCompleted) {
             reject(new Error('Docker command timed out'));
           }
-        }, 10000); // 10 second timeout
+        }, DOCKER_STARTUP_TIMEOUT);
 
         process.on('exit', (code) => {
           dockerProcessCompleted = true;
@@ -381,93 +641,24 @@ export class RedisInstanceManager extends EventEmitter {
         });
       });
 
-      // Wait for Redis to start inside container (Docker containers need more time)
+      // Wait for Redis to start inside container
       instance.logs.push(`[${new Date().toISOString()}] Waiting for Redis to start inside container...`);
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise(resolve => setTimeout(resolve, REDIS_STARTUP_DELAY));
 
       // Verify container is running and Redis is accessible
-      let retries = 0;
-      const maxRetries = 6; // 30 seconds total (6 * 5 seconds)
+      await this.verifyDockerContainer(containerName, instance);
       
-      while (retries < maxRetries) {
-        try {
-          // Check if container is running
-          const checkResult = execSync(`docker ps -q -f name=${containerName}`, { encoding: 'utf8' });
-          if (!checkResult.trim()) {
-            instance.logs.push(`[${new Date().toISOString()}] Container not found, retry ${retries + 1}/${maxRetries}`);
-            retries++;
-            if (retries < maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, 5000));
-              continue;
-            }
-            throw new Error('Container is not running after multiple checks');
-          }
+      instance.status = 'running';
+      instance.startedAt = new Date();
+      instanceData.process = process;
+      
+      // Update database
+      databaseService.updateInstanceStatus(id, 'running', true);
+      this.emit('instance-started', instance);
 
-          instance.logs.push(`[${new Date().toISOString()}] Container is running, testing Redis connectivity...`);
-
-          // Test Redis connection inside container (with retries)
-          let redisReady = false;
-          for (let i = 0; i < 3; i++) {
-            try {
-              execSync(`docker exec ${containerName} redis-cli ping`, { stdio: 'ignore', timeout: 5000 });
-              instance.logs.push(`[${new Date().toISOString()}] ✅ Redis server is responding to ping`);
-              redisReady = true;
-              break;
-            } catch {
-              instance.logs.push(`[${new Date().toISOString()}] Redis ping attempt ${i + 1}/3 failed, retrying...`);
-              await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-          }
-          
-          if (!redisReady) {
-            instance.logs.push(`[${new Date().toISOString()}] ⚠️ Redis not responding to ping, but container is running`);
-          }
-          
-          instance.status = 'running';
-          instance.startedAt = new Date();
-          instanceData.process = process;
-          
-          // Update database
-          databaseService.updateInstanceStatus(id, 'running', true);
-          this.emit('instance-started', instance);
-          return; // Success!
-          
-        } catch (checkError: any) {
-          instance.logs.push(`[${new Date().toISOString()}] Check failed: ${checkError.message}`);
-          retries++;
-          
-          if (retries >= maxRetries) {
-            // Get container logs for debugging
-            try {
-              const logs = execSync(`docker logs ${containerName}`, { encoding: 'utf8', timeout: 5000 });
-              instance.logs.push(`[${new Date().toISOString()}] Container logs:\n${logs}`);
-            } catch (logError: any) {
-              instance.logs.push(`[${new Date().toISOString()}] Failed to get container logs: ${logError.message}`);
-            }
-            
-            // Also check if container exists at all
-            try {
-              const allContainers = execSync(`docker ps -a -q -f name=${containerName}`, { encoding: 'utf8' });
-              if (allContainers.trim()) {
-                instance.logs.push(`[${new Date().toISOString()}] Container exists but may have exited`);
-              } else {
-                instance.logs.push(`[${new Date().toISOString()}] Container was never created`);
-              }
-            } catch {
-              // Ignore
-            }
-            
-            throw new Error(`Container verification failed after ${maxRetries} attempts: ${checkError.message}`);
-          }
-          
-          instance.logs.push(`[${new Date().toISOString()}] Retrying container check in 5 seconds...`);
-          await new Promise(resolve => setTimeout(resolve, 5000));
-        }
-      }
-
-    } catch (error: any) {
+    } catch (error: unknown) {
       instance.status = 'error';
-      instance.logs.push(`[${new Date().toISOString()}] [ERROR] Failed to start Docker instance: ${error.message}`);
+      instance.logs.push(`[${new Date().toISOString()}] [ERROR] Failed to start Docker instance: ${getErrorMessage(error)}`);
       throw error;
     }
   }
@@ -483,8 +674,8 @@ export class RedisInstanceManager extends EventEmitter {
     process.stdout?.on('data', (data) => {
       const log = data.toString();
       instance.logs.push(`[${new Date().toISOString()}] ${log}`);
-      // Keep only last 1000 logs
-      if (instance.logs.length > 1000) {
+      // Keep only last MAX_LOG_ENTRIES logs
+      if (instance.logs.length > MAX_LOG_ENTRIES) {
         instance.logs.shift();
       }
       this.emit('instance-log', { id, log });
@@ -494,7 +685,7 @@ export class RedisInstanceManager extends EventEmitter {
     process.stderr?.on('data', (data) => {
       const log = data.toString();
       instance.logs.push(`[${new Date().toISOString()}] [ERROR] ${log}`);
-      if (instance.logs.length > 1000) {
+      if (instance.logs.length > MAX_LOG_ENTRIES) {
         instance.logs.shift();
       }
       this.emit('instance-log', { id, log, error: true });
@@ -514,7 +705,7 @@ export class RedisInstanceManager extends EventEmitter {
     process.on('error', (error) => {
       instance.status = 'error';
       instance.pid = undefined;
-      instance.logs.push(`[${new Date().toISOString()}] [ERROR] ${error.message}`);
+      instance.logs.push(`[${new Date().toISOString()}] [ERROR] ${getErrorMessage(error)}`);
       this.emit('instance-error', { id, error });
     });
 
@@ -525,6 +716,11 @@ export class RedisInstanceManager extends EventEmitter {
     const instanceData = this.instances.get(id);
     if (!instanceData) {
       throw new Error('Instance not found');
+    }
+
+    // Handle default Redis instance
+    if (id === this.defaultInstanceId) {
+      return this.stopDefaultRedisInstance();
     }
 
     const { instance } = instanceData;
@@ -586,13 +782,13 @@ export class RedisInstanceManager extends EventEmitter {
         } else {
           instance.logs.push(`[${new Date().toISOString()}] Container was already stopped`);
         }
-      } catch (stopError: any) {
+      } catch (stopError: unknown) {
         // Force remove if graceful stop fails
         try {
           execSync(`docker rm -f ${containerName}`, { stdio: 'ignore' });
           instance.logs.push(`[${new Date().toISOString()}] Docker container force removed`);
-        } catch (rmError: any) {
-          instance.logs.push(`[${new Date().toISOString()}] [WARNING] Failed to remove container: ${rmError.message}`);
+        } catch (rmError: unknown) {
+          instance.logs.push(`[${new Date().toISOString()}] [WARNING] Failed to remove container: ${getErrorMessage(rmError)}`);
         }
       }
       
@@ -604,10 +800,31 @@ export class RedisInstanceManager extends EventEmitter {
       // Update database
       databaseService.updateInstanceStatus(id, 'stopped', false);
       this.emit('instance-stopped', { id });
-    } catch (error: any) {
+    } catch (error: unknown) {
       instance.status = 'error';
-      instance.logs.push(`[${new Date().toISOString()}] [ERROR] Failed to stop Docker instance: ${error.message}`);
+      instance.logs.push(`[${new Date().toISOString()}] [ERROR] Failed to stop Docker instance: ${getErrorMessage(error)}`);
       throw error;
+    }
+  }
+
+  private async stopDefaultRedisInstance(): Promise<void> {
+    try {
+      // For default Redis, we'll try to stop it using redis-cli shutdown
+      execSync('redis-cli -p 6379 shutdown', { stdio: 'ignore', timeout: 5000 });
+      
+      const instanceData = this.instances.get(this.defaultInstanceId);
+      if (instanceData) {
+        instanceData.instance.status = 'stopped';
+        instanceData.instance.logs.push(`[${new Date().toISOString()}] Default Redis instance stopped via redis-cli shutdown`);
+        this.emit('instance-stopped', { id: this.defaultInstanceId });
+      }
+    } catch (error: unknown) {
+      const instanceData = this.instances.get(this.defaultInstanceId);
+      if (instanceData) {
+        instanceData.instance.logs.push(`[${new Date().toISOString()}] [ERROR] Failed to stop default Redis instance: ${getErrorMessage(error)}`);
+        instanceData.instance.logs.push(`[${new Date().toISOString()}] [INFO] Default Redis may be managed by systemd or another service manager`);
+      }
+      throw new Error(`Cannot stop default Redis instance: ${getErrorMessage(error)}. It may be managed by systemd or another service.`);
     }
   }
 
@@ -615,6 +832,11 @@ export class RedisInstanceManager extends EventEmitter {
     const instanceData = this.instances.get(id);
     if (!instanceData) {
       throw new Error('Instance not found');
+    }
+
+    // Prevent deletion of default Redis instance
+    if (id === this.defaultInstanceId) {
+      throw new Error('Cannot delete default Redis instance - it is managed by the system');
     }
 
     // Stop instance if running
@@ -647,6 +869,33 @@ export class RedisInstanceManager extends EventEmitter {
 
   getInstanceLogs(id: string): string[] {
     const instance = this.instances.get(id)?.instance;
+    
+    // Special handling for default Redis instance
+    if (id === this.defaultInstanceId && instance) {
+      const logs = [...(instance.logs || [])];
+      
+      // Add current status info
+      try {
+        const info = execSync('redis-cli -p 6379 info server', { encoding: 'utf8', timeout: 2000 });
+        const lines = info.split('\n');
+        const serverInfo = lines.find(line => line.startsWith('redis_version:'));
+        const uptimeInfo = lines.find(line => line.startsWith('uptime_in_seconds:'));
+        
+        if (serverInfo) {
+          logs.push(`[${new Date().toISOString()}] ${serverInfo.trim()}`);
+        }
+        if (uptimeInfo) {
+          const seconds = parseInt(uptimeInfo.split(':')[1]);
+          const uptime = Math.floor(seconds / 3600) + 'h ' + Math.floor((seconds % 3600) / 60) + 'm';
+          logs.push(`[${new Date().toISOString()}] Uptime: ${uptime}`);
+        }
+      } catch (error) {
+        logs.push(`[${new Date().toISOString()}] [WARNING] Could not retrieve Redis server info`);
+      }
+      
+      return logs;
+    }
+    
     return instance?.logs || [];
   }
 
@@ -683,17 +932,28 @@ export class RedisInstanceManager extends EventEmitter {
     }
   }
 
+  // Method to refresh default Redis instance after settings change
+  async refreshDefaultRedisInstance(): Promise<void> {
+    // Remove existing default instance if it exists
+    if (this.instances.has(this.defaultInstanceId)) {
+      this.instances.delete(this.defaultInstanceId);
+    }
+    
+    // Re-check for default Redis instance with new settings
+    await this.checkDefaultRedisInstance();
+  }
+
   // Graceful shutdown - mark running instances before server stops
   async gracefulShutdown() {
-    console.log('🛑 Shutting down Redis instances...');
+    // Shutting down Redis instances...
     
     for (const [id, data] of this.instances) {
       if (data.instance.status === 'running') {
-        console.log(`Stopping instance ${data.instance.name}...`);
+        // Stopping instance
         try {
           await this.stopInstance(id);
-        } catch (error) {
-          console.error(`Failed to stop instance ${id}:`, error);
+        } catch (error: unknown) {
+          data.instance.logs.push(`[${new Date().toISOString()}] [ERROR] Failed to stop instance ${id}: ${getErrorMessage(error)}`);
         }
       }
     }

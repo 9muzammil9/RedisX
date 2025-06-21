@@ -6,7 +6,10 @@ import {
   Trash2, 
   FileDown, 
   Clipboard,
-  FolderDown 
+  FolderDown,
+  FolderX,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import {
   ContextMenu,
@@ -21,23 +24,31 @@ import { KeyTreeNode } from '../utils/keyTree';
 interface KeyContextMenuProps {
   children: React.ReactNode;
   node: KeyTreeNode;
+  isExpanded?: boolean;
   onExportKey?: (key: string) => void;
   onExportGroup?: (pattern: string) => void;
   onCopyKeyName?: (keyName: string) => void;
   onCopyValue?: (key: string) => void;
   onEditKey?: (key: string) => void;
   onDeleteKey?: (key: string) => void;
+  onDeleteAllKeys?: (pattern: string) => void;
+  onExpandGroup?: (nodeId: string) => void;
+  onCollapseGroup?: (nodeId: string) => void;
 }
 
 export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
   children,
   node,
+  isExpanded,
   onExportKey,
   onExportGroup,
   onCopyKeyName,
   onCopyValue,
   onEditKey,
   onDeleteKey,
+  onDeleteAllKeys,
+  onExpandGroup,
+  onCollapseGroup,
 }) => {
   const isKey = node.isKey && node.keyData;
   const isGroup = !node.isKey && node.children.length > 0;
@@ -77,6 +88,26 @@ export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
   const handleDeleteKey = () => {
     if (isKey && onDeleteKey) {
       onDeleteKey(node.keyData!.key);
+    }
+  };
+
+  const handleDeleteAllKeys = () => {
+    if (isGroup && onDeleteAllKeys) {
+      // Create pattern from node's full path (e.g., "user:profile" -> "user:profile:*")
+      const pattern = `${node.fullPath}:*`;
+      onDeleteAllKeys(pattern);
+    }
+  };
+
+  const handleExpandGroup = () => {
+    if (isGroup && onExpandGroup) {
+      onExpandGroup(node.id);
+    }
+  };
+
+  const handleCollapseGroup = () => {
+    if (isGroup && onCollapseGroup) {
+      onCollapseGroup(node.id);
     }
   };
 
@@ -121,12 +152,34 @@ export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
         
         {isGroup && (
           <>
+            {isExpanded ? (
+              <ContextMenuItem onClick={handleCollapseGroup} icon={<ChevronUp />}>
+                Collapse Group
+              </ContextMenuItem>
+            ) : (
+              <ContextMenuItem onClick={handleExpandGroup} icon={<ChevronDown />}>
+                Expand Group
+              </ContextMenuItem>
+            )}
+            
+            <ContextMenuSeparator />
+            
             <ContextMenuItem onClick={handleExportGroup} icon={<FolderDown />}>
               Export All Keys in Group
             </ContextMenuItem>
             
             <ContextMenuItem onClick={handleCopyKeyName} icon={<Copy />}>
               Copy Pattern ({node.name}:*)
+            </ContextMenuItem>
+            
+            <ContextMenuSeparator />
+            
+            <ContextMenuItem 
+              onClick={handleDeleteAllKeys} 
+              icon={<FolderX />}
+              className="text-destructive focus:text-destructive"
+            >
+              Delete All Keys in Group
             </ContextMenuItem>
           </>
         )}

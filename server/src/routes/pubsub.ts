@@ -27,12 +27,13 @@ router.get('/channels', async (req, res) => {
   
   try {
     const channels = await pubsubService.getChannels(connectionId, pattern);
-    res.json({ channels });
+    return res.json({ channels });
   } catch (error) {
     if (error instanceof Error && error.message === 'Connection not found') {
       return res.status(404).json({ error: 'Connection not found' });
     }
-    throw error;
+    const message = error instanceof Error ? error.message : 'Failed to get channels';
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -41,19 +42,17 @@ router.get('/stats', async (req, res) => {
   const { connectionId, channels, pattern } = getStatsSchema.parse(req.query);
   
   try {
-    let stats;
-    if (pattern) {
-      stats = await pubsubService.getPatternStats(connectionId, pattern);
-    } else {
-      stats = await pubsubService.getChannelStats(connectionId, channels);
-    }
+    const stats = pattern 
+      ? await pubsubService.getPatternStats(connectionId, pattern)
+      : await pubsubService.getChannelStats(connectionId, channels);
     
-    res.json(stats);
+    return res.json(stats);
   } catch (error) {
     if (error instanceof Error && error.message === 'Connection not found') {
       return res.status(404).json({ error: 'Connection not found' });
     }
-    throw error;
+    const message = error instanceof Error ? error.message : 'Failed to get stats';
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -64,7 +63,7 @@ router.post('/publish', async (req, res) => {
   try {
     const subscriberCount = await pubsubService.publishMessage(connectionId, channel, message);
     
-    res.json({ 
+    return res.json({ 
       success: true, 
       subscriberCount,
       message: `Message published to ${subscriberCount} subscriber(s)`
@@ -73,7 +72,8 @@ router.post('/publish', async (req, res) => {
     if (error instanceof Error && error.message === 'Connection not found') {
       return res.status(404).json({ error: 'Connection not found' });
     }
-    throw error;
+    const message = error instanceof Error ? error.message : 'Failed to publish message';
+    return res.status(500).json({ error: message });
   }
 });
 

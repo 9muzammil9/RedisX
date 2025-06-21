@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { redisInstanceManager, RedisInstanceConfig } from '../services/redisInstanceManager';
+import { execSync } from 'child_process';
 
 const router = Router();
 
@@ -10,7 +11,7 @@ router.get('/check', (_req, res) => {
   const dockerInstalled = redisInstanceManager.checkDockerInstalled();
   const dockerVersion = redisInstanceManager.getDockerVersion();
   
-  res.json({
+  return res.json({
     redis: {
       installed: redisInstalled,
       version: redisVersion
@@ -25,7 +26,7 @@ router.get('/check', (_req, res) => {
 // Get all instances
 router.get('/', (_req, res) => {
   const instances = redisInstanceManager.getAllInstances();
-  res.json(instances);
+  return res.json(instances);
 });
 
 // Get instance by ID
@@ -34,13 +35,13 @@ router.get('/:id', (req, res) => {
   if (!instance) {
     return res.status(404).json({ error: 'Instance not found' });
   }
-  res.json(instance);
+  return res.json(instance);
 });
 
 // Get instance logs
 router.get('/:id/logs', (req, res) => {
   const logs = redisInstanceManager.getInstanceLogs(req.params.id);
-  res.json({ logs });
+  return res.json({ logs });
 });
 
 // Test instance connectivity
@@ -52,16 +53,46 @@ router.get('/:id/test', async (req, res) => {
     }
 
     const isConnectable = await redisInstanceManager.testRedisConnection(instance);
-    res.json({ 
+    return res.json({ 
       connectable: isConnectable,
       status: instance.status,
       port: instance.config.port,
       executionMode: instance.config.executionMode 
     });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ error: message });
   }
 });
+
+// Helper functions for debug endpoint
+function getContainerInfo(containerName: string) {
+  try {
+    const runningContainers = execSync(
+      `docker ps -f name=${containerName} --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"`, 
+      { encoding: 'utf8' }
+    );
+    const allContainers = execSync(
+      `docker ps -a -f name=${containerName} --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"`, 
+      { encoding: 'utf8' }
+    );
+    return { runningContainers, allContainers };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown docker error';
+    return { dockerError: errorMessage };
+  }
+}
+
+function createDebugInfo(instance: any, containerName: string) {
+  return {
+    containerName,
+    instanceStatus: instance.status,
+    port: instance.config.port,
+    dataDir: instance.dataDir,
+    logs: instance.logs.slice(-10), // Last 10 log entries
+    ...getContainerInfo(containerName)
+  };
+}
 
 // Debug Docker instance
 router.get('/:id/debug', (req, res) => {
@@ -76,29 +107,12 @@ router.get('/:id/debug', (req, res) => {
     }
 
     const containerName = `redisx-${instance.id}`;
-    const debugInfo: any = {
-      containerName,
-      instanceStatus: instance.status,
-      port: instance.config.port,
-      dataDir: instance.dataDir,
-      logs: instance.logs.slice(-10) // Last 10 log entries
-    };
+    const debugInfo = createDebugInfo(instance, containerName);
 
-    // Check container status
-    try {
-      const { execSync } = require('child_process');
-      const runningContainers = execSync(`docker ps -f name=${containerName} --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"`, { encoding: 'utf8' });
-      debugInfo.runningContainers = runningContainers;
-      
-      const allContainers = execSync(`docker ps -a -f name=${containerName} --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"`, { encoding: 'utf8' });
-      debugInfo.allContainers = allContainers;
-    } catch (error: any) {
-      debugInfo.dockerError = error.message;
-    }
-
-    res.json(debugInfo);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.json(debugInfo);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -107,7 +121,7 @@ router.post('/', async (req, res) => {
   try {
     const { name, config } = req.body;
     
-    if (!name || !config || !config.port) {
+    if (!name || !config || !config?.port) {
       return res.status(400).json({ error: 'Name and port are required' });
     }
 
@@ -117,9 +131,10 @@ router.post('/', async (req, res) => {
     }
 
     const instance = await redisInstanceManager.createInstance(name, config as RedisInstanceConfig);
-    res.json(instance);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.json(instance);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -128,9 +143,10 @@ router.post('/:id/start', async (req, res) => {
   try {
     await redisInstanceManager.startInstance(req.params.id);
     const instance = redisInstanceManager.getInstance(req.params.id);
-    res.json(instance);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.json(instance);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -139,9 +155,10 @@ router.post('/:id/stop', async (req, res) => {
   try {
     await redisInstanceManager.stopInstance(req.params.id);
     const instance = redisInstanceManager.getInstance(req.params.id);
-    res.json(instance);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.json(instance);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -149,9 +166,10 @@ router.post('/:id/stop', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     await redisInstanceManager.deleteInstance(req.params.id);
-    res.json({ success: true });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ error: message });
   }
 });
 

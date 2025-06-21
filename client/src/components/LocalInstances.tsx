@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Server, Plus, Play, Square, Trash2, Terminal, AlertCircle, Wifi } from 'lucide-react';
+import { Server, Plus, Play, Square, Trash2, Terminal, AlertCircle, Wifi, Settings } from 'lucide-react';
 import { Button } from './ui/Button';
 import { instancesApi, RedisInstance } from '../services/api';
 import { NewInstanceModal } from './NewInstanceModal';
 import { InstanceLogsViewer } from './InstanceLogsViewer';
+import { DefaultRedisSettingsModal } from './DefaultRedisSettingsModal';
 import { useStore } from '../store/useStore';
 import { connectionsApi } from '../services/api';
 import toast from 'react-hot-toast';
@@ -15,6 +16,7 @@ export const LocalInstances: React.FC = () => {
     docker: { installed: boolean; version: string | null };
   } | null>(null);
   const [showNewInstanceModal, setShowNewInstanceModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [selectedInstanceForLogs, setSelectedInstanceForLogs] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { addConnection } = useStore();
@@ -29,7 +31,7 @@ export const LocalInstances: React.FC = () => {
       const { data } = await instancesApi.checkRedisInstalled();
       setAvailability(data);
     } catch (error) {
-      console.error('Failed to check Redis installation:', error);
+      // Failed to check Redis installation
       setAvailability({
         redis: { installed: false, version: null },
         docker: { installed: false, version: null }
@@ -43,7 +45,7 @@ export const LocalInstances: React.FC = () => {
       const { data } = await instancesApi.getAll();
       setInstances(data);
     } catch (error) {
-      console.error('Failed to fetch instances:', error);
+      // Failed to fetch instances
       toast.error('Failed to fetch instances');
     } finally {
       setLoading(false);
@@ -90,7 +92,7 @@ export const LocalInstances: React.FC = () => {
             await connectionsApi.delete(associatedConnection.id);
             removeConnection(associatedConnection.id);
           } catch (error) {
-            console.warn('Failed to remove associated connection:', error);
+            // Failed to remove associated connection - this is non-critical
           }
         }
       }
@@ -132,6 +134,15 @@ export const LocalInstances: React.FC = () => {
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to test connection');
+    }
+  };
+
+  const handleSettingsSave = async (settings: any) => {
+    try {
+      await fetchInstances(); // Refresh instances to show/hide default Redis
+      toast.success('Settings saved successfully');
+    } catch (error) {
+      toast.error('Failed to refresh instances');
     }
   };
 
@@ -182,13 +193,23 @@ export const LocalInstances: React.FC = () => {
               </div>
             )}
           </div>
-          <Button
-            size="sm"
-            onClick={() => setShowNewInstanceModal(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Instance
-          </Button>
+          <div className="flex space-x-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowSettingsModal(true)}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowNewInstanceModal(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Instance
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -319,6 +340,14 @@ export const LocalInstances: React.FC = () => {
         <InstanceLogsViewer
           instanceId={selectedInstanceForLogs}
           onClose={() => setSelectedInstanceForLogs(null)}
+        />
+      )}
+
+      {showSettingsModal && (
+        <DefaultRedisSettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          onSave={handleSettingsSave}
         />
       )}
     </div>

@@ -60,6 +60,7 @@ const loadKeysPanelWidth = (): number => {
 function App() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [forceEditMode, setForceEditMode] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeRightTab, setActiveRightTab] = useState<RightPanelTab>(loadActiveTab());
   const [keysPanelWidth, setKeysPanelWidth] = useState<number>(loadKeysPanelWidth());
   const [isResizing, setIsResizing] = useState(false);
@@ -77,6 +78,8 @@ function App() {
   const handleKeySelect = (key: string) => {
     setSelectedKey(key);
     setForceEditMode(false); // Reset edit mode when selecting normally
+    // Always trigger a refresh, even if the same key is selected
+    setRefreshTrigger(prev => prev + 1);
     // Automatically switch to Keys & Values tab when a key is selected
     if (activeRightTab !== 'keys') {
       handleTabChange('keys');
@@ -243,7 +246,8 @@ function App() {
                   <ValueEditor 
                     selectedKey={selectedKey} 
                     forceEditMode={forceEditMode} 
-                    onForceEditModeUsed={handleForceEditModeUsed} 
+                    onForceEditModeUsed={handleForceEditModeUsed}
+                    refreshTrigger={refreshTrigger} 
                   />
                 )}
                 {activeRightTab === 'pubsub' && <PubSubPanel />}
