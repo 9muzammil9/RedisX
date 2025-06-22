@@ -44,7 +44,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     if (valueType === 'object') {
       return JSON.stringify(val, null, 2);
     }
-    return String(val || '');
+    return String(val ?? '');
   };
 
   const parseValue = (val: string): any => {
@@ -77,12 +77,12 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     try {
       const parsedValue = parseValue(value);
       setError('');
-      
+
       if (isKeyEditable && !key.trim()) {
         setError('Key cannot be empty');
         return;
       }
-      
+
       onSave(parsedValue, isKeyEditable ? key : undefined);
       onClose();
     } catch (err) {
@@ -101,11 +101,10 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50" />
-        <Dialog.Content className={`fixed ${
-          isFullscreen 
-            ? 'inset-4 max-h-none w-auto max-w-none translate-x-0 translate-y-0' 
-            : 'left-[50%] top-[50%] max-h-[90vh] w-[95vw] max-w-[800px] translate-x-[-50%] translate-y-[-50%]'
-        } rounded-lg bg-background p-6 shadow-lg ${isFullscreen ? 'flex flex-col' : ''}`}>
+        <Dialog.Content className={`fixed ${isFullscreen
+          ? 'inset-4 max-h-none w-auto max-w-none translate-x-0 translate-y-0'
+          : 'left-[50%] top-[50%] max-h-[90vh] w-[95vw] max-w-[800px] translate-x-[-50%] translate-y-[-50%]'
+          } rounded-lg bg-background p-6 shadow-lg ${isFullscreen ? 'flex flex-col' : ''}`}>
           <div className="flex items-center justify-between mb-4">
             <Dialog.Title className="text-lg font-semibold">
               {title}
@@ -124,7 +123,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
               </Dialog.Close>
             </div>
           </div>
-          
+
           <div className={`space-y-4 ${isFullscreen ? 'flex-1 flex flex-col' : ''}`}>
             {isKeyEditable && (
               <div>
@@ -137,7 +136,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
                 />
               </div>
             )}
-            
+
             <div className={isFullscreen ? 'flex-1 flex flex-col' : ''}>
               <label className="text-sm font-medium block mb-2">
                 Value ({valueType})
@@ -146,9 +145,8 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
                 <textarea
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
-                  className={`w-full p-3 font-mono text-sm bg-muted rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring border border-border ${
-                    isFullscreen ? 'flex-1' : 'h-64'
-                  }`}
+                  className={`w-full p-3 font-mono text-sm bg-muted rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring border border-border ${isFullscreen ? 'flex-1' : 'h-64'
+                    }`}
                   placeholder={valueType === 'object' ? 'Enter JSON object' : `Enter ${valueType} value`}
                 />
               ) : (
@@ -160,13 +158,13 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
                 />
               )}
             </div>
-            
+
             {error && (
               <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
                 {error}
               </div>
             )}
-            
+
             <div className={`flex justify-between ${isFullscreen ? 'mt-auto' : ''}`}>
               <div>
                 {onDelete && (
@@ -180,7 +178,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
                   </Button>
                 )}
               </div>
-              
+
               <div className="flex space-x-2">
                 <Button variant="secondary" onClick={onClose}>
                   Cancel

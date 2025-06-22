@@ -8,7 +8,7 @@ import { wsClient } from '../services/websocket';
 import toast from 'react-hot-toast';
 
 export function ChannelSubscriber() {
-  const { 
+  const {
     activeConnectionId,
     subscribedChannels,
     addSubscribedChannel,
@@ -17,7 +17,7 @@ export function ChannelSubscriber() {
     clearSubscribedChannels,
     isWebSocketConnected
   } = useStore();
-  
+
   const [newChannel, setNewChannel] = useState('');
   const [isSubscribing, setIsSubscribing] = useState(false);
 
@@ -66,7 +66,7 @@ export function ChannelSubscriber() {
 
   const handleAddChannel = () => {
     if (!newChannel.trim()) return;
-    
+
     const channelName = newChannel.trim();
     if (subscribedChannels.has(channelName)) {
       toast.error('Already subscribed to this channel');

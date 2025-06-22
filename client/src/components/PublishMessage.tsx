@@ -9,8 +9,8 @@ import { pubsubApi } from '../services/api';
 import { useStore } from '../store/useStore';
 
 interface PublishMessageProps {
-  defaultChannel?: string;
-  onMessageSent?: (channel: string, message: string) => void;
+  readonly defaultChannel?: string;
+  readonly onMessageSent?: (channel: string, message: string) => void;
 }
 
 export function PublishMessage({ defaultChannel = '', onMessageSent }: PublishMessageProps) {
@@ -32,7 +32,7 @@ export function PublishMessage({ defaultChannel = '', onMessageSent }: PublishMe
       onMessageSent?.(channel, message);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to publish message');
+      toast.error(error.response?.data?.error ?? 'Failed to publish message');
     },
   });
 
@@ -53,7 +53,7 @@ export function PublishMessage({ defaultChannel = '', onMessageSent }: PublishMe
           className="font-mono"
         />
       </div>
-      
+
       <div>
         <Label htmlFor="message">Message</Label>
         <Input
@@ -65,8 +65,8 @@ export function PublishMessage({ defaultChannel = '', onMessageSent }: PublishMe
         />
       </div>
 
-      <Button 
-        type="submit" 
+      <Button
+        type="submit"
         disabled={!channel.trim() || !message.trim() || !activeConnectionId || publishMutation.isPending}
         className="w-full"
       >

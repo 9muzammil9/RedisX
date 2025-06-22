@@ -44,15 +44,14 @@ export const KeyEditModal: React.FC<KeyEditModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className={`bg-card border border-border rounded-lg shadow-lg p-6 ${
-        isFullscreen ? 'w-full h-full max-w-none max-h-none m-4 flex flex-col' : 'w-96 max-w-[90vw]'
-      }`}>
+      <div className={`bg-card border border-border rounded-lg shadow-lg p-6 ${isFullscreen ? 'w-full h-full max-w-none max-h-none m-4 flex flex-col' : 'w-96 max-w-[90vw]'
+        }`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">{title}</h3>
           <div className="flex items-center space-x-2">
-            <Button 
-              size="sm" 
-              variant="ghost" 
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={() => setIsFullscreen(!isFullscreen)}
               title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
             >
@@ -63,14 +62,15 @@ export const KeyEditModal: React.FC<KeyEditModalProps> = ({
             </Button>
           </div>
         </div>
-        
+
         <div className={`space-y-4 ${isFullscreen ? 'flex-1 flex flex-col' : ''}`}>
           <div className={isFullscreen ? 'flex-1 flex flex-col' : ''}>
-            <label className="text-sm font-medium text-muted-foreground block mb-2">
+            <label htmlFor="key-name-input" className="text-sm font-medium text-muted-foreground block mb-2">
               Key Name
             </label>
             {isFullscreen ? (
               <textarea
+                id="key-name-input"
                 value={newKey}
                 onChange={(e) => setNewKey(e.target.value)}
                 onKeyDown={handleKeyPress}
@@ -80,6 +80,7 @@ export const KeyEditModal: React.FC<KeyEditModalProps> = ({
               />
             ) : (
               <Input
+                id="key-name-input"
                 value={newKey}
                 onChange={(e) => setNewKey(e.target.value)}
                 onKeyDown={handleKeyPress}
@@ -89,13 +90,13 @@ export const KeyEditModal: React.FC<KeyEditModalProps> = ({
               />
             )}
           </div>
-          
+
           <div className="flex items-center justify-end space-x-2">
             <Button size="sm" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               onClick={handleSave}
               disabled={!newKey.trim() || newKey === currentKey}
             >

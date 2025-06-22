@@ -24,7 +24,7 @@ const publishMessageSchema = z.object({
 // GET /api/pubsub/channels - Get active channels
 router.get('/channels', async (req, res) => {
   const { connectionId, pattern } = getChannelsSchema.parse(req.query);
-  
+
   try {
     const channels = await pubsubService.getChannels(connectionId, pattern);
     return res.json({ channels });
@@ -40,12 +40,12 @@ router.get('/channels', async (req, res) => {
 // GET /api/pubsub/stats - Get channel statistics
 router.get('/stats', async (req, res) => {
   const { connectionId, channels, pattern } = getStatsSchema.parse(req.query);
-  
+
   try {
-    const stats = pattern 
+    const stats = pattern
       ? await pubsubService.getPatternStats(connectionId, pattern)
       : await pubsubService.getChannelStats(connectionId, channels);
-    
+
     return res.json(stats);
   } catch (error) {
     if (error instanceof Error && error.message === 'Connection not found') {
@@ -59,12 +59,12 @@ router.get('/stats', async (req, res) => {
 // POST /api/pubsub/publish - Publish a message to a channel
 router.post('/publish', async (req, res) => {
   const { connectionId, channel, message } = publishMessageSchema.parse(req.body);
-  
+
   try {
     const subscriberCount = await pubsubService.publishMessage(connectionId, channel, message);
-    
-    return res.json({ 
-      success: true, 
+
+    return res.json({
+      success: true,
       subscriberCount,
       message: `Message published to ${subscriberCount} subscriber(s)`
     });

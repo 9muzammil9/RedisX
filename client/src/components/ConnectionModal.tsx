@@ -30,13 +30,13 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
   React.useEffect(() => {
     if (editingConnection) {
       setFormData({
-        name: editingConnection.name || '',
-        host: editingConnection.host || 'localhost',
-        port: editingConnection.port?.toString() || '6379',
+        name: editingConnection.name ?? '',
+        host: editingConnection.host ?? 'localhost',
+        port: editingConnection.port?.toString() ?? '6379',
         password: '', // Will be handled by keepExistingPassword logic
-        db: editingConnection.db?.toString() || '0',
-        username: editingConnection.username || '',
-        tls: editingConnection.tls || false,
+        db: editingConnection.db?.toString() ?? '0',
+        username: editingConnection.username ?? '',
+        tls: editingConnection.tls ?? false,
       });
       setKeepExistingPassword(true);
     } else {
@@ -68,7 +68,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
           username: formData.username || undefined,
           tls: formData.tls,
         });
-        
+
         // Remove old connection and add updated one
         removeConnection(editingConnection.id);
         addConnection(data);
@@ -85,12 +85,12 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
           username: formData.username || undefined,
           tls: formData.tls,
         });
-        
+
         addConnection(data);
         setActiveConnection(data.id);
         toast.success('Connected successfully');
       }
-      
+
       onClose();
     } catch (error) {
       toast.error(editingConnection ? 'Failed to update connection' : 'Failed to connect');
@@ -105,11 +105,11 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
           <Dialog.Title className="text-lg font-semibold mb-4">
             {editingConnection ? 'Edit Connection' : 'Add Redis Connection'}
           </Dialog.Title>
-          
+
           <Dialog.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
             <X className="h-4 w-4" />
           </Dialog.Close>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="text-sm font-medium">Connection Name</label>
@@ -120,7 +120,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
                 placeholder="My Redis Server"
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Host</label>
@@ -131,7 +131,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
                   placeholder="localhost"
                 />
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium">Port</label>
                 <Input
@@ -143,7 +143,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
                 />
               </div>
             </div>
-            
+
             <div>
               <label className="text-sm font-medium">Password (optional)</label>
               {editingConnection && (
@@ -173,7 +173,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
                 disabled={editingConnection && keepExistingPassword}
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Username (optional)</label>
@@ -183,7 +183,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
                   placeholder="Username"
                 />
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium">Database</label>
                 <Input
@@ -194,7 +194,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
                 />
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -207,7 +207,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
                 Use TLS/SSL
               </label>
             </div>
-            
+
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="secondary" onClick={onClose}>
                 Cancel

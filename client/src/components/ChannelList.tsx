@@ -9,21 +9,21 @@ import { useStore } from '../store/useStore';
 import { ChannelInfo } from '../types';
 
 interface ChannelListProps {
-  onChannelSelect?: (channel: string) => void;
-  onRefresh?: () => void;
+  readonly onChannelSelect?: (channel: string) => void;
+  readonly onRefresh?: () => void;
 }
 
 export function ChannelList({ onChannelSelect, onRefresh }: ChannelListProps) {
-  const { 
-    activeConnectionId, 
-    channelPattern, 
-    setChannelPattern, 
-    selectedChannels, 
+  const {
+    activeConnectionId,
+    channelPattern,
+    setChannelPattern,
+    selectedChannels,
     toggleChannelSelection,
     clearChannelSelection,
-    setPubsubStats 
+    setPubsubStats
   } = useStore();
-  
+
   const [searchPattern, setSearchPattern] = useState(channelPattern);
 
   const { data: statsData, isLoading, refetch } = useQuery({
@@ -129,18 +129,17 @@ export function ChannelList({ onChannelSelect, onRefresh }: ChannelListProps) {
             {channels.map((channelInfo: ChannelInfo) => (
               <div
                 key={channelInfo.channel}
-                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors hover:bg-accent ${
-                  selectedChannels.has(channelInfo.channel)
-                    ? 'bg-accent border-accent-foreground/20'
-                    : 'border-transparent'
-                }`}
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors hover:bg-accent ${selectedChannels.has(channelInfo.channel)
+                  ? 'bg-accent border-accent-foreground/20'
+                  : 'border-transparent'
+                  }`}
                 onClick={() => handleChannelClick(channelInfo.channel)}
               >
                 <Checkbox
                   checked={selectedChannels.has(channelInfo.channel)}
                   onChange={() => handleChannelClick(channelInfo.channel)}
                 />
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="font-mono text-sm truncate">
                     {channelInfo.channel}

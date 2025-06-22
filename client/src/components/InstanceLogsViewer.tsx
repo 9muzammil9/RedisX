@@ -25,7 +25,7 @@ export const InstanceLogsViewer: React.FC<InstanceLogsViewerProps> = ({ instance
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      
+
       if (data.type === 'initial') {
         setLogs(data.logs);
       } else if (data.type === 'log') {
@@ -61,7 +61,7 @@ export const InstanceLogsViewer: React.FC<InstanceLogsViewerProps> = ({ instance
 
   const handleScroll = () => {
     if (!containerRef.current) return;
-    
+
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 10;
     setAutoScroll(isAtBottom);
@@ -114,9 +114,8 @@ export const InstanceLogsViewer: React.FC<InstanceLogsViewerProps> = ({ instance
               {logs.map((log, index) => (
                 <div
                   key={index}
-                  className={`whitespace-pre-wrap break-all ${
-                    log.includes('[ERROR]') ? 'text-red-500' : ''
-                  }`}
+                  className={`whitespace-pre-wrap break-all ${log.includes('[ERROR]') ? 'text-red-500' : ''
+                    }`}
                 >
                   {log}
                 </div>

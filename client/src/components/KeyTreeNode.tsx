@@ -27,29 +27,29 @@ interface KeyTreeNodeProps {
 // Helper functions to count keys and groups recursively
 const countTotalKeys = (node: KeyTreeNode): number => {
   let count = 0;
-  
+
   if (node.isKey) {
     count = 1;
   }
-  
+
   // Recursively count keys in children
   node.children.forEach(child => {
     count += countTotalKeys(child);
   });
-  
+
   return count;
 };
 
 const countSubgroups = (node: KeyTreeNode): number => {
   let count = 0;
-  
+
   node.children.forEach(child => {
     if (!child.isKey && child.children.length > 0) {
       count += 1;
       count += countSubgroups(child);
     }
   });
-  
+
   return count;
 };
 
@@ -79,7 +79,7 @@ export const KeyTreeNodeComponent: React.FC<KeyTreeNodeProps> = ({
   const paddingLeft = node.level * 16 + 8; // 16px per level + 8px base padding
   const isExpanded = expandedNodes.has(node.id);
   const isSelected = node.isKey && node.keyData && selectedKeys.has(node.keyData.key);
-  
+
   const handleClick = () => {
     if (node.isKey && node.keyData) {
       onKeySelect(node.keyData.key);
@@ -99,7 +99,7 @@ export const KeyTreeNodeComponent: React.FC<KeyTreeNodeProps> = ({
   const buttonAriaLabel = `Select key ${node.name}`;
   const groupAriaLabel = `${isExpanded ? 'Collapse' : 'Expand'} group ${node.name}`;
   const ariaLabel = node.isKey ? buttonAriaLabel : groupAriaLabel;
-  
+
   // Extract icon logic to avoid nested ternary
   const getIconComponent = () => {
     if (node.isKey) {
@@ -117,15 +117,15 @@ export const KeyTreeNodeComponent: React.FC<KeyTreeNodeProps> = ({
   // Helper function to get all keys within a group recursively
   const getAllKeysInGroup = (node: KeyTreeNode): string[] => {
     const keys: string[] = [];
-    
+
     if (node.isKey && node.keyData) {
       keys.push(node.keyData.key);
     }
-    
+
     node.children.forEach(child => {
       keys.push(...getAllKeysInGroup(child));
     });
-    
+
     return keys;
   };
 
@@ -218,10 +218,10 @@ export const KeyTreeNodeComponent: React.FC<KeyTreeNodeProps> = ({
             {(() => {
               const totalKeys = countTotalKeys(node);
               const directSubgroups = countDirectSubgroups(node);
-              
+
               const keysText = totalKeys === 1 ? 'key' : 'keys';
               const groupsText = directSubgroups === 1 ? 'group' : 'groups';
-              
+
               if (directSubgroups > 0) {
                 // Group has subgroups - show both keys and groups
                 return `${totalKeys} ${keysText}, ${directSubgroups} ${groupsText}`;

@@ -18,7 +18,7 @@ export function MessageHistory() {
     }
   }, [messages, autoScroll]);
 
-  const filteredMessages = messages.filter(msg => 
+  const filteredMessages = messages.filter(msg =>
     msg.channel.toLowerCase().includes(filter.toLowerCase()) ||
     msg.message.toLowerCase().includes(filter.toLowerCase())
   );
@@ -51,7 +51,7 @@ export function MessageHistory() {
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', { 
+    return date.toLocaleTimeString('en-US', {
       hour12: false,
       hour: '2-digit',
       minute: '2-digit',
@@ -109,7 +109,7 @@ export function MessageHistory() {
             </Button>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <Input
             placeholder="Filter by channel or message..."

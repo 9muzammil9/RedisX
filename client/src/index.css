@@ -52,6 +52,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -104,7 +105,7 @@
 /* JSON Tree View Styling - Base */
 .json-view-lite,
 .json-view-lite *,
-.json-view-lite > *,
+.json-view-lite>*,
 .json-view-lite div,
 .json-view-lite span,
 .json-view-lite button {
@@ -116,7 +117,7 @@
 }
 
 /* Indentation and nesting structure */
-.json-view-lite > div {
+.json-view-lite>div {
   margin-left: 0 !important;
 }
 
@@ -231,13 +232,13 @@
 /* Dark theme colors */
 .dark-theme .json-view-lite,
 .dark-theme .json-view-lite *,
-.dark-theme .json-view-lite > *,
+.dark-theme .json-view-lite>*,
 .dark-theme .json-view-lite div,
 .dark-theme .json-view-lite span,
 .dark-theme .json-view-lite button,
 .dark .json-view-lite,
 .dark .json-view-lite *,
-.dark .json-view-lite > *,
+.dark .json-view-lite>*,
 .dark .json-view-lite div,
 .dark .json-view-lite span,
 .dark .json-view-lite button {

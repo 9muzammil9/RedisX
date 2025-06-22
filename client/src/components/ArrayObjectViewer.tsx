@@ -45,14 +45,14 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
   const isZset = type === 'zset';
   const items = isArray || isZset ? (Array.isArray(data) ? data : []) : (data || {});
   const itemKeys = isArray || isZset ? Array.from({ length: items.length }, (_, i) => i) : Object.keys(items);
-  
+
   // Generate unique item IDs for expand/collapse state
   const getItemId = (index?: number, key?: string): string => {
     if (isArray) return `list-${index}`;
     if (isZset) return `zset-${index}`;
     return `hash-${key}`;
   };
-  
+
   const allItemIds = itemKeys.map(key => getItemId((isArray || isZset) ? key as number : undefined, (isArray || isZset) ? undefined : key as string));
   const allExpanded = allItemIds.every(id => expandedValueItems.has(id));
   // anyExpanded is used for conditional UI logic
@@ -140,14 +140,14 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
   const updateHashData = (newValue: RedisValue, newKey?: string): HashData => {
     const updatedData = { ...(items as HashData) };
     const finalKey = editingItem?.isNew ? newKey : editingItem?.key;
-    
+
     if (!finalKey) return updatedData;
-    
+
     // If editing an existing item and key changed, remove old key
     if (!editingItem?.isNew && editingItem?.key && editingItem.key !== finalKey) {
       delete updatedData[editingItem.key];
     }
-    
+
     updatedData[finalKey] = newValue;
     return updatedData;
   };
@@ -155,7 +155,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
   const handleSave = (newValue: RedisValue, newKey?: string) => {
     if (!editingItem) return;
 
-    const updatedData = (isArray || isZset) 
+    const updatedData = (isArray || isZset)
       ? updateArrayOrZsetData(newValue)
       : updateHashData(newValue, newKey);
 
@@ -280,7 +280,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
             </span>
           )}
         </div>
-        
+
         <div className="flex items-center space-x-2">
           {itemKeys.length > 0 && (
             <>
@@ -290,16 +290,16 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
                   variant="destructive"
                   onClick={handleBulkDelete}
                   className="!bg-red-600 hover:!bg-red-700 !text-white"
-                  style={{ 
-                    backgroundColor: '#dc2626 !important', 
-                    color: 'white !important' 
+                  style={{
+                    backgroundColor: '#dc2626 !important',
+                    color: 'white !important'
                   }}
                 >
                   <Trash2 className="h-4 w-4 mr-1" />
                   Delete Selected
                 </Button>
               )}
-              
+
               <Button
                 size="sm"
                 variant="ghost"
@@ -313,7 +313,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
                 )}
                 {selectedItems.size === itemKeys.length ? 'Deselect All' : 'Select All'}
               </Button>
-              
+
               <Button
                 size="sm"
                 variant="ghost"
@@ -335,7 +335,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
               </Button>
             </>
           )}
-          
+
           <Button size="sm" variant="ghost" onClick={handleAdd}>
             <Plus className="h-4 w-4 mr-1" />
             Add {isArray ? 'Item' : isZset ? 'Member' : 'Field'}
@@ -349,7 +349,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
             const itemId = getItemId(index);
             const isExpanded = expandedValueItems.has(itemId);
             const hasTreeView = shouldUseTreeView(item);
-            
+
             return (
               <ViewerItem
                 key={index}
@@ -375,7 +375,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
             const itemId = getItemId(undefined, key);
             const isExpanded = expandedValueItems.has(itemId);
             const hasTreeView = shouldUseTreeView(value);
-            
+
             return (
               <ViewerItem
                 key={key}

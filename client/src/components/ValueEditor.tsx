@@ -54,13 +54,13 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
       allElements.forEach((element: any) => {
         // Check if element is inside a json-tree-container but exclude checkboxes and buttons
         const isInsideJsonContainer = element.closest('.json-tree-container');
-        const isCheckboxOrChild = element.closest('[role="checkbox"]') || 
-                                 element.hasAttribute('data-state') ||
-                                 element.getAttribute('role') === 'checkbox' ||
-                                 element.parentElement?.getAttribute('role') === 'checkbox';
+        const isCheckboxOrChild = element.closest('[role="checkbox"]') ||
+          element.hasAttribute('data-state') ||
+          element.getAttribute('role') === 'checkbox' ||
+          element.parentElement?.getAttribute('role') === 'checkbox';
         const isButton = element.tagName === 'BUTTON' || element.closest('button');
         const isInsideModal = element.closest('.fixed.inset-0') || element.closest('[role="dialog"]') || element.closest('.z-50');
-        
+
         if (isInsideJsonContainer && !isCheckboxOrChild && !isButton && !isInsideModal) {
           if (theme === 'dark') {
             element.style.setProperty('background-color', 'transparent', 'important');
@@ -79,23 +79,23 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
         }
       });
     };
-    
+
     // Apply immediately and repeatedly
     applyThemeStyles();
     const interval = setInterval(applyThemeStyles, 100);
-    
+
     // Also use MutationObserver to catch any new elements
     const observer = new MutationObserver(() => {
       applyThemeStyles();
     });
-    
+
     observer.observe(document.body, {
       childList: true,
       subtree: true,
       attributes: true,
       attributeFilter: ['style', 'class']
     });
-    
+
     return () => {
       clearInterval(interval);
       observer.disconnect();
@@ -112,12 +112,12 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
       setValue(data);
       setEditedValue(formatValueForEdit(data.value, data.type));
       setTtl(data.ttl === -1 ? '' : data.ttl.toString());
-      
+
       // Only reset isEditing when we're doing a full reset (new key selected)
       if (resetViewMode) {
         setIsEditing(false);
       }
-      
+
       // Only auto-select view mode on initial load or when explicitly requested
       if (resetViewMode) {
         if (data.type === 'list') {
@@ -256,7 +256,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
     try {
       const parsedValue = parseEditedValue(editedValue, value.type);
       const parsedTtl = ttl ? parseInt(ttl) : undefined;
-      
+
       await keysApi.setValue(
         activeConnectionId,
         value.key,
@@ -264,7 +264,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
         value.type,
         parsedTtl
       );
-      
+
       toast.success('Value updated successfully');
       setIsEditing(false);
       fetchValue(false); // Don't reset view mode after saving
@@ -284,7 +284,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
         value.type,
         value.ttl > 0 ? value.ttl : undefined
       );
-      
+
       toast.success('Value updated successfully');
       fetchValue(false); // Refresh the data without resetting view mode
     } catch (error) {
@@ -298,7 +298,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
     try {
       // First, get the current value and TTL
       const currentData = value;
-      
+
       // Create the new key with the same value and TTL
       await keysApi.setValue(
         activeConnectionId,
@@ -307,13 +307,13 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
         currentData.type,
         currentData.ttl > 0 ? currentData.ttl : undefined
       );
-      
+
       // Delete the old key
       await keysApi.deleteKeys(activeConnectionId, [value.key]);
-      
+
       toast.success(`Key renamed from "${value.key}" to "${newKey}"`);
       setEditingKey(false);
-      
+
       // Refresh the key list and navigate to the new key
       window.location.reload(); // This will refresh the entire app to update the key list
     } catch (error) {
@@ -369,7 +369,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
         <div className="flex items-center justify-between mb-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2">
-              <h3 
+              <h3
                 className="font-semibold truncate flex-shrink min-w-0"
                 title={value.key}
                 style={{ maxWidth: 'calc(100% - 200px)' }}
@@ -409,7 +409,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
                 >
                   {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </Button>
-                
+
                 <div className="flex border border-border rounded-md">
                   {canShowEditor && (
                     <Button
@@ -448,13 +448,13 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
                     <Code className="h-4 w-4" />
                   </Button>
                 </div>
-                
+
                 <Button size="sm" onClick={() => setIsEditing(true)}>
                   Edit
                 </Button>
               </>
             )}
-            
+
             {/* Edit mode buttons - visible when in text editing mode */}
             {isEditing && (
               <>
@@ -478,7 +478,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
             )}
           </div>
         </div>
-        
+
         {isEditing && (
           <div className="flex items-center space-x-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -492,7 +492,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
           </div>
         )}
       </div>
-      
+
       <div className="flex-1 overflow-hidden min-h-0">
         {isEditing ? (
           <div className="h-full p-4">
@@ -528,7 +528,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
                 <div className="p-2 text-xs text-muted-foreground border-b flex-shrink-0">Tree View</div>
                 <div className="flex-1 overflow-auto min-w-0">
                   <div className="p-4" ref={jsonViewRef}>
-                    <div 
+                    <div
                       className={`json-tree-container ${theme === 'dark' ? 'dark-theme' : 'light-theme'}`}
                       style={theme === 'dark' ? {
                         backgroundColor: 'transparent',
@@ -565,7 +565,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
           </div>
         )}
       </div>
-      
+
       {editingKey && value && (
         <KeyEditModal
           isOpen={true}

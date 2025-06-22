@@ -38,7 +38,7 @@ export const NewKeyModal: React.FC<NewKeyModalProps> = ({
     setIsSubmitting(true);
     try {
       let processedValue: any = formData.value;
-      
+
       // Process value based on type
       if (formData.type === 'list') {
         try {
@@ -60,10 +60,10 @@ export const NewKeyModal: React.FC<NewKeyModalProps> = ({
       }
 
       const ttl = formData.ttl ? parseInt(formData.ttl, 10) : undefined;
-      
+
       await keysApi.setValue(connectionId, formData.key, processedValue, formData.type, ttl);
       toast.success('Key created successfully');
-      
+
       // Reset form
       setFormData({
         key: '',
@@ -71,7 +71,7 @@ export const NewKeyModal: React.FC<NewKeyModalProps> = ({
         value: '',
         ttl: '',
       });
-      
+
       onKeyCreated();
       onClose();
     } catch (error) {

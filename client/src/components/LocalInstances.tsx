@@ -80,7 +80,7 @@ export const LocalInstances: React.FC = () => {
     try {
       const instance = instances.find(i => i.id === id);
       await instancesApi.delete(id);
-      
+
       // Also remove any associated connections
       if (instance) {
         const { connections, removeConnection } = useStore.getState();
@@ -96,7 +96,7 @@ export const LocalInstances: React.FC = () => {
           }
         }
       }
-      
+
       await fetchInstances();
       toast.success('Instance deleted successfully');
     } catch (error: any) {
@@ -241,13 +241,12 @@ export const LocalInstances: React.FC = () => {
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold">{instance.name}</h3>
                       <span
-                        className={`px-2 py-0.5 text-xs rounded-full ${
-                          instance.status === 'running'
+                        className={`px-2 py-0.5 text-xs rounded-full ${instance.status === 'running'
                             ? 'bg-green-500/20 text-green-500'
                             : instance.status === 'error'
-                            ? 'bg-red-500/20 text-red-500'
-                            : 'bg-gray-500/20 text-gray-500'
-                        }`}
+                              ? 'bg-red-500/20 text-red-500'
+                              : 'bg-gray-500/20 text-gray-500'
+                          }`}
                       >
                         {instance.status}
                       </span>
@@ -256,7 +255,7 @@ export const LocalInstances: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Port: {instance.config.port} | 
+                      Port: {instance.config.port} |
                       Memory: {instance.config.maxmemory || 'unlimited'} |
                       Databases: {instance.config.databases || 16}
                     </p>

@@ -58,7 +58,7 @@ router.get('/', (_req, res) => {
 
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
-  
+
   try {
     await redisManager.disconnect(id);
     connections.delete(id);
@@ -76,7 +76,7 @@ router.get('/:id/exists', (req, res) => {
 
 router.get('/:id/info', async (req, res) => {
   const { id } = req.params;
-  
+
   try {
     const redis = redisManager.getConnection(id);
     const info = await redis.info();

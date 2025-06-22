@@ -1,18 +1,19 @@
-import { useEffect } from 'react';
-import { useStore } from '../store/useStore';
-import { wsClient } from '../services/websocket';
-import { cleanupOldSubscriptions } from '../utils/subscriptionStorage';
+import { useEffect } from "react";
+import { useStore } from "../store/useStore";
+import { wsClient } from "../services/websocket";
+import { cleanupOldSubscriptions } from "../utils/subscriptionStorage";
 
 export function useSubscriptionRestore() {
-  const { activeConnectionId, subscribedChannels, refreshActiveConnection } = useStore();
+  const { activeConnectionId, subscribedChannels, refreshActiveConnection } =
+    useStore();
 
   useEffect(() => {
     // Cleanup old subscription data on app start
     cleanupOldSubscriptions();
-    
+
     // Refresh subscriptions for the active connection on app start
     if (activeConnectionId) {
-      console.log('🔄 App started - refreshing active connection data');
+      console.log("🔄 App started - refreshing active connection data");
       refreshActiveConnection();
     }
   }, [activeConnectionId, refreshActiveConnection]);
@@ -25,7 +26,7 @@ export function useSubscriptionRestore() {
     // Auto-resubscribe to channels when they're loaded
     const channelsArray = Array.from(subscribedChannels.keys());
     console.log(`🚀 Auto-resubscribing to channels:`, channelsArray);
-    
+
     // Connect WebSocket if not already connected
     if (!wsClient.isConnected()) {
       wsClient.connect();
@@ -37,6 +38,5 @@ export function useSubscriptionRestore() {
     }, 500);
 
     return () => clearTimeout(timer);
-    
   }, [activeConnectionId, subscribedChannels]);
 }

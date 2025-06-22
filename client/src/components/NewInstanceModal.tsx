@@ -63,7 +63,7 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim()) {
       toast.error('Please enter an instance name');
       return;
@@ -93,7 +93,7 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
       toast.success('Instance created successfully');
       onInstanceCreated();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to create instance');
+      toast.error(error.response?.data?.error ?? 'Failed to create instance');
     } finally {
       setLoading(false);
     }
@@ -139,8 +139,8 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
                   <div className="flex items-center justify-between">
                     <span>Native Redis ⚙️</span>
                     <span className={`text-xs ${availability?.redis.installed ? 'text-green-600' : 'text-red-600'}`}>
-                      {availability?.redis.installed 
-                        ? `Available (v${availability.redis.version})` 
+                      {availability?.redis.installed
+                        ? `Available (v${availability.redis.version})`
                         : 'Not Available'}
                     </span>
                   </div>
@@ -149,7 +149,7 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
                   </p>
                 </Label>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <input
                   type="radio"
@@ -165,8 +165,8 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
                   <div className="flex items-center justify-between">
                     <span>Docker Container 🐳</span>
                     <span className={`text-xs ${availability?.docker.installed ? 'text-green-600' : 'text-red-600'}`}>
-                      {availability?.docker.installed 
-                        ? `Available (v${availability.docker.version})` 
+                      {availability?.docker.installed
+                        ? `Available (v${availability.docker.version})`
                         : 'Not Available'}
                     </span>
                   </div>
@@ -210,7 +210,7 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
             <Input
               id="password"
               type="password"
-              value={config.password || ''}
+              value={config.password ?? ''}
               onChange={(e) => setConfig({ ...config, password: e.target.value || undefined })}
               placeholder="Leave empty for no password"
             />
@@ -232,7 +232,7 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
             <Label htmlFor="maxmemory">Max Memory (Optional)</Label>
             <Input
               id="maxmemory"
-              value={config.maxmemory || ''}
+              value={config.maxmemory ?? ''}
               onChange={(e) => setConfig({ ...config, maxmemory: e.target.value || undefined })}
               placeholder="e.g., 256mb, 1gb"
             />
@@ -242,7 +242,7 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
             <Label htmlFor="maxmemoryPolicy">Memory Policy</Label>
             <Select
               id="maxmemoryPolicy"
-              value={config.maxmemoryPolicy || ''}
+              value={config.maxmemoryPolicy ?? ''}
               onChange={(e) => setConfig({ ...config, maxmemoryPolicy: e.target.value || undefined })}
             >
               <option value="">Default</option>

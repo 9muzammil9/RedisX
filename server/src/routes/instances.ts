@@ -10,7 +10,7 @@ router.get('/check', (_req, res) => {
   const redisVersion = redisInstanceManager.getRedisVersion();
   const dockerInstalled = redisInstanceManager.checkDockerInstalled();
   const dockerVersion = redisInstanceManager.getDockerVersion();
-  
+
   return res.json({
     redis: {
       installed: redisInstalled,
@@ -53,11 +53,11 @@ router.get('/:id/test', async (req, res) => {
     }
 
     const isConnectable = await redisInstanceManager.testRedisConnection(instance);
-    return res.json({ 
+    return res.json({
       connectable: isConnectable,
       status: instance.status,
       port: instance.config.port,
-      executionMode: instance.config.executionMode 
+      executionMode: instance.config.executionMode
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -69,11 +69,11 @@ router.get('/:id/test', async (req, res) => {
 function getContainerInfo(containerName: string) {
   try {
     const runningContainers = execSync(
-      `docker ps -f name=${containerName} --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"`, 
+      `docker ps -f name=${containerName} --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"`,
       { encoding: 'utf8' }
     );
     const allContainers = execSync(
-      `docker ps -a -f name=${containerName} --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"`, 
+      `docker ps -a -f name=${containerName} --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"`,
       { encoding: 'utf8' }
     );
     return { runningContainers, allContainers };
@@ -120,7 +120,7 @@ router.get('/:id/debug', (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { name, config } = req.body;
-    
+
     if (!name || !config || !config?.port) {
       return res.status(400).json({ error: 'Name and port are required' });
     }
@@ -177,8 +177,8 @@ router.delete('/:id', async (req, res) => {
 router.delete('/default-redis', (_req, res) => {
   try {
     const removed = redisInstanceManager.removeDefaultRedisInstance();
-    return res.json({ 
-      success: true, 
+    return res.json({
+      success: true,
       removed,
       message: removed ? 'Default Redis instance removed' : 'No default Redis instance found'
     });
@@ -192,7 +192,7 @@ router.delete('/default-redis', (_req, res) => {
 router.get('/:id/logs/stream', (req, res) => {
   const { id } = req.params;
   const instance = redisInstanceManager.getInstance(id);
-  
+
   if (!instance) {
     return res.status(404).json({ error: 'Instance not found' });
   }

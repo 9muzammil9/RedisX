@@ -1,6 +1,4 @@
-import { RedisValue } from '../types';
-
-export type ExportFormat = 'json' | 'redis-cli' | 'csv';
+export type ExportFormat = "json" | "redis-cli" | "csv";
 
 export interface ExportedKey {
   key: string;
@@ -19,16 +17,20 @@ export interface ExportOptions {
 /**
  * Downloads a file with the given content
  */
-export const downloadFile = (content: string, filename: string, mimeType: string = 'application/json') => {
+export const downloadFile = (
+  content: string,
+  filename: string,
+  mimeType: string = "application/json"
+) => {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
-  
-  const link = document.createElement('a');
+
+  const link = document.createElement("a");
   link.href = url;
   link.download = filename;
   document.body.appendChild(link);
   link.click();
-  
+
   // Cleanup
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
@@ -39,8 +41,8 @@ export const downloadFile = (content: string, filename: string, mimeType: string
  */
 export const sanitizeFilename = (filename: string): string => {
   return filename
-    .replace(/[<>:"/\\|?*]/g, '_') // Replace invalid characters with underscore
-    .replace(/\s+/g, '_') // Replace spaces with underscore
+    .replace(/[<>:"/\\|?*]/g, "_") // Replace invalid characters with underscore
+    .replace(/\s+/g, "_") // Replace spaces with underscore
     .substring(0, 255); // Limit length
 };
 
@@ -48,14 +50,14 @@ export const sanitizeFilename = (filename: string): string => {
  * Formats a Redis key for export based on the specified format
  */
 export const formatKeyForExport = (
-  keyData: ExportedKey, 
-  format: ExportFormat = 'json',
+  keyData: ExportedKey,
+  format: ExportFormat = "json",
   options: ExportOptions = {}
 ): string => {
   const { includeMetadata = true, prettyPrint = true } = options;
 
   switch (format) {
-    case 'json': {
+    case "json": {
       const exportData: any = {
         key: keyData.key,
         value: keyData.value,
@@ -67,22 +69,23 @@ export const formatKeyForExport = (
         exportData.exportedAt = keyData.timestamp;
       }
 
-      return prettyPrint 
+      return prettyPrint
         ? JSON.stringify(exportData, null, 2)
         : JSON.stringify(exportData);
     }
 
-    case 'redis-cli': {
+    case "redis-cli": {
       return formatAsRedisCLI(keyData);
     }
 
-    case 'csv': {
-      const ttlValue = includeMetadata ? keyData.ttl : '';
-      const timestampValue = includeMetadata ? keyData.timestamp : '';
-      const valueStr = typeof keyData.value === 'string' 
-        ? `"${keyData.value.replace(/"/g, '""')}"` // Escape quotes in CSV
-        : `"${JSON.stringify(keyData.value).replace(/"/g, '""')}"`;
-      
+    case "csv": {
+      const ttlValue = includeMetadata ? keyData.ttl : "";
+      const timestampValue = includeMetadata ? keyData.timestamp : "";
+      const valueStr =
+        typeof keyData.value === "string"
+          ? `"${keyData.value.replace(/"/g, '""')}"` // Escape quotes in CSV
+          : `"${JSON.stringify(keyData.value).replace(/"/g, '""')}"`;
+
       return `"${keyData.key}","${keyData.type}",${valueStr},"${ttlValue}","${timestampValue}"`;
     }
 
@@ -96,47 +99,47 @@ export const formatKeyForExport = (
  */
 export const formatKeysForExport = (
   keys: ExportedKey[],
-  format: ExportFormat = 'json',
+  format: ExportFormat = "json",
   options: ExportOptions = {}
 ): string => {
   const { prettyPrint = true } = options;
 
   switch (format) {
-    case 'json': {
+    case "json": {
       const exportData = {
         exported_at: new Date().toISOString(),
         total_keys: keys.length,
-        keys: keys.map(key => {
+        keys: keys.map((key) => {
           const keyData: any = {
             key: key.key,
             value: key.value,
             type: key.type,
           };
-          
+
           if (options.includeMetadata) {
             keyData.ttl = key.ttl;
           }
-          
+
           return keyData;
         }),
       };
 
-      return prettyPrint 
+      return prettyPrint
         ? JSON.stringify(exportData, null, 2)
         : JSON.stringify(exportData);
     }
 
-    case 'redis-cli': {
-      return keys.map(key => formatAsRedisCLI(key)).join('\n');
+    case "redis-cli": {
+      return keys.map((key) => formatAsRedisCLI(key)).join("\n");
     }
 
-    case 'csv': {
-      const headers = options.includeMetadata 
-        ? 'Key,Type,Value,TTL,Exported At'
-        : 'Key,Type,Value';
-      
-      const rows = keys.map(key => formatKeyForExport(key, 'csv', options));
-      return [headers, ...rows].join('\n');
+    case "csv": {
+      const headers = options.includeMetadata
+        ? "Key,Type,Value,TTL,Exported At"
+        : "Key,Type,Value";
+
+      const rows = keys.map((key) => formatKeyForExport(key, "csv", options));
+      return [headers, ...rows].join("\n");
     }
 
     default:
@@ -150,45 +153,45 @@ export const formatKeysForExport = (
 const formatAsRedisCLI = (keyData: ExportedKey): string => {
   const { key, value, type, ttl } = keyData;
 
-  let command = '';
-  
+  let command = "";
+
   switch (type) {
-    case 'string':
+    case "string":
       command = `SET "${key}" "${value}"`;
       break;
-      
-    case 'list':
+
+    case "list":
       if (Array.isArray(value)) {
-        const values = value.map(v => `"${v}"`).join(' ');
+        const values = value.map((v) => `"${v}"`).join(" ");
         command = `LPUSH "${key}" ${values}`;
       }
       break;
-      
-    case 'set':
+
+    case "set":
       if (Array.isArray(value)) {
-        const values = value.map(v => `"${v}"`).join(' ');
+        const values = value.map((v) => `"${v}"`).join(" ");
         command = `SADD "${key}" ${values}`;
       }
       break;
-      
-    case 'hash':
-      if (typeof value === 'object' && value !== null) {
+
+    case "hash":
+      if (typeof value === "object" && value !== null) {
         const pairs = Object.entries(value)
           .map(([k, v]) => `"${k}" "${v}"`)
-          .join(' ');
+          .join(" ");
         command = `HMSET "${key}" ${pairs}`;
       }
       break;
-      
-    case 'zset':
+
+    case "zset":
       if (Array.isArray(value)) {
         const pairs = value
           .map((item: any) => `${item.score} "${item.member}"`)
-          .join(' ');
+          .join(" ");
         command = `ZADD "${key}" ${pairs}`;
       }
       break;
-      
+
     default:
       command = `# Unsupported type: ${type} for key: ${key}`;
   }
@@ -204,18 +207,21 @@ const formatAsRedisCLI = (keyData: ExportedKey): string => {
 /**
  * Exports a single key to file
  */
-export const exportSingleKey = (keyData: ExportedKey, options: ExportOptions = {}) => {
-  const { format = 'json' } = options;
+export const exportSingleKey = (
+  keyData: ExportedKey,
+  options: ExportOptions = {}
+) => {
+  const { format = "json" } = options;
   const content = formatKeyForExport(keyData, format, options);
-  const extension = format === 'redis-cli' ? 'redis' : format;
+  const extension = format === "redis-cli" ? "redis" : format;
   const filename = `${sanitizeFilename(keyData.key)}.${extension}`;
-  
+
   const mimeTypes = {
-    json: 'application/json',
-    csv: 'text/csv',
-    'redis-cli': 'text/plain',
+    json: "application/json",
+    csv: "text/csv",
+    "redis-cli": "text/plain",
   };
-  
+
   downloadFile(content, filename, mimeTypes[format]);
 };
 
@@ -223,21 +229,21 @@ export const exportSingleKey = (keyData: ExportedKey, options: ExportOptions = {
  * Exports multiple keys to file
  */
 export const exportMultipleKeys = (
-  keys: ExportedKey[], 
-  filename: string = 'redis-keys', 
+  keys: ExportedKey[],
+  filename: string = "redis-keys",
   options: ExportOptions = {}
 ) => {
-  const { format = 'json' } = options;
+  const { format = "json" } = options;
   const content = formatKeysForExport(keys, format, options);
-  const extension = format === 'redis-cli' ? 'redis' : format;
+  const extension = format === "redis-cli" ? "redis" : format;
   const fullFilename = `${sanitizeFilename(filename)}.${extension}`;
-  
+
   const mimeTypes = {
-    json: 'application/json',
-    csv: 'text/csv',
-    'redis-cli': 'text/plain',
+    json: "application/json",
+    csv: "text/csv",
+    "redis-cli": "text/plain",
   };
-  
+
   downloadFile(content, fullFilename, mimeTypes[format]);
 };
 
@@ -251,21 +257,21 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
       return true;
     } else {
       // Fallback for older browsers or non-HTTPS
-      const textArea = document.createElement('textarea');
+      const textArea = document.createElement("textarea");
       textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
-      
-      const successful = document.execCommand('copy');
+
+      const successful = document.execCommand("copy");
       document.body.removeChild(textArea);
       return successful;
     }
   } catch (error) {
-    console.error('Failed to copy to clipboard:', error);
+    console.error("Failed to copy to clipboard:", error);
     return false;
   }
 };

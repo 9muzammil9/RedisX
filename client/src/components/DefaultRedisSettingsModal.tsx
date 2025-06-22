@@ -52,7 +52,7 @@ export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps>
   const handleTest = async () => {
     setIsTesting(true);
     setTestResult(null);
-    
+
     try {
       const response = await fetch('/api/settings/default-redis/test', {
         method: 'POST',
@@ -63,7 +63,7 @@ export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps>
           password: settings.password || undefined
         })
       });
-      
+
       const result = await response.json();
       setTestResult(result);
     } catch (error) {
@@ -84,7 +84,7 @@ export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps>
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
       });
-      
+
       if (response.ok) {
         const updatedSettings = await response.json();
         onSave(updatedSettings);
@@ -195,13 +195,12 @@ export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps>
                 >
                   {isTesting ? 'Testing...' : 'Test Connection'}
                 </button>
-                
+
                 {testResult && (
-                  <div className={`mt-2 p-3 rounded-md flex items-center space-x-2 ${
-                    testResult.success 
-                      ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800'
-                      : 'bg-destructive/10 text-destructive border border-destructive/20'
-                  }`}>
+                  <div className={`mt-2 p-3 rounded-md flex items-center space-x-2 ${testResult.success
+                    ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800'
+                    : 'bg-destructive/10 text-destructive border border-destructive/20'
+                    }`}>
                     {testResult.success ? (
                       <Check className="w-4 h-4" />
                     ) : (

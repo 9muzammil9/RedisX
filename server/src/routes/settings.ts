@@ -20,17 +20,17 @@ router.get('/default-redis', (_req, res) => {
 router.put('/default-redis', async (req, res): Promise<void> => {
   try {
     const { host, port, password, enabled } = req.body;
-    
+
     const updatedSettings = settingsService.updateDefaultRedisSettings({
       host: host ?? 'localhost',
       port: port ?? 6379,
       password: password ?? undefined,
       enabled: enabled !== false // default to true
     });
-    
+
     // Refresh the default Redis instance with new settings
     await redisInstanceManager.refreshDefaultRedisInstance();
-    
+
     res.json(updatedSettings);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -80,11 +80,11 @@ function getErrorResponse(error: Error) {
 // Test default Redis connection with provided settings
 router.post('/default-redis/test', async (req, res): Promise<void> => {
   let testClient: RedisType | null = null;
-  
+
   try {
     const { host, port, password } = req.body;
     const clientConfig = createRedisConfig(host, port, password);
-    
+
     // Create Redis client instance (synchronous constructor)
     testClient = new Redis(clientConfig);
 
@@ -92,11 +92,11 @@ router.post('/default-redis/test', async (req, res): Promise<void> => {
       await testClient.ping();
       const info = await testClient.info('server');
       const version = extractRedisVersion(info);
-      
+
       testClient.disconnect();
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         message: 'Connection successful',
         version
       });

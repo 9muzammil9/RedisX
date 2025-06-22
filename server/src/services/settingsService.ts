@@ -1,4 +1,4 @@
-import { databaseService } from './database';
+import { databaseService } from "./database";
 
 export interface DefaultRedisSettings {
   host: string;
@@ -9,10 +9,10 @@ export interface DefaultRedisSettings {
 
 class SettingsService {
   private defaultSettings: DefaultRedisSettings = {
-    host: 'localhost',
+    host: "localhost",
     port: 6379,
     password: undefined,
-    enabled: false // Disabled by default to avoid conflicts with managed instances
+    enabled: false, // Disabled by default to avoid conflicts with managed instances
   };
 
   constructor() {
@@ -24,14 +24,14 @@ class SettingsService {
       const settings = databaseService.getDefaultRedisSettings();
       if (settings) {
         this.defaultSettings = {
-          host: settings.host ?? 'localhost',
+          host: settings.host ?? "localhost",
           port: settings.port ?? 6379,
           password: settings.password ?? undefined,
-          enabled: settings.enabled !== false // default to true
+          enabled: settings.enabled !== false, // default to true
         };
       }
     } catch (error) {
-      console.error('Failed to load default Redis settings:', error);
+      console.error("Failed to load default Redis settings:", error);
     }
   }
 
@@ -39,10 +39,12 @@ class SettingsService {
     return { ...this.defaultSettings };
   }
 
-  updateDefaultRedisSettings(settings: Partial<DefaultRedisSettings>): DefaultRedisSettings {
+  updateDefaultRedisSettings(
+    settings: Partial<DefaultRedisSettings>
+  ): DefaultRedisSettings {
     this.defaultSettings = {
       ...this.defaultSettings,
-      ...settings
+      ...settings,
     };
 
     // Save to database

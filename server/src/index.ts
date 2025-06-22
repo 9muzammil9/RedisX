@@ -17,7 +17,7 @@ import { redisInstanceManager } from './services/redisInstanceManager';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT ?? 4000;
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -47,16 +47,16 @@ server.listen(PORT, () => {
 // Graceful shutdown handlers
 const gracefulShutdown = async () => {
   console.log('\n🛑 Received shutdown signal...');
-  
+
   // Shutdown Redis instances
   await redisInstanceManager.gracefulShutdown();
-  
+
   // Close server
   server.close(() => {
     console.log('✅ Server closed');
     process.exit(0);
   });
-  
+
   // Force exit after 10 seconds
   setTimeout(() => {
     console.error('❌ Forced shutdown after timeout');

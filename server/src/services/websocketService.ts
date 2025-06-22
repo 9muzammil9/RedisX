@@ -1,5 +1,5 @@
-import { WebSocketServer, WebSocket } from 'ws';
-import { pubsubService } from './pubsubService';
+import { WebSocketServer, WebSocket } from "ws";
+import { pubsubService } from "./pubsubService";
 
 interface WSClient {
   id: string;
@@ -9,14 +9,14 @@ interface WSClient {
 }
 
 interface WSMessage {
-  type: 'subscribe' | 'unsubscribe' | 'unsubscribeAll' | 'ping';
+  type: "subscribe" | "unsubscribe" | "unsubscribeAll" | "ping";
   connectionId: string;
   channel?: string;
   channels?: string[];
 }
 
 interface WSResponse {
-  type: 'subscribed' | 'unsubscribed' | 'message' | 'error' | 'pong';
+  type: "subscribed" | "unsubscribed" | "message" | "error" | "pong";
   channel?: string;
   channels?: string[];
   message?: string;
@@ -27,59 +27,63 @@ interface WSResponse {
 const clients = new Map<string, WSClient>();
 
 export function initializeWebSocketServer(wss: WebSocketServer) {
-  console.log('Initializing WebSocket server...');
-  
-  wss.on('connection', (ws: WebSocket) => {
+  console.log("Initializing WebSocket server...");
+
+  wss.on("connection", (ws: WebSocket) => {
     const clientId = generateClientId();
     console.log(`WebSocket client connected: ${clientId}`);
 
-    ws.on('message', async (data: Buffer) => {
+    ws.on("message", async (data: Buffer) => {
       try {
         const message: WSMessage = JSON.parse(data.toString());
         console.log(`Received message from ${clientId}:`, message);
 
         switch (message.type) {
-          case 'subscribe':
+          case "subscribe":
             await handleSubscribe(clientId, ws, message);
             break;
-          case 'unsubscribe':
+          case "unsubscribe":
             await handleUnsubscribe(clientId, message);
             break;
-          case 'unsubscribeAll':
+          case "unsubscribeAll":
             await handleUnsubscribeAll(clientId);
             break;
-          case 'ping':
-            ws.send(JSON.stringify({ type: 'pong' } as WSResponse));
+          case "ping":
+            ws.send(JSON.stringify({ type: "pong" } as WSResponse));
             break;
         }
       } catch (error) {
-        console.error('WebSocket message error:', error);
+        console.error("WebSocket message error:", error);
         const response: WSResponse = {
-          type: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error'
+          type: "error",
+          error: error instanceof Error ? error.message : "Unknown error",
         };
         ws.send(JSON.stringify(response));
       }
     });
 
-    ws.on('close', () => {
+    ws.on("close", () => {
       console.log(`WebSocket client disconnected: ${clientId}`);
       handleClientDisconnect(clientId);
     });
 
-    ws.on('error', (error) => {
+    ws.on("error", (error) => {
       console.error(`WebSocket error for client ${clientId}:`, error);
       handleClientDisconnect(clientId);
     });
   });
 }
 
-async function handleSubscribe(clientId: string, ws: WebSocket, message: WSMessage) {
+async function handleSubscribe(
+  clientId: string,
+  ws: WebSocket,
+  message: WSMessage
+) {
   const { connectionId, channel, channels } = message;
   console.log(`🔔 Handling subscription for client ${clientId}:`, message);
-  
+
   if (!connectionId) {
-    throw new Error('Connection ID is required');
+    throw new Error("Connection ID is required");
   }
 
   // Initialize client if not exists
@@ -88,7 +92,7 @@ async function handleSubscribe(clientId: string, ws: WebSocket, message: WSMessa
       id: clientId,
       ws,
       connectionId,
-      subscriptions: new Set()
+      subscriptions: new Set(),
     });
   }
 
@@ -96,30 +100,34 @@ async function handleSubscribe(clientId: string, ws: WebSocket, message: WSMessa
   const channelsToSubscribe = channels || (channel ? [channel] : []);
 
   if (channelsToSubscribe.length === 0) {
-    throw new Error('At least one channel must be specified');
+    throw new Error("At least one channel must be specified");
   }
 
   // Subscribe to channels
   for (const ch of channelsToSubscribe) {
     // Check if client is already subscribed to this channel
     if (client.subscriptions.has(ch)) {
-      console.log(`⚠️ Client ${clientId} already subscribed to ${ch}, skipping...`);
+      console.log(
+        `⚠️ Client ${clientId} already subscribed to ${ch}, skipping...`
+      );
       continue;
     }
 
     console.log(`📡 Subscribing client ${clientId} to channel: ${ch}`);
     await pubsubService.subscribe(connectionId, ch, (channel, message) => {
-      console.log(`📨 Received message on channel ${channel}: ${message} for client ${clientId}`);
+      console.log(
+        `📨 Received message on channel ${channel}: ${message} for client ${clientId}`
+      );
       // Send message to this specific client
       const response: WSResponse = {
-        type: 'message',
+        type: "message",
         channel,
         message,
         data: {
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
-      
+
       if (client.ws.readyState === WebSocket.OPEN) {
         console.log(`📤 Sending message to client ${clientId}:`, response);
         client.ws.send(JSON.stringify(response));
@@ -127,15 +135,17 @@ async function handleSubscribe(clientId: string, ws: WebSocket, message: WSMessa
         console.warn(`⚠️ Client ${clientId} WebSocket not open`);
       }
     });
-    
+
     client.subscriptions.add(ch);
-    console.log(`✅ Client ${clientId} successfully subscribed to channel: ${ch}`);
+    console.log(
+      `✅ Client ${clientId} successfully subscribed to channel: ${ch}`
+    );
   }
 
   // Send confirmation
   const response: WSResponse = {
-    type: 'subscribed',
-    channels: channelsToSubscribe
+    type: "subscribed",
+    channels: channelsToSubscribe,
   };
   ws.send(JSON.stringify(response));
 }
@@ -154,8 +164,8 @@ async function handleUnsubscribe(clientId: string, message: WSMessage) {
 
   // Send confirmation
   const response: WSResponse = {
-    type: 'unsubscribed',
-    channels: channelsToUnsubscribe
+    type: "unsubscribed",
+    channels: channelsToUnsubscribe,
   };
   client.ws.send(JSON.stringify(response));
 }
@@ -168,13 +178,13 @@ async function handleUnsubscribeAll(clientId: string) {
   for (const channel of channels) {
     await pubsubService.unsubscribe(client.connectionId, channel);
   }
-  
+
   client.subscriptions.clear();
 
   // Send confirmation
   const response: WSResponse = {
-    type: 'unsubscribed',
-    channels
+    type: "unsubscribed",
+    channels,
   };
   client.ws.send(JSON.stringify(response));
 }
@@ -183,7 +193,9 @@ async function handleClientDisconnect(clientId: string) {
   const client = clients.get(clientId);
   if (!client) return;
 
-  console.log(`🧹 Cleaning up client ${clientId} with ${client.subscriptions.size} subscriptions`);
+  console.log(
+    `🧹 Cleaning up client ${clientId} with ${client.subscriptions.size} subscriptions`
+  );
 
   // Unsubscribe from all channels
   for (const channel of client.subscriptions) {

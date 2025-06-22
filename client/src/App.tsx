@@ -65,13 +65,13 @@ function App() {
   const [keysPanelWidth, setKeysPanelWidth] = useState<number>(loadKeysPanelWidth());
   const [isResizing, setIsResizing] = useState(false);
   const { theme, showConnectionsPanel, initializeFromDatabase } = useStore();
-  
+
   // Sync localStorage to database in background (non-blocking)
   useEffect(() => {
     // Run sync in background without blocking the UI
     initializeFromDatabase();
   }, [initializeFromDatabase]);
-  
+
   // Restore connections on app load
   useConnectionRestore();
 
@@ -121,14 +121,14 @@ function App() {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
-      
+
       const connectionsPanelWidth = showConnectionsPanel ? 256 : 0; // w-64 = 256px
       const minWidth = 350; // Minimum width for keys panel to accommodate buttons and content
       const maxWidth = window.innerWidth * 0.6; // Maximum 60% of screen width
-      
+
       const newWidth = e.clientX - connectionsPanelWidth;
       const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-      
+
       setKeysPanelWidth(clampedWidth);
     };
 
@@ -176,19 +176,18 @@ function App() {
         <div className="flex-1 flex overflow-hidden">
           {showConnectionsPanel && <ConnectionList />}
           <div className="flex-1 flex">
-            <div 
+            <div
               className="border-r border-border relative"
               style={{ width: keysPanelWidth }}
             >
               <KeyList onKeySelect={handleKeySelect} onKeySelectForEdit={handleKeySelectForEdit} onKeyDeleted={handleKeyDeleted} />
-              
+
               {/* Resize Handle */}
               <button
                 type="button"
                 aria-label="Resize keys panel"
-                className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors focus:outline-none focus:bg-primary/40 border-0 bg-transparent ${
-                  isResizing ? 'bg-primary/30' : ''
-                }`}
+                className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors focus:outline-none focus:bg-primary/40 border-0 bg-transparent ${isResizing ? 'bg-primary/30' : ''
+                  }`}
                 onMouseDown={handleMouseDown}
                 onKeyDown={(e) => {
                   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
@@ -201,38 +200,35 @@ function App() {
                 title="Drag to resize or use arrow keys"
               />
             </div>
-            
+
             {/* Right Panel with Tabs */}
             <div className="flex-1 flex flex-col">
               {/* Tab Navigation */}
               <div className="border-b border-border">
                 <div className="flex">
                   <button
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                      activeRightTab === 'keys'
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeRightTab === 'keys'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-muted-foreground hover:text-foreground'
-                    }`}
+                      }`}
                     onClick={() => handleTabChange('keys')}
                   >
                     Keys & Values
                   </button>
                   <button
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                      activeRightTab === 'pubsub'
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeRightTab === 'pubsub'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-muted-foreground hover:text-foreground'
-                    }`}
+                      }`}
                     onClick={() => handleTabChange('pubsub')}
                   >
                     Pub/Sub
                   </button>
                   <button
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                      activeRightTab === 'instances'
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeRightTab === 'instances'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-muted-foreground hover:text-foreground'
-                    }`}
+                      }`}
                     onClick={() => handleTabChange('instances')}
                   >
                     Local Instances
@@ -243,11 +239,11 @@ function App() {
               {/* Tab Content */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 {activeRightTab === 'keys' && (
-                  <ValueEditor 
-                    selectedKey={selectedKey} 
-                    forceEditMode={forceEditMode} 
+                  <ValueEditor
+                    selectedKey={selectedKey}
+                    forceEditMode={forceEditMode}
                     onForceEditModeUsed={handleForceEditModeUsed}
-                    refreshTrigger={refreshTrigger} 
+                    refreshTrigger={refreshTrigger}
                   />
                 )}
                 {activeRightTab === 'pubsub' && <PubSubPanel />}

@@ -45,9 +45,8 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
 
   return (
     <div
-      className={`group flex items-start space-x-3 p-3 border border-border rounded-md hover:bg-accent/50 cursor-pointer bg-transparent ${
-        isSelected ? 'bg-accent' : ''
-      }`}
+      className={`group flex items-start space-x-3 p-3 border border-border rounded-md hover:bg-accent/50 cursor-pointer bg-transparent ${isSelected ? 'bg-accent' : ''
+        }`}
       onDoubleClick={() => onEdit(index, key)}
     >
       <div style={{ position: 'relative', zIndex: 10 }}>
@@ -94,21 +93,21 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
         </div>
         <div className="text-sm text-foreground mt-1 break-words">
           {hasTreeView && isExpanded ? (
-            <div 
+            <div
               className={`json-tree-container ${theme === 'dark' ? 'dark-theme' : 'light-theme'} text-xs`}
               style={theme === 'dark' ? {
                 backgroundColor: 'transparent',
                 color: '#ffffff'
               } : {}}
             >
-              <JsonView 
-                data={getTreeViewData(value)} 
+              <JsonView
+                data={getTreeViewData(value)}
               />
             </div>
           ) : hasTreeView && !isExpanded ? (
             <div className="text-muted-foreground text-xs italic">
-              {Array.isArray(getTreeViewData(value)) 
-                ? `Array (${getTreeViewData(value).length} items)` 
+              {Array.isArray(getTreeViewData(value))
+                ? `Array (${getTreeViewData(value).length} items)`
                 : `Object (${Object.keys(getTreeViewData(value) || {}).length} keys)`
               }
             </div>

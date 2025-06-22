@@ -26,7 +26,7 @@ interface ImportResult {
 export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClose, onImportComplete }) => {
   const { activeConnectionId } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'results'>('upload');
   const [fileContent, setFileContent] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
@@ -74,7 +74,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
     const result = parseImportFile(content);
     setParsedData(result.keys);
     setParseErrors(result.errors);
-    
+
     if (result.keys.length > 0) {
       setSelectedKeys(new Set(result.keys.map((_, index) => index)));
       setStep('preview');
@@ -103,12 +103,12 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
       const { data } = await keysApi.bulkImport(activeConnectionId, keysToImport, importOptions);
       setImportResult(data);
       setStep('results');
-      
+
       if (data.successful > 0) {
         toast.success(`Successfully imported ${data.successful} keys`);
         onImportComplete();
       }
-      
+
       if (data.failed > 0) {
         toast.error(`Failed to import ${data.failed} keys`);
       }
@@ -230,7 +230,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
             <label className="text-sm font-medium">Conflict Resolution</label>
             <Select
               value={importOptions.conflictResolution}
-              onValueChange={(value: 'skip' | 'overwrite') => 
+              onValueChange={(value: 'skip' | 'overwrite') =>
                 setImportOptions({ ...importOptions, conflictResolution: value })
               }
             >
@@ -245,7 +245,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
               min="1"
               max="1000"
               value={importOptions.batchSize}
-              onChange={(e) => 
+              onChange={(e) =>
                 setImportOptions({ ...importOptions, batchSize: parseInt(e.target.value) || 100 })
               }
             />
@@ -282,8 +282,8 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
                   </span>
                 </td>
                 <td className="p-2 max-w-xs truncate text-sm">
-                  {typeof keyData.value === 'string' 
-                    ? keyData.value 
+                  {typeof keyData.value === 'string'
+                    ? keyData.value
                     : JSON.stringify(keyData.value).slice(0, 100) + '...'}
                 </td>
                 <td className="p-2 text-sm">
@@ -299,7 +299,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
         <Button variant="secondary" onClick={() => setStep('upload')}>
           Back
         </Button>
-        <Button 
+        <Button
           onClick={handleImport}
           disabled={selectedKeys.size === 0}
         >

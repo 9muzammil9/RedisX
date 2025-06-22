@@ -47,11 +47,11 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
       }
       setCursor(data.nextCursor);
       setHasMore(data.nextCursor !== '0');
-      
+
       // Build tree structure
       const tree = buildKeyTree(updatedKeys);
       setKeyTree(tree);
-      
+
       // Auto-expand paths for selected keys
       const autoExpandPaths = getExpandedPaths(selectedKeys, tree);
       setExpandedNodes(new Set([...expandedNodes, ...autoExpandPaths]));
@@ -90,10 +90,10 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
       const keysToDelete = Array.from(selectedKeys);
       await keysApi.deleteKeys(activeConnectionId, keysToDelete);
       toast.success(`Deleted ${keysToDelete.length} keys`);
-      
+
       // Notify parent about deleted keys
       keysToDelete.forEach(key => onKeyDeleted?.(key));
-      
+
       clearSelection();
       fetchKeys(searchPattern, '0');
     } catch (error) {
@@ -137,12 +137,12 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
 
   const handleExportKey = async (key: string) => {
     if (!activeConnectionId) return;
-    
+
     try {
       const { data } = await keysApi.getValue(activeConnectionId, key);
       const keyData = keys.find(k => k.key === key);
       if (!keyData) return;
-      
+
       const exportData: ExportedKey = {
         key: keyData.key,
         value: data.value,
@@ -150,7 +150,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
         ttl: keyData.ttl,
         timestamp: new Date().toISOString(),
       };
-      
+
       exportSingleKey(exportData);
       toast.success(`Exported key: ${key}`);
     } catch (error) {
@@ -161,16 +161,16 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
 
   const handleExportGroup = async (pattern: string) => {
     if (!activeConnectionId) return;
-    
+
     try {
       const { data } = await keysApi.getAll(activeConnectionId, pattern);
       const keysToExport = data.keys.slice(0, 100); // Limit to 100 keys
-      
+
       if (keysToExport.length === 0) {
         toast.error('No keys found matching pattern');
         return;
       }
-      
+
       // Get values for all keys
       const exportPromises = keysToExport.map(async (keyData) => {
         try {
@@ -187,9 +187,9 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
           return null;
         }
       });
-      
+
       const exportedKeys = (await Promise.all(exportPromises)).filter(Boolean) as ExportedKey[];
-      
+
       if (exportedKeys.length > 0) {
         const { exportMultipleKeys } = await import('../utils/exportUtils');
         exportMultipleKeys(exportedKeys, `redis-keys-${pattern.replace(/[^a-zA-Z0-9]/g, '_')}`);
@@ -212,13 +212,13 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
 
   const handleCopyValue = async (key: string) => {
     if (!activeConnectionId) return;
-    
+
     try {
       const { data } = await keysApi.getValue(activeConnectionId, key);
-      const valueStr = typeof data.value === 'string' 
-        ? data.value 
+      const valueStr = typeof data.value === 'string'
+        ? data.value
         : JSON.stringify(data.value, null, 2);
-      
+
       const success = await copyToClipboard(valueStr);
       if (success) {
         toast.success('Value copied to clipboard');
@@ -243,14 +243,14 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
 
   const handleDeleteKey = async (key: string) => {
     if (!activeConnectionId) return;
-    
+
     try {
       await keysApi.deleteKeys(activeConnectionId, [key]);
       toast.success(`Deleted key: ${key}`);
-      
+
       // Notify parent about deleted key
       onKeyDeleted?.(key);
-      
+
       fetchKeys(searchPattern, '0');
     } catch (error) {
       toast.error('Failed to delete key');
@@ -260,32 +260,32 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
 
   const handleDeleteAllKeys = async (pattern: string) => {
     if (!activeConnectionId) return;
-    
+
     // First, get all keys matching the pattern to show count in confirmation
     try {
       const { data } = await keysApi.getAll(activeConnectionId, pattern, '0', 1000);
       const keysToDelete = data.keys.map(k => k.key);
-      
+
       if (keysToDelete.length === 0) {
         toast.info('No keys found matching the pattern');
         return;
       }
-      
+
       const confirmed = confirm(
         `Are you sure you want to delete ${keysToDelete.length} key(s) matching pattern "${pattern}"?\n\n` +
         `This action cannot be undone.\n\n` +
         `Keys to be deleted:\n${keysToDelete.slice(0, 10).join('\n')}` +
         (keysToDelete.length > 10 ? `\n... and ${keysToDelete.length - 10} more` : '')
       );
-      
+
       if (!confirmed) return;
-      
+
       await keysApi.deleteKeys(activeConnectionId, keysToDelete);
       toast.success(`Deleted ${keysToDelete.length} keys matching pattern: ${pattern}`);
-      
+
       // Notify parent about deleted keys
       keysToDelete.forEach(key => onKeyDeleted?.(key));
-      
+
       fetchKeys(searchPattern, '0');
     } catch (error) {
       toast.error('Failed to delete keys');
@@ -296,14 +296,14 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
   // Helper function to get all expandable node IDs recursively
   const getAllExpandableNodeIds = (nodes: KeyTreeNode[]): string[] => {
     const expandableIds: string[] = [];
-    
+
     const traverse = (node: KeyTreeNode) => {
       if (!node.isKey && node.children.length > 0) {
         expandableIds.push(node.id);
       }
       node.children.forEach(traverse);
     };
-    
+
     nodes.forEach(traverse);
     return expandableIds;
   };
@@ -330,22 +330,22 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
   // Helper function to get all subgroup IDs recursively within a specific group
   const getAllSubgroupIds = (node: KeyTreeNode): string[] => {
     const subgroupIds: string[] = [];
-    
+
     const traverse = (currentNode: KeyTreeNode) => {
       if (!currentNode.isKey && currentNode.children.length > 0) {
         subgroupIds.push(currentNode.id);
       }
       currentNode.children.forEach(traverse);
     };
-    
+
     // Include the node itself if it's a group
     if (!node.isKey && node.children.length > 0) {
       subgroupIds.push(node.id);
     }
-    
+
     // Then traverse all children
     node.children.forEach(traverse);
-    
+
     return subgroupIds;
   };
 
@@ -472,7 +472,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
             <Plus className="h-4 w-4" />
           </Button>
         </form>
-        
+
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -493,7 +493,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
                 {selectedKeys.size > 0 && `${selectedKeys.size} selected`}
               </span>
             </div>
-            
+
             {selectedKeys.size > 0 && (
               <Button
                 size="sm"
@@ -505,20 +505,20 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
               </Button>
             )}
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               {(() => {
                 const allExpandableIds = getAllExpandableNodeIds(keyTree);
                 const isAllExpanded = allExpandableIds.length > 0 && allExpandableIds.every(id => expandedNodes.has(id));
                 const hasExpandableGroups = allExpandableIds.length > 0;
-                
+
                 if (!hasExpandableGroups) {
                   return (
                     <span className="text-sm text-muted-foreground">No groups to expand</span>
                   );
                 }
-                
+
                 return (
                   <>
                     <Button
@@ -544,7 +544,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
           </div>
         </div>
       </div>
-      
+
       <div className="flex-1 overflow-auto">
         {(() => {
           if (loading && keys.length === 0) {
@@ -579,7 +579,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
             </div>
           );
         })()}
-        
+
         {hasMore && (
           <div className="p-4 text-center">
             <Button
@@ -592,7 +592,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
           </div>
         )}
       </div>
-      
+
       {activeConnectionId && (
         <>
           <NewKeyModal

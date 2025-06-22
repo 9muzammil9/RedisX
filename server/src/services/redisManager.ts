@@ -2,12 +2,12 @@ import Redis from 'ioredis';
 import { RedisConnection } from '../types';
 
 class RedisManager {
-  private connections: Map<string, Redis> = new Map();
-  private connectionConfigs: Map<string, RedisConnection> = new Map();
+  readonly connections: Map<string, Redis> = new Map();
+  readonly connectionConfigs: Map<string, RedisConnection> = new Map();
 
   async connect(config: RedisConnection): Promise<void> {
     const { id, host, port, password, db, username, tls } = config;
-    
+
     const redis = new Redis({
       host,
       port,

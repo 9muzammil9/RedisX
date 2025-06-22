@@ -38,10 +38,10 @@ const loadPubSubView = (): PubSubView => {
 export function PubSubPanel() {
   const [activeView, setActiveView] = useState<PubSubView>(loadPubSubView());
   const [selectedChannelForPublish, setSelectedChannelForPublish] = useState<string>('');
-  const { 
-    activeConnectionId, 
-    pubsubStats, 
-    subscribedChannels, 
+  const {
+    activeConnectionId,
+    pubsubStats,
+    subscribedChannels,
     messages,
     addMessage,
     setWebSocketConnected
@@ -122,11 +122,10 @@ export function PubSubPanel() {
       <div className="border-b border-border">
         <div className="flex">
           <button
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeView === 'channels'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === 'channels'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
             onClick={() => handleViewChange('channels')}
           >
             <Hash className="w-4 h-4 inline mr-2" />
@@ -137,13 +136,12 @@ export function PubSubPanel() {
               </span>
             )}
           </button>
-          
+
           <button
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeView === 'publish'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === 'publish'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
             onClick={() => handleViewChange('publish')}
           >
             <Send className="w-4 h-4 inline mr-2" />
@@ -151,11 +149,10 @@ export function PubSubPanel() {
           </button>
 
           <button
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeView === 'stats'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === 'stats'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
             onClick={() => handleViewChange('stats')}
           >
             <BarChart3 className="w-4 h-4 inline mr-2" />
@@ -163,11 +160,10 @@ export function PubSubPanel() {
           </button>
 
           <button
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeView === 'subscribe'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === 'subscribe'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
             onClick={() => handleViewChange('subscribe')}
           >
             <Radio className="w-4 h-4 inline mr-2" />
@@ -180,11 +176,10 @@ export function PubSubPanel() {
           </button>
 
           <button
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeView === 'messages'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === 'messages'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
             onClick={() => handleViewChange('messages')}
           >
             <MessageSquare className="w-4 h-4 inline mr-2" />
@@ -206,16 +201,16 @@ export function PubSubPanel() {
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {activeView === 'channels' && (
-          <ChannelList 
+          <ChannelList
             onChannelSelect={handleChannelSelect}
           />
         )}
-        
+
         {activeView === 'publish' && (
           <div className="p-4">
             <div className="max-w-md">
               <h3 className="font-semibold mb-4">Publish Message</h3>
-              <PublishMessage 
+              <PublishMessage
                 defaultChannel={selectedChannelForPublish}
                 onMessageSent={handleMessageSent}
               />
@@ -270,7 +265,7 @@ export function PubSubPanel() {
         )}
 
         {activeView === 'subscribe' && <ChannelSubscriber />}
-        
+
         {activeView === 'messages' && <MessageHistory />}
       </div>
     </div>

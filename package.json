@@ -12,7 +12,12 @@
     "dev:server": "npm run dev --workspace=server",
     "dev:client": "npm run dev --workspace=client",
     "build": "npm run build --workspaces",
-    "start": "npm run start --workspace=server"
+    "start": "npm run start --workspace=server",
+    "lint": "npm run lint --workspaces",
+    "lint:client": "npm run lint --workspace=client",
+    "lint:server": "npm run lint --workspace=server",
+    "lint:fix": "npm run lint:fix --workspaces",
+    "typecheck": "npm run typecheck --workspaces"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

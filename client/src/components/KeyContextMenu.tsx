@@ -1,10 +1,9 @@
 import React from 'react';
-import { 
-  Download, 
-  Copy, 
-  Edit, 
-  Trash2, 
-  FileDown, 
+import {
+  Download,
+  Copy,
+  Edit,
+  Trash2,
   Clipboard,
   FolderDown,
   FolderX,
@@ -18,7 +17,6 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from './ui/ContextMenu';
-import { RedisKey } from '../types';
 import { KeyTreeNode } from '../utils/keyTree';
 
 interface KeyContextMenuProps {
@@ -116,32 +114,32 @@ export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
       <ContextMenuTrigger asChild>
         {children}
       </ContextMenuTrigger>
-      
+
       <ContextMenuContent className="w-56">
         {isKey && (
           <>
             <ContextMenuItem onClick={handleExportKey} icon={<Download />}>
               Export This Key
             </ContextMenuItem>
-            
+
             <ContextMenuSeparator />
-            
+
             <ContextMenuItem onClick={handleCopyKeyName} icon={<Copy />}>
               Copy Key Name
             </ContextMenuItem>
-            
+
             <ContextMenuItem onClick={handleCopyValue} icon={<Clipboard />}>
               Copy Value
             </ContextMenuItem>
-            
+
             <ContextMenuSeparator />
-            
+
             <ContextMenuItem onClick={handleEditKey} icon={<Edit />}>
               Edit Key
             </ContextMenuItem>
-            
-            <ContextMenuItem 
-              onClick={handleDeleteKey} 
+
+            <ContextMenuItem
+              onClick={handleDeleteKey}
               icon={<Trash2 />}
               className="text-destructive focus:text-destructive"
             >
@@ -149,7 +147,7 @@ export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
             </ContextMenuItem>
           </>
         )}
-        
+
         {isGroup && (
           <>
             {isExpanded ? (
@@ -161,21 +159,21 @@ export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
                 Expand Group
               </ContextMenuItem>
             )}
-            
+
             <ContextMenuSeparator />
-            
+
             <ContextMenuItem onClick={handleExportGroup} icon={<FolderDown />}>
               Export All Keys in Group
             </ContextMenuItem>
-            
+
             <ContextMenuItem onClick={handleCopyKeyName} icon={<Copy />}>
               Copy Pattern ({node.name}:*)
             </ContextMenuItem>
-            
+
             <ContextMenuSeparator />
-            
-            <ContextMenuItem 
-              onClick={handleDeleteAllKeys} 
+
+            <ContextMenuItem
+              onClick={handleDeleteAllKeys}
               icon={<FolderX />}
               className="text-destructive focus:text-destructive"
             >
@@ -183,7 +181,7 @@ export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
             </ContextMenuItem>
           </>
         )}
-        
+
         {!isKey && !isGroup && (
           <ContextMenuItem disabled>
             No actions available

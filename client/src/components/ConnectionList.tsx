@@ -40,7 +40,7 @@ export const ConnectionList: React.FC = () => {
 
   const handleConfirmDelete = async () => {
     if (!deleteConfirmation.connectionId) return;
-    
+
     try {
       await connectionsApi.delete(deleteConfirmation.connectionId);
       removeConnection(deleteConfirmation.connectionId);
@@ -53,7 +53,7 @@ export const ConnectionList: React.FC = () => {
   const handleReconnect = async (connection: any, e: React.MouseEvent) => {
     e.stopPropagation();
     setReconnectingId(connection.id);
-    
+
     try {
       // Try to reconnect with stored connection data including password and original ID
       const connectionData = {
@@ -68,19 +68,19 @@ export const ConnectionList: React.FC = () => {
       };
 
       const { data } = await connectionsApi.create(connectionData);
-      
+
       // Since we preserve the connection ID, the connection should have the same ID
       // Reconnected successfully with preserved ID
-      
+
       // Since the connection ID is preserved, just refresh the active connection state
       setActiveConnection(data.id, true); // Force reload to refresh UI state
-      
+
       // Verify the connection is working by testing it
       setTimeout(async () => {
         await testConnection(data.id);
         // Connection test completed
       }, 1000);
-      
+
       toast.success(`Reconnected to ${connection.name}`);
     } catch (error: any) {
       // Check if it's a local instance connection
@@ -132,7 +132,7 @@ export const ConnectionList: React.FC = () => {
             <Plus className="h-6 w-6" />
           </Button>
         </div>
-        
+
         <div className="space-y-2">
           {connections.map((connection) => (
             <div
@@ -149,19 +149,19 @@ export const ConnectionList: React.FC = () => {
                   refreshActiveConnection();
                 } else {
                   // Try to reconnect if clicking on a disconnected connection
-                  handleReconnect(connection, { stopPropagation: () => {} } as React.MouseEvent);
+                  handleReconnect(connection, { stopPropagation: () => { } } as React.MouseEvent);
                 }
               }}
             >
               <div className="flex items-center space-x-2">
                 {connection.name.startsWith('Local -') ? (
-                  <HardDrive 
-                    className={cn("h-4 w-4", isConnected(connection.id) ? "text-green-500" : "text-gray-400")} 
+                  <HardDrive
+                    className={cn("h-4 w-4", isConnected(connection.id) ? "text-green-500" : "text-gray-400")}
                     title="Local instance"
                   />
                 ) : (
-                  <Server 
-                    className={cn("h-4 w-4 cursor-pointer hover:opacity-70", isConnected(connection.id) ? "text-green-500" : "text-gray-400")} 
+                  <Server
+                    className={cn("h-4 w-4 cursor-pointer hover:opacity-70", isConnected(connection.id) ? "text-green-500" : "text-gray-400")}
                     onClick={(e) => handleEditClick(connection, e)}
                     title="Edit connection"
                   />
@@ -178,7 +178,7 @@ export const ConnectionList: React.FC = () => {
                   )}
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-1">
                 <Button
                   size="sm"
@@ -203,16 +203,16 @@ export const ConnectionList: React.FC = () => {
           ))}
         </div>
       </div>
-      
-      <ConnectionModal 
-        isOpen={isModalOpen} 
+
+      <ConnectionModal
+        isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
           setEditingConnection(null);
-        }} 
+        }}
         editingConnection={editingConnection}
       />
-      
+
       <ConfirmationModal
         isOpen={deleteConfirmation.isOpen}
         onClose={() => setDeleteConfirmation({ isOpen: false, connectionId: null, connectionName: null })}

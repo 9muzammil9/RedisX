@@ -157,7 +157,7 @@ router.post('/bulk-import', async (req, res) => {
   try {
     const redis = redisManager.getConnection(connectionId);
     const service = new RedisService(redis);
-    
+
     const results = {
       total: keys.length,
       successful: 0,
@@ -170,12 +170,12 @@ router.post('/bulk-import', async (req, res) => {
     const batchSize = options.batchSize ?? 100;
     for (let i = 0; i < keys.length; i += batchSize) {
       const batch = keys.slice(i, i + batchSize);
-      
+
       for (const keyData of batch) {
         try {
           // Check if key exists for conflict resolution
           const exists = await redis.exists(keyData.key);
-          
+
           if (exists && options.conflictResolution === 'skip') {
             results.results.push({
               key: keyData.key,
@@ -187,7 +187,7 @@ router.post('/bulk-import', async (req, res) => {
 
           // Set the value
           await service.setValue(keyData.key, keyData.value, keyData.type, keyData.ttl);
-          
+
           results.successful++;
           results.results.push({
             key: keyData.key,

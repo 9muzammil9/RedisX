@@ -2,7 +2,7 @@ import { Redis } from 'ioredis';
 import { RedisKey, RedisValue } from '../types';
 
 export class RedisService {
-  constructor(readonly redis: Redis) {}
+  constructor(readonly redis: Redis) { }
 
   async getAllKeys(pattern = '*', cursor = '0', count = 100): Promise<{
     keys: RedisKey[];
@@ -85,7 +85,7 @@ export class RedisService {
   private async setListValue(key: string, value: any): Promise<void> {
     await this.redis.del(key);
     if (Array.isArray(value) && value.length > 0) {
-      const stringValues = value.map(item => 
+      const stringValues = value.map(item =>
         typeof item === 'string' ? item : JSON.stringify(item)
       );
       await this.redis.rpush(key, ...stringValues);
@@ -95,7 +95,7 @@ export class RedisService {
   private async setSetValue(key: string, value: any): Promise<void> {
     await this.redis.del(key);
     if (Array.isArray(value) && value.length > 0) {
-      const stringValues = value.map(item => 
+      const stringValues = value.map(item =>
         typeof item === 'string' ? item : JSON.stringify(item)
       );
       await this.redis.sadd(key, ...stringValues);

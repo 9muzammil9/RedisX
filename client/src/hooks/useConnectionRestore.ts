@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
-import { useStore } from '../store/useStore';
-import toast from 'react-hot-toast';
+import { useEffect } from "react";
+import { useStore } from "../store/useStore";
+import toast from "react-hot-toast";
 
 export const useConnectionRestore = () => {
   const { connections, activeConnectionId } = useStore();
@@ -15,7 +15,10 @@ export const useConnectionRestore = () => {
     }
 
     // Clear any stale active connection if it doesn't exist in saved connections
-    if (activeConnectionId && !connections.find(conn => conn.id === activeConnectionId)) {
+    if (
+      activeConnectionId &&
+      !connections.find((conn) => conn.id === activeConnectionId)
+    ) {
       useStore.getState().setActiveConnection(null);
     }
   }, []); // Empty dependency array means this runs only once on mount

@@ -22,7 +22,7 @@ export const Header: React.FC = () => {
           <img src="/logo.svg" alt="RedisX Logo" className="h-8 w-8" />
           <h1 className="text-xl font-semibold">RedisX</h1>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <Sun className="h-4 w-4" />
           <Switch
