@@ -1,10 +1,18 @@
+import {
+  CheckSquare,
+  Expand,
+  Minimize2,
+  Plus,
+  Square,
+  Trash2,
+} from 'lucide-react';
 import React, { useState } from 'react';
-import { Plus, Trash2, CheckSquare, Square, Expand, Minimize2 } from 'lucide-react';
-import { Button } from './ui/Button';
+import { useShiftMultiSelect } from '../hooks/useShiftMultiSelect';
+import { useStore } from '../store/useStore';
 import { ItemEditor } from './ItemEditor';
 import { KeyEditModal } from './KeyEditModal';
+import { Button } from './ui/Button';
 import { ViewerItem } from './ViewerItem';
-import { useStore } from '../store/useStore';
 
 // Type definitions for better type safety
 type RedisValue = string | number | boolean | object | null;
@@ -36,32 +44,54 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
   type,
   onUpdate,
 }) => {
-  const { theme, expandedValueItems, toggleValueItemExpansion, expandAllValueItems, collapseAllValueItems } = useStore();
+  const {
+    theme,
+    expandedValueItems,
+    toggleValueItemExpansion,
+    expandAllValueItems,
+    collapseAllValueItems,
+  } = useStore();
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
-  const [selectedItems, setSelectedItems] = useState<Set<string | number>>(new Set());
+  const [selectedItems, setSelectedItems] = useState<Set<string | number>>(
+    new Set(),
+  );
   const [editingKey, setEditingKey] = useState<EditingKey | null>(null);
 
   const isArray = type === 'list';
   const isZset = type === 'zset';
-  const items = isArray || isZset ? (Array.isArray(data) ? data : []) : (data || {});
-  const itemKeys = isArray || isZset ? Array.from({ length: items.length }, (_, i) => i) : Object.keys(items);
+  
+  const ensureArray = (data: RedisData): RedisValue[] => {
+    return Array.isArray(data) ? data : [];
+  };
+  
+  const items =
+    isArray || isZset ? ensureArray(data) : data || {};
+  const itemKeys =
+    isArray || isZset
+      ? Array.from({ length: (items as RedisValue[]).length }, (_, i) => i)
+      : Object.keys(items as HashData);
 
   // Generate unique item IDs for expand/collapse state
   const getItemId = (index?: number, key?: string): string => {
-    if (isArray) return `list-${index}`;
-    if (isZset) return `zset-${index}`;
+    if (isArray) { return `list-${index}`; }
+    if (isZset) { return `zset-${index}`; }
     return `hash-${key}`;
   };
 
-  const allItemIds = itemKeys.map(key => getItemId((isArray || isZset) ? key as number : undefined, (isArray || isZset) ? undefined : key as string));
-  const allExpanded = allItemIds.every(id => expandedValueItems.has(id));
-  // anyExpanded is used for conditional UI logic
-  const hasExpandedItems = allItemIds.some(id => expandedValueItems.has(id));
+  const allItemIds = itemKeys.map((key) =>
+    getItemId(
+      isArray || isZset ? (key as number) : undefined,
+      isArray || isZset ? undefined : (key as string),
+    ),
+  );
+  const allExpanded = allItemIds.every((id) => expandedValueItems.has(id));
 
-  const detectValueType = (value: RedisValue): 'string' | 'number' | 'boolean' | 'object' => {
-    if (typeof value === 'number') return 'number';
-    if (typeof value === 'boolean') return 'boolean';
-    if (typeof value === 'object' && value !== null) return 'object';
+  const detectValueType = (
+    value: RedisValue,
+  ): 'string' | 'number' | 'boolean' | 'object' => {
+    if (typeof value === 'number') { return 'number'; }
+    if (typeof value === 'boolean') { return 'boolean'; }
+    if (typeof value === 'object' && value !== null) { return 'object'; }
     return 'string';
   };
 
@@ -110,18 +140,31 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
   };
 
   const handleEdit = (index?: number, key?: string) => {
-    const value = (isArray || isZset) ? items[index!] : items[key!];
+    const value =
+      isArray || isZset
+        ? (items as RedisValue[])[index!]
+        : (items as HashData)[key!];
     setEditingItem({
       index,
       key,
-      value: tryParseJSON(value),
+      value: typeof value === 'string' ? tryParseJSON(value) : value,
       isNew: false,
     });
   };
 
+  const getDefaultNewValue = (): RedisValue => {
+    if (isArray) {
+      return '';
+    }
+    if (isZset) {
+      return { score: 0, member: '' };
+    }
+    return {};
+  };
+
   const handleAdd = () => {
     setEditingItem({
-      value: isArray ? '' : isZset ? { score: 0, member: '' } : {},
+      value: getDefaultNewValue(),
       isNew: true,
     });
   };
@@ -141,10 +184,14 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
     const updatedData = { ...(items as HashData) };
     const finalKey = editingItem?.isNew ? newKey : editingItem?.key;
 
-    if (!finalKey) return updatedData;
+    if (!finalKey) { return updatedData; }
 
     // If editing an existing item and key changed, remove old key
-    if (!editingItem?.isNew && editingItem?.key && editingItem.key !== finalKey) {
+    if (
+      !editingItem?.isNew &&
+      editingItem?.key &&
+      editingItem.key !== finalKey
+    ) {
       delete updatedData[editingItem.key];
     }
 
@@ -153,25 +200,28 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
   };
 
   const handleSave = (newValue: RedisValue, newKey?: string) => {
-    if (!editingItem) return;
+    if (!editingItem) { return; }
 
-    const updatedData = (isArray || isZset)
-      ? updateArrayOrZsetData(newValue)
-      : updateHashData(newValue, newKey);
+    const updatedData =
+      isArray || isZset
+        ? updateArrayOrZsetData(newValue)
+        : updateHashData(newValue, newKey);
 
     onUpdate(updatedData);
     setEditingItem(null);
   };
 
   const handleDelete = () => {
-    if (!editingItem) return;
+    if (!editingItem) { return; }
 
     let updatedData;
 
     if ((isArray || isZset) && editingItem.index !== undefined) {
-      updatedData = items.filter((_: any, i: number) => i !== editingItem.index);
+      updatedData = (items as RedisValue[]).filter(
+        (_: any, i: number) => i !== editingItem.index,
+      );
     } else if (!isArray && !isZset && editingItem.key) {
-      updatedData = { ...items };
+      updatedData = { ...(items as HashData) };
       delete updatedData[editingItem.key];
     } else {
       return;
@@ -196,24 +246,52 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
     if (selectedItems.size === itemKeys.length) {
       setSelectedItems(new Set());
     } else {
-      setSelectedItems(new Set(itemKeys.map(key => String(key))));
+      setSelectedItems(new Set(itemKeys.map((key) => String(key))));
     }
   };
 
+  const selectItemRange = (items: (string | number)[]) => {
+    const newSelection = new Set(selectedItems);
+    items.forEach((item) => newSelection.add(String(item)));
+    setSelectedItems(newSelection);
+  };
+
+  // Set up shift multi-select hook
+  const { handleItemClick, updateLastSelected } = useShiftMultiSelect({
+    items: itemKeys,
+    onToggleSelection: toggleItemSelection,
+    onSelectRange: selectItemRange,
+  });
+
+  // Helper function to handle shift multi-select for checkboxes
+  const handleCheckboxShiftMultiSelect = (itemKey: string | number, index: number, event: React.MouseEvent) => {
+    handleItemClick(itemKey, index, event);
+  };
+
+  // Helper function to handle regular checkbox clicks and update last selected index
+  const handleCheckboxToggle = (itemKey: string | number, index: number) => {
+    toggleItemSelection(itemKey);
+    updateLastSelected(itemKey, index);
+  };
+
   const handleBulkDelete = () => {
-    if (selectedItems.size === 0) return;
+    if (selectedItems.size === 0) { return; }
 
     let updatedData: any;
 
     if (isArray || isZset) {
       // For arrays and zsets, filter out selected indices
-      const selectedIndices = Array.from(selectedItems).map(item => Number(item));
-      updatedData = items.filter((_: any, index: number) => !selectedIndices.includes(index));
+      const selectedIndices = Array.from(selectedItems).map((item) =>
+        Number(item),
+      );
+      updatedData = (items as RedisValue[]).filter(
+        (_: any, index: number) => !selectedIndices.includes(index),
+      );
     } else {
       // For objects, filter out selected keys
       const selectedKeys = Array.from(selectedItems);
-      updatedData = { ...items };
-      selectedKeys.forEach(key => {
+      updatedData = { ...(items as HashData) };
+      selectedKeys.forEach((key) => {
         delete updatedData[key];
       });
     }
@@ -223,7 +301,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
   };
 
   const handleKeyRename = (newKey: string) => {
-    if (!editingKey || !newKey.trim()) return;
+    if (!editingKey || !newKey.trim()) { return; }
 
     let updatedData;
 
@@ -232,7 +310,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
       return;
     } else {
       // For objects/hashes, rename the key
-      updatedData = { ...items };
+      updatedData = { ...(items as HashData) };
       const value = updatedData[editingKey.key];
       delete updatedData[editingKey.key];
       updatedData[newKey] = value;
@@ -245,18 +323,27 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
   // Helper function to get container description
   const getContainerDescription = (): string => {
     if (isArray) {
-      return `List (${items.length} items)`;
+      return `List (${(items as RedisValue[]).length} items)`;
     }
     if (isZset) {
-      return `Sorted Set (${items.length} members)`;
+      return `Sorted Set (${(items as RedisValue[]).length} members)`;
     }
     return `Hash (${Object.keys(items as HashData).length} fields)`;
   };
 
+  const getItemTypeName = (): string => {
+    if (isArray) {
+      return 'Item';
+    }
+    if (isZset) {
+      return 'Member';
+    }
+    return 'Field';
+  };
+
   const getTitle = (): string => {
     if (editingItem?.isNew) {
-      const itemType = isArray ? 'Item' : isZset ? 'Member' : 'Field';
-      return `Add New ${itemType}`;
+      return `Add New ${getItemTypeName()}`;
     }
     if (isArray) {
       return `Edit Item [${editingItem?.index}]`;
@@ -292,7 +379,7 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
                   className="!bg-red-600 hover:!bg-red-700 !text-white"
                   style={{
                     backgroundColor: '#dc2626 !important',
-                    color: 'white !important'
+                    color: 'white !important',
                   }}
                 >
                   <Trash2 className="h-4 w-4 mr-1" />
@@ -306,12 +393,15 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
                 onClick={selectAllItems}
                 className="h-8"
               >
-                {selectedItems.size === itemKeys.length && itemKeys.length > 0 ? (
+                {selectedItems.size === itemKeys.length &&
+                itemKeys.length > 0 ? (
                   <CheckSquare className="h-4 w-4 mr-1" />
                 ) : (
                   <Square className="h-4 w-4 mr-1" />
                 )}
-                {selectedItems.size === itemKeys.length ? 'Deselect All' : 'Select All'}
+                {selectedItems.size === itemKeys.length
+                  ? 'Deselect All'
+                  : 'Select All'}
               </Button>
 
               <Button
@@ -338,65 +428,71 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
 
           <Button size="sm" variant="ghost" onClick={handleAdd}>
             <Plus className="h-4 w-4 mr-1" />
-            Add {isArray ? 'Item' : isZset ? 'Member' : 'Field'}
+            Add {getItemTypeName()}
           </Button>
         </div>
       </div>
 
       <div className="flex-1 space-y-2 overflow-auto">
-        {isArray || isZset ? (
-          items.map((item: any, index: number) => {
-            const itemId = getItemId(index);
-            const isExpanded = expandedValueItems.has(itemId);
-            const hasTreeView = shouldUseTreeView(item);
+        {isArray || isZset
+          ? (items as RedisValue[]).map((item: any, index: number) => {
+              const itemId = getItemId(index);
+              const isExpanded = expandedValueItems.has(itemId);
+              const hasTreeView = shouldUseTreeView(item);
 
-            return (
-              <ViewerItem
-                key={index}
-                itemKey={index}
-                value={item}
-                isArray={true}
-                isZset={isZset}
-                isSelected={selectedItems.has(String(index))}
-                isExpanded={isExpanded}
-                hasTreeView={hasTreeView}
-                theme={theme}
-                onToggleSelection={toggleItemSelection}
-                onEdit={handleEdit}
-                onToggleExpansion={toggleValueItemExpansion}
-                getItemId={getItemId}
-                getTreeViewData={getTreeViewData}
-                formatDisplayValue={formatDisplayValue}
-              />
-            );
-          })
-        ) : (
-          Object.entries(items).map(([key, value]) => {
-            const itemId = getItemId(undefined, key);
-            const isExpanded = expandedValueItems.has(itemId);
-            const hasTreeView = shouldUseTreeView(value);
+              return (
+                <ViewerItem
+                  key={`${type}-item-${index}`}
+                  itemKey={index}
+                  value={item}
+                  isArray={true}
+                  isZset={isZset}
+                  isSelected={selectedItems.has(String(index))}
+                  isExpanded={isExpanded}
+                  hasTreeView={hasTreeView}
+                  theme={theme}
+                  onToggleSelection={toggleItemSelection}
+                  onEdit={handleEdit}
+                  onToggleExpansion={toggleValueItemExpansion}
+                  getItemId={getItemId}
+                  getTreeViewData={getTreeViewData}
+                  formatDisplayValue={formatDisplayValue}
+                  onCheckboxShiftMultiSelect={handleCheckboxShiftMultiSelect}
+                  onCheckboxToggle={handleCheckboxToggle}
+                  itemIndex={index}
+                />
+              );
+            })
+          : Object.entries(items as HashData).map(([key, value]) => {
+              const itemId = getItemId(undefined, key);
+              const isExpanded = expandedValueItems.has(itemId);
+              const hasTreeView = shouldUseTreeView(value);
 
-            return (
-              <ViewerItem
-                key={key}
-                itemKey={key}
-                value={value}
-                isArray={false}
-                isSelected={selectedItems.has(key)}
-                isExpanded={isExpanded}
-                hasTreeView={hasTreeView}
-                theme={theme}
-                onToggleSelection={toggleItemSelection}
-                onEdit={handleEdit}
-                onToggleExpansion={toggleValueItemExpansion}
-                onKeyRename={(key: string) => setEditingKey({ key })}
-                getItemId={getItemId}
-                getTreeViewData={getTreeViewData}
-                formatDisplayValue={formatDisplayValue}
-              />
-            );
-          })
-        )}
+              const keyIndex = Object.keys(items as HashData).indexOf(key);
+              
+              return (
+                <ViewerItem
+                  key={key}
+                  itemKey={key}
+                  value={value}
+                  isArray={false}
+                  isSelected={selectedItems.has(key)}
+                  isExpanded={isExpanded}
+                  hasTreeView={hasTreeView}
+                  theme={theme}
+                  onToggleSelection={toggleItemSelection}
+                  onEdit={handleEdit}
+                  onToggleExpansion={toggleValueItemExpansion}
+                  onKeyRename={(key: string) => setEditingKey({ key })}
+                  getItemId={getItemId}
+                  getTreeViewData={getTreeViewData}
+                  formatDisplayValue={formatDisplayValue}
+                  onCheckboxShiftMultiSelect={handleCheckboxShiftMultiSelect}
+                  onCheckboxToggle={handleCheckboxToggle}
+                  itemIndex={keyIndex}
+                />
+              );
+            })}
       </div>
 
       {editingItem && (

@@ -9,11 +9,11 @@ interface SubscriptionData {
   timestamp: number;
 }
 
-const STORAGE_KEY = "redisx-subscriptions";
+const STORAGE_KEY = 'redisx-subscriptions';
 
 export function saveSubscriptions(
   connectionId: string,
-  channels: Map<string, boolean>
+  channels: Map<string, boolean>,
 ): void {
   try {
     const existingData = getStoredSubscriptions();
@@ -24,7 +24,7 @@ export function saveSubscriptions(
     } else {
       // Save subscription data with persistence flags
       const channelData: ChannelSubscription[] = Array.from(
-        channels.entries()
+        channels.entries(),
       ).map(([channel, persistMessages]) => ({
         channel,
         persistMessages,
@@ -40,17 +40,17 @@ export function saveSubscriptions(
     localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
     console.log(
       `💾 Saved subscriptions for ${connectionId}:`,
-      Array.from(channels.keys())
+      Array.from(channels.keys()),
     );
   } catch (error) {
-    console.error("Failed to save subscriptions:", error);
+    console.error('Failed to save subscriptions:', error);
   }
 }
 
 // Legacy function for backward compatibility
 export function saveSubscriptionsLegacy(
   connectionId: string,
-  channels: Set<string>
+  channels: Set<string>,
 ): void {
   const channelMap = new Map<string, boolean>();
   channels.forEach((channel) => channelMap.set(channel, false)); // Default to no persistence
@@ -73,23 +73,23 @@ export function loadSubscriptions(connectionId: string): Map<string, boolean> {
         if (Array.isArray(subscription.channels)) {
           if (
             subscription.channels.length > 0 &&
-            typeof subscription.channels[0] === "string"
+            typeof subscription.channels[0] === 'string'
           ) {
             // Legacy format: array of strings
-            (subscription.channels as string[]).forEach((channel) =>
-              channelMap.set(channel, false)
+            (subscription.channels as unknown as string[]).forEach((channel) =>
+              channelMap.set(channel, false),
             );
           } else {
             // New format: array of ChannelSubscription objects
-            (subscription.channels as ChannelSubscription[]).forEach((sub) =>
-              channelMap.set(sub.channel, sub.persistMessages)
+            subscription.channels.forEach((sub) =>
+              channelMap.set(sub.channel, sub.persistMessages),
             );
           }
         }
 
         console.log(
           `📥 Loaded subscriptions for ${connectionId}:`,
-          Array.from(channelMap.keys())
+          Array.from(channelMap.keys()),
         );
         return channelMap;
       } else {
@@ -101,7 +101,7 @@ export function loadSubscriptions(connectionId: string): Map<string, boolean> {
 
     return new Map();
   } catch (error) {
-    console.error("Failed to load subscriptions:", error);
+    console.error('Failed to load subscriptions:', error);
     return new Map();
   }
 }
@@ -119,7 +119,7 @@ export function removeSubscriptions(connectionId: string): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     console.log(`🗑️ Removed subscriptions for ${connectionId}`);
   } catch (error) {
-    console.error("Failed to remove subscriptions:", error);
+    console.error('Failed to remove subscriptions:', error);
   }
 }
 
@@ -130,9 +130,9 @@ export function getAllSubscriptions(): Record<string, SubscriptionData> {
 export function clearAllSubscriptions(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
-    console.log("🧹 Cleared all subscription data");
+    console.log('🧹 Cleared all subscription data');
   } catch (error) {
-    console.error("Failed to clear subscriptions:", error);
+    console.error('Failed to clear subscriptions:', error);
   }
 }
 
@@ -155,7 +155,7 @@ export function cleanupOldSubscriptions(): void {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
   } catch (error) {
-    console.error("Failed to cleanup old subscriptions:", error);
+    console.error('Failed to cleanup old subscriptions:', error);
   }
 }
 
@@ -164,7 +164,7 @@ function getStoredSubscriptions(): Record<string, SubscriptionData> {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored ? JSON.parse(stored) : {};
   } catch (error) {
-    console.error("Failed to parse stored subscriptions:", error);
+    console.error('Failed to parse stored subscriptions:', error);
     return {};
   }
 }

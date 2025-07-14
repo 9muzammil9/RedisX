@@ -1,16 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Trash2, RefreshCw, CheckSquare, Square, Plus, Upload, ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  CheckSquare,
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  RefreshCw,
+  Search,
+  Square,
+  Trash2,
+  Upload,
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useShiftMultiSelect } from '../hooks/useShiftMultiSelect';
+import { keysApi } from '../services/api';
+import { useStore } from '../store/useStore';
+import { RedisKey } from '../types';
+import {
+  copyToClipboard,
+  ExportedKey,
+  exportSingleKey,
+} from '../utils/exportUtils';
+import { buildKeyTree, getExpandedPaths, KeyTreeNode } from '../utils/keyTree';
+import { BulkImportModal } from './BulkImportModal';
+import { KeyTreeNodeComponent } from './KeyTreeNode';
+import { NewKeyModal } from './NewKeyModal';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
-import { useStore } from '../store/useStore';
-import { keysApi } from '../services/api';
-import { RedisKey } from '../types';
-import toast from 'react-hot-toast';
-import { NewKeyModal } from './NewKeyModal';
-import { BulkImportModal } from './BulkImportModal';
-import { buildKeyTree, getExpandedPaths, KeyTreeNode } from '../utils/keyTree';
-import { KeyTreeNodeComponent } from './KeyTreeNode';
-import { exportSingleKey, copyToClipboard, ExportedKey } from '../utils/exportUtils';
 
 interface KeyListProps {
   onKeySelect: (key: string) => void;
@@ -18,8 +33,22 @@ interface KeyListProps {
   onKeyDeleted?: (key: string) => void;
 }
 
-export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdit, onKeyDeleted }) => {
-  const { activeConnectionId, selectedKeys, toggleKeySelection, selectAllKeys, clearSelection, showConnectionsPanel, toggleConnectionsPanel, setActiveConnection } = useStore();
+export const KeyList: React.FC<KeyListProps> = ({
+  onKeySelect,
+  onKeySelectForEdit,
+  onKeyDeleted,
+}) => {
+  const {
+    activeConnectionId,
+    selectedKeys,
+    toggleKeySelection,
+    selectAllKeys,
+    selectKeyRange,
+    clearSelection,
+    showConnectionsPanel,
+    toggleConnectionsPanel,
+    setActiveConnection,
+  } = useStore();
   const [keys, setKeys] = useState<RedisKey[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchPattern, setSearchPattern] = useState('*');
@@ -31,12 +60,91 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
+  // Get keys in the order they appear visually in the tree
+  const getVisuallyOrderedKeys = (nodes: KeyTreeNode[]): string[] => {
+    const orderedKeys: string[] = [];
+
+    const traverseNodes = (nodeList: KeyTreeNode[]) => {
+      nodeList.forEach((node) => {
+        if (node.isKey && node.keyData) {
+          orderedKeys.push(node.keyData.key);
+        }
+        if (node.children.length > 0) {
+          traverseNodes(node.children);
+        }
+      });
+    };
+
+    traverseNodes(nodes);
+    return orderedKeys;
+  };
+
+  // For shift multi-select, use keys in visual order
+  const visuallyOrderedKeys = getVisuallyOrderedKeys(keyTree);
+
+  // Set up shift multi-select hook
+  const { handleItemClick, updateLastSelected } = useShiftMultiSelect({
+    items: visuallyOrderedKeys,
+    selectedItems: selectedKeys,
+    onToggleSelection: toggleKeySelection,
+    onSelectRange: selectKeyRange,
+  });
+
+  // Helper function to handle shift multi-select for checkboxes only
+  const handleCheckboxShiftMultiSelect = (key: string, index: number, event: React.MouseEvent) => {
+    handleItemClick(key, index, event);
+  };
+
+  // Helper function to handle regular checkbox clicks and update last selected index
+  const handleCheckboxToggle = (key: string, index: number) => {
+    toggleKeySelection(key);
+    updateLastSelected(key, index);
+  };
+
+  // Helper function to render tree nodes with proper indices for shift multi-select
+  const renderTreeNodes = (nodes: KeyTreeNode[]): React.ReactNode => {
+    return nodes.map((node) => {
+      const keyIndex = node.isKey && node.keyData ? visuallyOrderedKeys.indexOf(node.keyData.key) : undefined;
+      
+      return (
+        <KeyTreeNodeComponent
+          key={node.id}
+          node={node}
+          expandedNodes={expandedNodes}
+          selectedKeys={selectedKeys}
+          onToggleExpanded={handleToggleExpanded}
+          onToggleSelected={toggleKeySelection}
+          onKeySelect={handleKeySelect}
+          selectedKey={selectedKey ?? undefined}
+          onExportKey={handleExportKey}
+          onExportGroup={handleExportGroup}
+          onCopyKeyName={handleCopyKeyName}
+          onCopyValue={handleCopyValue}
+          onEditKey={handleEditKey}
+          onDeleteKey={handleDeleteKey}
+          onDeleteAllKeys={handleDeleteAllKeys}
+          onExpandGroup={handleExpandGroup}
+          onCollapseGroup={handleCollapseGroup}
+          onCheckboxShiftMultiSelect={handleCheckboxShiftMultiSelect}
+          onCheckboxToggle={handleCheckboxToggle}
+          keyIndex={keyIndex}
+          visibleKeys={visuallyOrderedKeys}
+          onDuplicateKey={handleDuplicateKey}
+        />
+      );
+    });
+  };
+
   const fetchKeys = async (pattern = '*', newCursor = '0') => {
-    if (!activeConnectionId) return;
+    if (!activeConnectionId) { return; }
 
     setLoading(true);
     try {
-      const { data } = await keysApi.getAll(activeConnectionId, pattern, newCursor);
+      const { data } = await keysApi.getAll(
+        activeConnectionId,
+        pattern,
+        newCursor,
+      );
       let updatedKeys: RedisKey[];
       if (newCursor === '0') {
         updatedKeys = data.keys;
@@ -58,7 +166,9 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
     } catch (error: any) {
       // Check if it's a connection error (likely because server restarted)
       if (error.response?.status === 404 || error.response?.status === 400) {
-        toast.error('Connection lost. Please reconnect using the refresh button in the connections panel.');
+        toast.error(
+          'Connection lost. Please reconnect using the refresh button in the connections panel.',
+        );
         // Clear the active connection since it's no longer valid
         setActiveConnection(null);
       } else {
@@ -84,7 +194,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
   };
 
   const handleDeleteSelected = async () => {
-    if (!activeConnectionId || selectedKeys.size === 0) return;
+    if (!activeConnectionId || selectedKeys.size === 0) { return; }
 
     try {
       const keysToDelete = Array.from(selectedKeys);
@@ -92,7 +202,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
       toast.success(`Deleted ${keysToDelete.length} keys`);
 
       // Notify parent about deleted keys
-      keysToDelete.forEach(key => onKeyDeleted?.(key));
+      keysToDelete.forEach((key) => onKeyDeleted?.(key));
 
       clearSelection();
       fetchKeys(searchPattern, '0');
@@ -136,12 +246,12 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
   };
 
   const handleExportKey = async (key: string) => {
-    if (!activeConnectionId) return;
+    if (!activeConnectionId) { return; }
 
     try {
       const { data } = await keysApi.getValue(activeConnectionId, key);
-      const keyData = keys.find(k => k.key === key);
-      if (!keyData) return;
+      const keyData = keys.find((k) => k.key === key);
+      if (!keyData) { return; }
 
       const exportData: ExportedKey = {
         key: keyData.key,
@@ -160,7 +270,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
   };
 
   const handleExportGroup = async (pattern: string) => {
-    if (!activeConnectionId) return;
+    if (!activeConnectionId) { return; }
 
     try {
       const { data } = await keysApi.getAll(activeConnectionId, pattern);
@@ -174,7 +284,10 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
       // Get values for all keys
       const exportPromises = keysToExport.map(async (keyData) => {
         try {
-          const { data: valueData } = await keysApi.getValue(activeConnectionId, keyData.key);
+          const { data: valueData } = await keysApi.getValue(
+            activeConnectionId,
+            keyData.key,
+          );
           return {
             key: keyData.key,
             value: valueData.value,
@@ -188,11 +301,16 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
         }
       });
 
-      const exportedKeys = (await Promise.all(exportPromises)).filter(Boolean) as ExportedKey[];
+      const exportedKeys = (await Promise.all(exportPromises)).filter(
+        Boolean,
+      ) as ExportedKey[];
 
       if (exportedKeys.length > 0) {
         const { exportMultipleKeys } = await import('../utils/exportUtils');
-        exportMultipleKeys(exportedKeys, `redis-keys-${pattern.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        exportMultipleKeys(
+          exportedKeys,
+          `redis-keys-${pattern.replace(/[^a-zA-Z0-9]/g, '_')}`,
+        );
         toast.success(`Exported ${exportedKeys.length} keys`);
       }
     } catch (error) {
@@ -211,13 +329,14 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
   };
 
   const handleCopyValue = async (key: string) => {
-    if (!activeConnectionId) return;
+    if (!activeConnectionId) { return; }
 
     try {
       const { data } = await keysApi.getValue(activeConnectionId, key);
-      const valueStr = typeof data.value === 'string'
-        ? data.value
-        : JSON.stringify(data.value, null, 2);
+      const valueStr =
+        typeof data.value === 'string'
+          ? data.value
+          : JSON.stringify(data.value, null, 2);
 
       const success = await copyToClipboard(valueStr);
       if (success) {
@@ -242,7 +361,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
   };
 
   const handleDeleteKey = async (key: string) => {
-    if (!activeConnectionId) return;
+    if (!activeConnectionId) { return; }
 
     try {
       await keysApi.deleteKeys(activeConnectionId, [key]);
@@ -258,33 +377,86 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
     }
   };
 
+  const handleDuplicateKey = async (key: string) => {
+    if (!activeConnectionId) { return; }
+
+    try {
+      // First get the existing key's value and metadata
+      const { data: keyValue } = await keysApi.getValue(activeConnectionId, key);
+      const keyData = keys.find((k) => k.key === key);
+      
+      if (!keyData) {
+        toast.error('Key not found');
+        return;
+      }
+
+      // Generate new key name with " - copy" suffix
+      const newKeyName = `${key} - copy`;
+      
+      // Check if the new key already exists, if so, add a number
+      let finalKeyName = newKeyName;
+      let counter = 1;
+      
+      while (keys.some(k => k.key === finalKeyName)) {
+        finalKeyName = `${newKeyName} (${counter})`;
+        counter++;
+      }
+
+      // Create the duplicate key
+      await keysApi.setValue(
+        activeConnectionId,
+        finalKeyName,
+        keyValue.value,
+        keyData.type,
+        keyData.ttl > 0 ? keyData.ttl : undefined
+      );
+
+      toast.success(`Duplicated key: ${key} → ${finalKeyName}`);
+      
+      // Refresh the key list to show the new key
+      fetchKeys(searchPattern, '0');
+    } catch (error) {
+      toast.error('Failed to duplicate key');
+      console.error('Duplicate key error:', error);
+    }
+  };
+
   const handleDeleteAllKeys = async (pattern: string) => {
-    if (!activeConnectionId) return;
+    if (!activeConnectionId) { return; }
 
     // First, get all keys matching the pattern to show count in confirmation
     try {
-      const { data } = await keysApi.getAll(activeConnectionId, pattern, '0', 1000);
-      const keysToDelete = data.keys.map(k => k.key);
+      const { data } = await keysApi.getAll(
+        activeConnectionId,
+        pattern,
+        '0',
+        1000,
+      );
+      const keysToDelete = data.keys.map((k) => k.key);
 
       if (keysToDelete.length === 0) {
-        toast.info('No keys found matching the pattern');
+        toast.success('No keys found matching the pattern');
         return;
       }
 
       const confirmed = confirm(
         `Are you sure you want to delete ${keysToDelete.length} key(s) matching pattern "${pattern}"?\n\n` +
-        `This action cannot be undone.\n\n` +
-        `Keys to be deleted:\n${keysToDelete.slice(0, 10).join('\n')}` +
-        (keysToDelete.length > 10 ? `\n... and ${keysToDelete.length - 10} more` : '')
+          `This action cannot be undone.\n\n` +
+          `Keys to be deleted:\n${keysToDelete.slice(0, 10).join('\n')}` +
+          (keysToDelete.length > 10
+            ? `\n... and ${keysToDelete.length - 10} more`
+            : ''),
       );
 
-      if (!confirmed) return;
+      if (!confirmed) { return; }
 
       await keysApi.deleteKeys(activeConnectionId, keysToDelete);
-      toast.success(`Deleted ${keysToDelete.length} keys matching pattern: ${pattern}`);
+      toast.success(
+        `Deleted ${keysToDelete.length} keys matching pattern: ${pattern}`,
+      );
 
       // Notify parent about deleted keys
-      keysToDelete.forEach(key => onKeyDeleted?.(key));
+      keysToDelete.forEach((key) => onKeyDeleted?.(key));
 
       fetchKeys(searchPattern, '0');
     } catch (error) {
@@ -311,7 +483,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
   const handleExpandAll = () => {
     const allExpandableIds = getAllExpandableNodeIds(keyTree);
     if (allExpandableIds.length === 0) {
-      toast.info('No groups to expand');
+      toast.success('No groups to expand');
       return;
     }
     setExpandedNodes(new Set(allExpandableIds));
@@ -320,11 +492,26 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
 
   const handleCollapseAll = () => {
     if (expandedNodes.size === 0) {
-      toast.info('No groups to collapse');
+      toast.success('No groups to collapse');
       return;
     }
     setExpandedNodes(new Set());
     toast.success('Collapsed all groups');
+  };
+
+  // Helper function to find a node in the tree by ID
+  const findNodeById = (
+    nodes: KeyTreeNode[],
+    targetId: string,
+  ): KeyTreeNode | null => {
+    for (const node of nodes) {
+      if (node.id === targetId) {
+        return node;
+      }
+      const found = findNodeById(node.children, targetId);
+      if (found) { return found; }
+    }
+    return null;
   };
 
   // Helper function to get all subgroup IDs recursively within a specific group
@@ -350,19 +537,7 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
   };
 
   const handleExpandGroup = (nodeId: string) => {
-    // Find the node in the tree
-    const findNode = (nodes: KeyTreeNode[], targetId: string): KeyTreeNode | null => {
-      for (const node of nodes) {
-        if (node.id === targetId) {
-          return node;
-        }
-        const found = findNode(node.children, targetId);
-        if (found) return found;
-      }
-      return null;
-    };
-
-    const targetNode = findNode(keyTree, nodeId);
+    const targetNode = findNodeById(keyTree, nodeId);
     if (!targetNode) {
       toast.error('Group not found');
       return;
@@ -370,33 +545,23 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
 
     const subgroupIds = getAllSubgroupIds(targetNode);
     if (subgroupIds.length === 0) {
-      toast.info('No subgroups to expand');
+      toast.success('No subgroups to expand');
       return;
     }
 
-    setExpandedNodes(prev => {
+    setExpandedNodes((prev) => {
       const newSet = new Set(prev);
-      subgroupIds.forEach(id => newSet.add(id));
+      subgroupIds.forEach((id) => newSet.add(id));
       return newSet;
     });
 
-    toast.success(`Expanded ${subgroupIds.length} groups in "${targetNode.name}"`);
+    toast.success(
+      `Expanded ${subgroupIds.length} groups in "${targetNode.name}"`,
+    );
   };
 
   const handleCollapseGroup = (nodeId: string) => {
-    // Find the node in the tree
-    const findNode = (nodes: KeyTreeNode[], targetId: string): KeyTreeNode | null => {
-      for (const node of nodes) {
-        if (node.id === targetId) {
-          return node;
-        }
-        const found = findNode(node.children, targetId);
-        if (found) return found;
-      }
-      return null;
-    };
-
-    const targetNode = findNode(keyTree, nodeId);
+    const targetNode = findNodeById(keyTree, nodeId);
     if (!targetNode) {
       toast.error('Group not found');
       return;
@@ -404,17 +569,19 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
 
     const subgroupIds = getAllSubgroupIds(targetNode);
     if (subgroupIds.length === 0) {
-      toast.info('No subgroups to collapse');
+      toast.success('No subgroups to collapse');
       return;
     }
 
-    setExpandedNodes(prev => {
+    setExpandedNodes((prev) => {
       const newSet = new Set(prev);
-      subgroupIds.forEach(id => newSet.delete(id));
+      subgroupIds.forEach((id) => newSet.delete(id));
       return newSet;
     });
 
-    toast.success(`Collapsed ${subgroupIds.length} groups in "${targetNode.name}"`);
+    toast.success(
+      `Collapsed ${subgroupIds.length} groups in "${targetNode.name}"`,
+    );
   };
 
   if (!activeConnectionId) {
@@ -510,12 +677,16 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
             <div className="flex items-center space-x-2">
               {(() => {
                 const allExpandableIds = getAllExpandableNodeIds(keyTree);
-                const isAllExpanded = allExpandableIds.length > 0 && allExpandableIds.every(id => expandedNodes.has(id));
+                const isAllExpanded =
+                  allExpandableIds.length > 0 &&
+                  allExpandableIds.every((id) => expandedNodes.has(id));
                 const hasExpandableGroups = allExpandableIds.length > 0;
 
                 if (!hasExpandableGroups) {
                   return (
-                    <span className="text-sm text-muted-foreground">No groups to expand</span>
+                    <span className="text-sm text-muted-foreground">
+                      No groups to expand
+                    </span>
                   );
                 }
 
@@ -524,7 +695,9 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={isAllExpanded ? handleCollapseAll : handleExpandAll}
+                      onClick={
+                        isAllExpanded ? handleCollapseAll : handleExpandAll
+                      }
                       className="h-8"
                     >
                       {isAllExpanded ? (
@@ -535,7 +708,8 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
                       {isAllExpanded ? 'Collapse All' : 'Expand All'}
                     </Button>
                     <span className="text-sm text-muted-foreground">
-                      {expandedNodes.size > 0 && `${expandedNodes.size} of ${allExpandableIds.length} groups expanded`}
+                      {expandedNodes.size > 0 &&
+                        `${expandedNodes.size} of ${allExpandableIds.length} groups expanded`}
                     </span>
                   </>
                 );
@@ -548,34 +722,22 @@ export const KeyList: React.FC<KeyListProps> = ({ onKeySelect, onKeySelectForEdi
       <div className="flex-1 overflow-auto">
         {(() => {
           if (loading && keys.length === 0) {
-            return <div className="p-4 text-center text-muted-foreground">Loading...</div>;
+            return (
+              <div className="p-4 text-center text-muted-foreground">
+                Loading...
+              </div>
+            );
           }
           if (keys.length === 0) {
-            return <div className="p-4 text-center text-muted-foreground">No keys found</div>;
+            return (
+              <div className="p-4 text-center text-muted-foreground">
+                No keys found
+              </div>
+            );
           }
           return (
             <div>
-              {keyTree.map((node) => (
-                <KeyTreeNodeComponent
-                  key={node.id}
-                  node={node}
-                  expandedNodes={expandedNodes}
-                  selectedKeys={selectedKeys}
-                  onToggleExpanded={handleToggleExpanded}
-                  onToggleSelected={toggleKeySelection}
-                  onKeySelect={handleKeySelect}
-                  selectedKey={selectedKey ?? undefined}
-                  onExportKey={handleExportKey}
-                  onExportGroup={handleExportGroup}
-                  onCopyKeyName={handleCopyKeyName}
-                  onCopyValue={handleCopyValue}
-                  onEditKey={handleEditKey}
-                  onDeleteKey={handleDeleteKey}
-                  onDeleteAllKeys={handleDeleteAllKeys}
-                  onExpandGroup={handleExpandGroup}
-                  onCollapseGroup={handleCollapseGroup}
-                />
-              ))}
+              {renderTreeNodes(keyTree)}
             </div>
           );
         })()}

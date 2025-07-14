@@ -1,7 +1,7 @@
-import { useEffect } from "react";
-import { useStore } from "../store/useStore";
-import { wsClient } from "../services/websocket";
-import { cleanupOldSubscriptions } from "../utils/subscriptionStorage";
+import { useEffect } from 'react';
+import { wsClient } from '../services/websocket';
+import { useStore } from '../store/useStore';
+import { cleanupOldSubscriptions } from '../utils/subscriptionStorage';
 
 export function useSubscriptionRestore() {
   const { activeConnectionId, subscribedChannels, refreshActiveConnection } =
@@ -13,7 +13,7 @@ export function useSubscriptionRestore() {
 
     // Refresh subscriptions for the active connection on app start
     if (activeConnectionId) {
-      console.log("🔄 App started - refreshing active connection data");
+      console.log('🔄 App started - refreshing active connection data');
       refreshActiveConnection();
     }
   }, [activeConnectionId, refreshActiveConnection]);

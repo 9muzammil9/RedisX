@@ -1,30 +1,37 @@
-import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { toast } from 'react-hot-toast';
 import { Send } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'react-hot-toast';
+import { pubsubApi } from '../services/api';
+import { useStore } from '../store/useStore';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Label } from './ui/Label';
-import { pubsubApi } from '../services/api';
-import { useStore } from '../store/useStore';
 
 interface PublishMessageProps {
   readonly defaultChannel?: string;
   readonly onMessageSent?: (channel: string, message: string) => void;
 }
 
-export function PublishMessage({ defaultChannel = '', onMessageSent }: PublishMessageProps) {
+export function PublishMessage({
+  defaultChannel = '',
+  onMessageSent,
+}: PublishMessageProps) {
   const [channel, setChannel] = useState(defaultChannel);
   const [message, setMessage] = useState('');
   const { activeConnectionId } = useStore();
 
   const publishMutation = useMutation({
     mutationFn: async () => {
-      if (!activeConnectionId) throw new Error('No active connection');
-      if (!channel.trim()) throw new Error('Channel name is required');
-      if (!message.trim()) throw new Error('Message is required');
+      if (!activeConnectionId) { throw new Error('No active connection'); }
+      if (!channel.trim()) { throw new Error('Channel name is required'); }
+      if (!message.trim()) { throw new Error('Message is required'); }
 
-      return pubsubApi.publishMessage(activeConnectionId, channel.trim(), message);
+      return pubsubApi.publishMessage(
+        activeConnectionId,
+        channel.trim(),
+        message,
+      );
     },
     onSuccess: (response) => {
       toast.success(response.data.message);
@@ -67,7 +74,12 @@ export function PublishMessage({ defaultChannel = '', onMessageSent }: PublishMe
 
       <Button
         type="submit"
-        disabled={!channel.trim() || !message.trim() || !activeConnectionId || publishMutation.isPending}
+        disabled={
+          !channel.trim() ||
+          !message.trim() ||
+          !activeConnectionId ||
+          publishMutation.isPending
+        }
         className="w-full"
       >
         <Send className="w-4 h-4 mr-2" />

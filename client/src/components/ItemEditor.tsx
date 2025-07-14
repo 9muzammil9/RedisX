@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, Save, Trash2, Maximize2, Minimize2 } from 'lucide-react';
+import { Maximize2, Minimize2, Save, Trash2, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 
@@ -35,7 +35,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
   useEffect(() => {
     if (isOpen) {
       setValue(formatValueForEdit(initialValue));
-      setKey(initialKey || '');
+      setKey(initialKey ?? '');
       setError('');
     }
   }, [isOpen, initialValue, initialKey]);
@@ -52,24 +52,28 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
       switch (valueType) {
         case 'string':
           return val;
-        case 'number':
+        case 'number': {
           const num = parseFloat(val);
           if (isNaN(num)) {
             throw new Error('Invalid number');
           }
           return num;
-        case 'boolean':
+        }
+        case 'boolean': {
           const lower = val.toLowerCase();
-          if (lower === 'true') return true;
-          if (lower === 'false') return false;
+          if (lower === 'true') { return true; }
+          if (lower === 'false') { return false; }
           throw new Error('Boolean must be "true" or "false"');
+        }
         case 'object':
           return JSON.parse(val);
         default:
           return val;
       }
     } catch (err) {
-      throw new Error(`Invalid ${valueType}: ${err instanceof Error ? err.message : 'Parse error'}`);
+      throw new Error(
+        `Invalid ${valueType}: ${err instanceof Error ? err.message : 'Parse error'}`,
+      );
     }
   };
 
@@ -101,10 +105,13 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50" />
-        <Dialog.Content className={`fixed ${isFullscreen
-          ? 'inset-4 max-h-none w-auto max-w-none translate-x-0 translate-y-0'
-          : 'left-[50%] top-[50%] max-h-[90vh] w-[95vw] max-w-[800px] translate-x-[-50%] translate-y-[-50%]'
-          } rounded-lg bg-background p-6 shadow-lg ${isFullscreen ? 'flex flex-col' : ''}`}>
+        <Dialog.Content
+          className={`fixed ${
+            isFullscreen
+              ? 'inset-4 max-h-none w-auto max-w-none translate-x-0 translate-y-0'
+              : 'left-[50%] top-[50%] max-h-[90vh] w-[95vw] max-w-[800px] translate-x-[-50%] translate-y-[-50%]'
+          } rounded-lg bg-background p-6 shadow-lg ${isFullscreen ? 'flex flex-col' : ''}`}
+        >
           <div className="flex items-center justify-between mb-4">
             <Dialog.Title className="text-lg font-semibold">
               {title}
@@ -116,7 +123,11 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
                 onClick={() => setIsFullscreen(!isFullscreen)}
                 title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
               >
-                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                {isFullscreen ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
               </Button>
               <Dialog.Close className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                 <X className="h-4 w-4" />
@@ -124,11 +135,14 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
             </div>
           </div>
 
-          <div className={`space-y-4 ${isFullscreen ? 'flex-1 flex flex-col' : ''}`}>
+          <div
+            className={`space-y-4 ${isFullscreen ? 'flex-1 flex flex-col' : ''}`}
+          >
             {isKeyEditable && (
               <div>
-                <label className="text-sm font-medium block mb-2">Key</label>
+                <label htmlFor="item-key" className="text-sm font-medium block mb-2">Key</label>
                 <Input
+                  id="item-key"
                   value={key}
                   onChange={(e) => setKey(e.target.value)}
                   placeholder="Enter key name"
@@ -138,19 +152,26 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
             )}
 
             <div className={isFullscreen ? 'flex-1 flex flex-col' : ''}>
-              <label className="text-sm font-medium block mb-2">
+              <label htmlFor="item-value" className="text-sm font-medium block mb-2">
                 Value ({valueType})
               </label>
               {valueType === 'object' || isFullscreen ? (
                 <textarea
+                  id="item-value"
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
-                  className={`w-full p-3 font-mono text-sm bg-muted rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring border border-border ${isFullscreen ? 'flex-1' : 'h-64'
-                    }`}
-                  placeholder={valueType === 'object' ? 'Enter JSON object' : `Enter ${valueType} value`}
+                  className={`w-full p-3 font-mono text-sm bg-muted rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring border border-border ${
+                    isFullscreen ? 'flex-1' : 'h-64'
+                  }`}
+                  placeholder={
+                    valueType === 'object'
+                      ? 'Enter JSON object'
+                      : `Enter ${valueType} value`
+                  }
                 />
               ) : (
                 <Input
+                  id="item-value"
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
                   placeholder={`Enter ${valueType} value`}
@@ -165,7 +186,9 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
               </div>
             )}
 
-            <div className={`flex justify-between ${isFullscreen ? 'mt-auto' : ''}`}>
+            <div
+              className={`flex justify-between ${isFullscreen ? 'mt-auto' : ''}`}
+            >
               <div>
                 {onDelete && (
                   <Button

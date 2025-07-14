@@ -1,6 +1,6 @@
-import { useEffect } from "react";
-import { useStore } from "../store/useStore";
-import toast from "react-hot-toast";
+import { useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { useStore } from '../store/useStore';
 
 export const useConnectionRestore = () => {
   const { connections, activeConnectionId } = useStore();
@@ -10,7 +10,7 @@ export const useConnectionRestore = () => {
     if (connections.length > 0) {
       toast.success(
         `${connections.length} saved connection(s) loaded. Click to reconnect.`,
-        { duration: 4000 }
+        { duration: 4000 },
       );
     }
 

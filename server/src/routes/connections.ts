@@ -1,8 +1,8 @@
+import { randomUUID } from 'crypto';
 import { Router } from 'express';
 import { z } from 'zod';
 import { redisManager } from '../services/redisManager';
 import { RedisConnection } from '../types';
-import { randomUUID } from 'crypto';
 
 const router = Router();
 
@@ -45,9 +45,9 @@ router.post('/', async (req, res) => {
   try {
     await redisManager.connect(connection);
     connections.set(id, connection);
-    res.json(connection);
+    return res.json(connection);
   } catch (error) {
-    res.status(400).json({ error: 'Failed to connect to Redis server' });
+    return res.status(400).json({ error: 'Failed to connect to Redis server' });
   }
 });
 

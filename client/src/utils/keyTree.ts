@@ -1,4 +1,4 @@
-import { RedisKey } from "../types";
+import { RedisKey } from '../types';
 
 export interface KeyTreeNode {
   id: string;
@@ -16,14 +16,14 @@ export interface KeyTreeState {
 
 export const buildKeyTree = (
   keys: RedisKey[],
-  separator = ":"
+  separator = ':',
 ): KeyTreeNode[] => {
   const nodeMap = new Map<string, KeyTreeNode>();
 
   // First pass: create all nodes
   keys.forEach((key) => {
     const parts = key.key.split(separator);
-    let currentPath = "";
+    let currentPath = '';
 
     parts.forEach((part, index) => {
       const isLast = index === parts.length - 1;
@@ -77,8 +77,8 @@ export const buildKeyTree = (
       }))
       .sort((a, b) => {
         // Put non-keys (folders) first, then keys
-        if (!a.isKey && b.isKey) return -1;
-        if (a.isKey && !b.isKey) return 1;
+        if (!a.isKey && b.isKey) { return -1; }
+        if (a.isKey && !b.isKey) { return 1; }
         return a.name.localeCompare(b.name);
       });
   };
@@ -114,16 +114,16 @@ export const getAllKeys = (nodes: KeyTreeNode[]): RedisKey[] => {
 
 export const getExpandedPaths = (
   selectedKeys: Set<string>,
-  nodes: KeyTreeNode[]
+  nodes: KeyTreeNode[],
 ): Set<string> => {
   const expandedPaths = new Set<string>();
 
   const findParentPaths = (node: KeyTreeNode, targetKeys: Set<string>) => {
     if (node.isKey && targetKeys.has(node.keyData!.key)) {
       // Mark all parent paths as expanded
-      const parts = node.fullPath.split(":");
+      const parts = node.fullPath.split(':');
       for (let i = 1; i < parts.length; i++) {
-        const parentPath = parts.slice(0, i).join(":");
+        const parentPath = parts.slice(0, i).join(':');
         expandedPaths.add(parentPath);
       }
     }

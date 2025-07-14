@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { settingsService } from '../services/settingsService';
-import { redisInstanceManager } from '../services/redisInstanceManager';
 import Redis, { Redis as RedisType } from 'ioredis';
+import { redisInstanceManager } from '../services/redisInstanceManager';
+import { settingsService } from '../services/settingsService';
 
 const router = Router();
 
@@ -25,7 +25,7 @@ router.put('/default-redis', async (req, res): Promise<void> => {
       host: host ?? 'localhost',
       port: port ?? 6379,
       password: password ?? undefined,
-      enabled: enabled !== false // default to true
+      enabled: enabled !== false, // default to true
     });
 
     // Refresh the default Redis instance with new settings
@@ -47,14 +47,14 @@ function createRedisConfig(host?: string, port?: number, password?: string) {
     maxRetriesPerRequest: 1,
     connectTimeout: 3000,
     lazyConnect: true,
-    ...(password && { password })
+    ...(password && { password }),
   };
   return config;
 }
 
 function extractRedisVersion(info: string): string {
   const lines = info.split('\n');
-  const versionLine = lines.find(line => line.startsWith('redis_version:'));
+  const versionLine = lines.find((line) => line.startsWith('redis_version:'));
   return versionLine ? versionLine.split(':')[1].trim() : 'Unknown';
 }
 
@@ -62,18 +62,18 @@ function getErrorResponse(error: Error) {
   if (error.message?.includes('NOAUTH')) {
     return {
       success: false,
-      message: 'Authentication required. Please provide a password.'
+      message: 'Authentication required. Please provide a password.',
     };
   }
   if (error.message?.includes('invalid password')) {
     return {
       success: false,
-      message: 'Invalid password provided.'
+      message: 'Invalid password provided.',
     };
   }
   return {
     success: false,
-    message: `Connection failed: ${error.message}`
+    message: `Connection failed: ${error.message}`,
   };
 }
 
@@ -98,7 +98,7 @@ router.post('/default-redis/test', async (req, res): Promise<void> => {
       res.json({
         success: true,
         message: 'Connection successful',
-        version
+        version,
       });
     } catch (error) {
       if (testClient) {

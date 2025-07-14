@@ -1,14 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Download, Trash2 } from 'lucide-react';
-import { Button } from './ui/Button';
+import { Download, Trash2, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { instancesApi } from '../services/api';
+import { Button } from './ui/Button';
 
 interface InstanceLogsViewerProps {
   instanceId: string;
   onClose: () => void;
 }
 
-export const InstanceLogsViewer: React.FC<InstanceLogsViewerProps> = ({ instanceId, onClose }) => {
+export const InstanceLogsViewer: React.FC<InstanceLogsViewerProps> = ({
+  instanceId,
+  onClose,
+}) => {
   const [logs, setLogs] = useState<string[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -20,7 +23,9 @@ export const InstanceLogsViewer: React.FC<InstanceLogsViewerProps> = ({ instance
     fetchLogs();
 
     // Set up SSE for real-time logs
-    const eventSource = new EventSource(`/api/instances/${instanceId}/logs/stream`);
+    const eventSource = new EventSource(
+      `/api/instances/${instanceId}/logs/stream`,
+    );
     eventSourceRef.current = eventSource;
 
     eventSource.onmessage = (event) => {
@@ -31,7 +36,10 @@ export const InstanceLogsViewer: React.FC<InstanceLogsViewerProps> = ({ instance
       } else if (data.type === 'log') {
         setLogs((prevLogs) => [...prevLogs, data.log]);
       } else if (data.type === 'status') {
-        setLogs((prevLogs) => [...prevLogs, `[${new Date().toISOString()}] Instance ${data.status}`]);
+        setLogs((prevLogs) => [
+          ...prevLogs,
+          `[${new Date().toISOString()}] Instance ${data.status}`,
+        ]);
       }
     };
 
@@ -60,7 +68,7 @@ export const InstanceLogsViewer: React.FC<InstanceLogsViewerProps> = ({ instance
   };
 
   const handleScroll = () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) { return; }
 
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 10;
@@ -108,14 +116,17 @@ export const InstanceLogsViewer: React.FC<InstanceLogsViewerProps> = ({ instance
           className="flex-1 overflow-auto p-4 font-mono text-sm bg-muted/30"
         >
           {logs.length === 0 ? (
-            <div className="text-center text-muted-foreground">No logs available</div>
+            <div className="text-center text-muted-foreground">
+              No logs available
+            </div>
           ) : (
             <div className="space-y-1">
               {logs.map((log, index) => (
                 <div
-                  key={index}
-                  className={`whitespace-pre-wrap break-all ${log.includes('[ERROR]') ? 'text-red-500' : ''
-                    }`}
+                  key={`log-${index}-${log.slice(0, 50)}`}
+                  className={`whitespace-pre-wrap break-all ${
+                    log.includes('[ERROR]') ? 'text-red-500' : ''
+                  }`}
                 >
                   {log}
                 </div>
@@ -133,7 +144,7 @@ export const InstanceLogsViewer: React.FC<InstanceLogsViewerProps> = ({ instance
                 checked={autoScroll}
                 onChange={(e) => setAutoScroll(e.target.checked)}
                 className="rounded"
-              />
+              />{' '}
               Auto-scroll to bottom
             </label>
             <span className="text-sm text-muted-foreground">

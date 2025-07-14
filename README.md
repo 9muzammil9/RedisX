@@ -313,7 +313,7 @@ This is a monorepo using npm workspaces with:
 
 **Local Instance Issues**
 
-- **Docker Instance Won't Connect**: 
+- **Docker Instance Won't Connect**:
   - Check Docker is running: `docker --version`
   - Verify container is running: `docker ps | grep redisx`
   - Test Redis inside container: `docker exec redisx-{id} redis-cli ping`

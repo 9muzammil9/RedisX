@@ -1,14 +1,14 @@
-import {
-  loadSubscriptions,
-  saveSubscriptions,
-  removeSubscriptions,
-} from "./subscriptionStorage";
+import * as persistence from '../services/persistence';
 import {
   loadChannelMessages,
-  saveChannelMessages,
   removeChannelMessages,
-} from "./messageStorage";
-import * as persistence from "../services/persistence";
+  saveChannelMessages,
+} from './messageStorage';
+import {
+  loadSubscriptions,
+  removeSubscriptions,
+  saveSubscriptions,
+} from './subscriptionStorage';
 
 export interface ConnectionMigration {
   oldId: string;
@@ -16,7 +16,7 @@ export interface ConnectionMigration {
 }
 
 export async function migrateConnectionData(
-  migrations: ConnectionMigration[]
+  migrations: ConnectionMigration[],
 ): Promise<void> {
   for (const { oldId, newId } of migrations) {
     console.log(`🔄 Migrating data from ${oldId} to ${newId}`);
@@ -53,7 +53,7 @@ export async function migrateConnectionData(
                 .catch(console.error);
 
               console.log(
-                `✅ Migrated ${messages.length} messages for channel ${channel}`
+                `✅ Migrated ${messages.length} messages for channel ${channel}`,
               );
             }
           }
@@ -62,7 +62,7 @@ export async function migrateConnectionData(
     } catch (error) {
       console.error(
         `❌ Failed to migrate data for connection ${oldId}:`,
-        error
+        error,
       );
     }
   }

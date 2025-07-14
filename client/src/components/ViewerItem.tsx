@@ -1,5 +1,5 @@
+import { ChevronDown, ChevronRight, Edit2, Tag } from 'lucide-react';
 import React from 'react';
-import { Edit2, ChevronRight, ChevronDown, Tag } from 'lucide-react';
 import { JsonView } from 'react-json-view-lite';
 import { Button } from './ui/Button';
 import { Checkbox } from './ui/Checkbox';
@@ -20,7 +20,30 @@ interface ViewerItemProps {
   getItemId: (index?: number, key?: string) => string;
   getTreeViewData: (value: any) => any;
   formatDisplayValue: (value: any) => string;
+  onCheckboxShiftMultiSelect?: (itemKey: string | number, index: number, event: React.MouseEvent) => void;
+  onCheckboxToggle?: (itemKey: string | number, index: number) => void;
+  itemIndex?: number;
 }
+
+const getItemDisplayName = (isArray: boolean, isZset: boolean, index?: number, key?: string): string => {
+  if (isArray) {
+    return `[${index}]`;
+  }
+  if (isZset) {
+    return `[${index}]`;
+  }
+  return key || '';
+};
+
+const getAriaLabel = (isArray: boolean, isZset: boolean, index?: number, key?: string): string => {
+  const itemName = getItemDisplayName(isArray, isZset, index, key);
+  return `Item ${itemName} - double click to edit`;
+};
+
+const getContainerClassName = (isSelected: boolean): string => {
+  const baseClass = 'group flex items-start space-x-3 p-3 border border-border rounded-md hover:bg-accent/50 cursor-pointer bg-transparent text-left w-full';
+  return isSelected ? `${baseClass} bg-accent` : baseClass;
+};
 
 export const ViewerItem: React.FC<ViewerItemProps> = ({
   itemKey,
@@ -38,37 +61,66 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
   getItemId,
   getTreeViewData,
   formatDisplayValue,
+  onCheckboxShiftMultiSelect,
+  onCheckboxToggle,
+  itemIndex,
 }) => {
-  const index = (isArray || isZset) ? itemKey as number : undefined;
-  const key = (isArray || isZset) ? undefined : itemKey as string;
+  const index = isArray || isZset ? (itemKey as number) : undefined;
+  const key = isArray || isZset ? undefined : (itemKey as string);
   const itemId = getItemId(index, key);
 
   return (
-    <div
-      className={`group flex items-start space-x-3 p-3 border border-border rounded-md hover:bg-accent/50 cursor-pointer bg-transparent ${isSelected ? 'bg-accent' : ''
-        }`}
+    <button
+      type="button"
+      className={getContainerClassName(isSelected)}
       onDoubleClick={() => onEdit(index, key)}
+      aria-label={getAriaLabel(isArray, isZset, index, key)}
     >
-      <div style={{ position: 'relative', zIndex: 10 }}>
+      <div style={{ position: 'relative' }}>
         <Checkbox
           checked={isSelected}
-          onCheckedChange={() => onToggleSelection(itemKey)}
-          onClick={(e) => e.stopPropagation()}
+          onCheckedChange={() => {
+            if (onCheckboxToggle && itemIndex !== undefined) {
+              onCheckboxToggle(itemKey, itemIndex);
+            } else {
+              onToggleSelection(itemKey);
+            }
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            
+            // Handle shift multi-select for checkbox clicks
+            if (e.shiftKey && onCheckboxShiftMultiSelect && itemIndex !== undefined) {
+              e.preventDefault();
+              onCheckboxShiftMultiSelect(itemKey, itemIndex, e as any);
+            }
+          }}
           className="mt-1"
         />
       </div>
       <div className="flex-1 min-w-0">
-        <div className={(isArray || isZset) ? "text-sm font-medium text-purple-600 dark:text-purple-400" : "flex items-center space-x-2"}>
-          {isArray ? (
-            `[${index}]`
-          ) : isZset ? (
-            <div className="flex items-center space-x-2">
-              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                Score: {value?.score || 0}
-              </span>
-              <span>`[${index}]`</span>
-            </div>
-          ) : (
+        <div
+          className={
+            isArray || isZset
+              ? 'text-sm font-medium text-purple-600 dark:text-purple-400'
+              : 'flex items-center space-x-2'
+          }
+        >
+          {(() => {
+            if (isArray) {
+              return getItemDisplayName(isArray, isZset, index, key);
+            }
+            if (isZset) {
+              return (
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                    Score: {value?.score || 0}
+                  </span>
+                  <span>{getItemDisplayName(isArray, isZset, index, key)}</span>
+                </div>
+              );
+            }
+            return (
             <>
               <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
                 {key}
@@ -89,33 +141,47 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
                 </Button>
               )}
             </>
-          )}
+            );
+          })()}
         </div>
         <div className="text-sm text-foreground mt-1 break-words">
-          {hasTreeView && isExpanded ? (
-            <div
-              className={`json-tree-container ${theme === 'dark' ? 'dark-theme' : 'light-theme'} text-xs`}
-              style={theme === 'dark' ? {
+          {(() => {
+            if (hasTreeView && isExpanded) {
+              const themeClass = theme === 'dark' ? 'dark-theme' : 'light-theme';
+              const themeStyle = theme === 'dark' ? {
                 backgroundColor: 'transparent',
-                color: '#ffffff'
-              } : {}}
-            >
-              <JsonView
-                data={getTreeViewData(value)}
-              />
-            </div>
-          ) : hasTreeView && !isExpanded ? (
-            <div className="text-muted-foreground text-xs italic">
-              {Array.isArray(getTreeViewData(value))
-                ? `Array (${getTreeViewData(value).length} items)`
-                : `Object (${Object.keys(getTreeViewData(value) || {}).length} keys)`
-              }
-            </div>
-          ) : (
-            <pre className="whitespace-pre-wrap font-mono text-xs">
-              {isZset ? (value?.member || '') : formatDisplayValue(value)}
-            </pre>
-          )}
+                color: '#ffffff',
+              } : {};
+              
+              return (
+                <div
+                  className={`json-tree-container ${themeClass} text-xs`}
+                  style={themeStyle}
+                >
+                  <JsonView data={getTreeViewData(value)} />
+                </div>
+              );
+            }
+            
+            if (hasTreeView && !isExpanded) {
+              const treeData = getTreeViewData(value);
+              const description = Array.isArray(treeData)
+                ? `Array (${treeData.length} items)`
+                : `Object (${Object.keys(treeData || {}).length} keys)`;
+                
+              return (
+                <div className="text-muted-foreground text-xs italic">
+                  {description}
+                </div>
+              );
+            }
+            
+            return (
+              <pre className="whitespace-pre-wrap font-mono text-xs">
+                {isZset ? value?.member || '' : formatDisplayValue(value)}
+              </pre>
+            );
+          })()}
         </div>
       </div>
       <div className="flex items-center space-x-1">
@@ -150,6 +216,6 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
           <Edit2 className="h-6 w-6" />
         </Button>
       </div>
-    </div>
+    </button>
   );
 };

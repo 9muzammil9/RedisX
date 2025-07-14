@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, Check, Eye, EyeOff, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface DefaultRedisSettings {
   host: string;
@@ -14,20 +14,21 @@ interface DefaultRedisSettingsModalProps {
   onSave: (settings: DefaultRedisSettings) => void;
 }
 
-export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps> = ({
-  isOpen,
-  onClose,
-  onSave
-}) => {
+export const DefaultRedisSettingsModal: React.FC<
+  DefaultRedisSettingsModalProps
+> = ({ isOpen, onClose, onSave }) => {
   const [settings, setSettings] = useState<DefaultRedisSettings>({
     host: 'localhost',
     port: 6379,
     password: '',
-    enabled: true
+    enabled: true,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
 
   // Load current settings when modal opens
@@ -60,16 +61,17 @@ export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps>
         body: JSON.stringify({
           host: settings.host,
           port: settings.port,
-          password: settings.password || undefined
-        })
+          password: settings.password ?? undefined,
+        }),
       });
 
       const result = await response.json();
       setTestResult(result);
     } catch (error) {
+      console.error('Connection test error:', error);
       setTestResult({
         success: false,
-        message: 'Failed to test connection'
+        message: 'Failed to test connection',
       });
     } finally {
       setIsTesting(false);
@@ -82,7 +84,7 @@ export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps>
       const response = await fetch('/api/settings/default-redis', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
+        body: JSON.stringify(settings),
       });
 
       if (response.ok) {
@@ -99,7 +101,7 @@ export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps>
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) { return null; }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -123,10 +125,15 @@ export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps>
               type="checkbox"
               id="enabled"
               checked={settings.enabled}
-              onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })}
+              onChange={(e) =>
+                setSettings({ ...settings, enabled: e.target.checked })
+              }
               className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
             />
-            <label htmlFor="enabled" className="text-sm font-medium text-foreground">
+            <label
+              htmlFor="enabled"
+              className="text-sm font-medium text-foreground"
+            >
               Enable default Redis detection
             </label>
           </div>
@@ -135,13 +142,16 @@ export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps>
             <>
               {/* Host */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
+                <label htmlFor="host" className="block text-sm font-medium text-foreground mb-1">
                   Host
                 </label>
                 <input
+                  id="host"
                   type="text"
                   value={settings.host}
-                  onChange={(e) => setSettings({ ...settings, host: e.target.value })}
+                  onChange={(e) =>
+                    setSettings({ ...settings, host: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                   placeholder="localhost"
                 />
@@ -149,13 +159,19 @@ export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps>
 
               {/* Port */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
+                <label htmlFor="port" className="block text-sm font-medium text-foreground mb-1">
                   Port
                 </label>
                 <input
+                  id="port"
                   type="number"
                   value={settings.port}
-                  onChange={(e) => setSettings({ ...settings, port: parseInt(e.target.value) || 6379 })}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      port: parseInt(e.target.value) || 6379,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                   placeholder="6379"
                   min="1"
@@ -165,14 +181,20 @@ export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps>
 
               {/* Password */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
+                <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
                   Password (optional)
                 </label>
                 <div className="relative">
                   <input
+                    id="password"
                     type={showPassword ? 'text' : 'password'}
-                    value={settings.password || ''}
-                    onChange={(e) => setSettings({ ...settings, password: e.target.value || undefined })}
+                    value={settings.password ?? ''}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        password: e.target.value || undefined,
+                      })
+                    }
                     className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="Leave empty if no password"
                   />
@@ -181,7 +203,11 @@ export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps>
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -197,10 +223,13 @@ export const DefaultRedisSettingsModal: React.FC<DefaultRedisSettingsModalProps>
                 </button>
 
                 {testResult && (
-                  <div className={`mt-2 p-3 rounded-md flex items-center space-x-2 ${testResult.success
-                    ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800'
-                    : 'bg-destructive/10 text-destructive border border-destructive/20'
-                    }`}>
+                  <div
+                    className={`mt-2 p-3 rounded-md flex items-center space-x-2 ${
+                      testResult.success
+                        ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800'
+                        : 'bg-destructive/10 text-destructive border border-destructive/20'
+                    }`}
+                  >
                     {testResult.success ? (
                       <Check className="w-4 h-4" />
                     ) : (

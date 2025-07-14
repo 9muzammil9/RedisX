@@ -105,7 +105,7 @@
 /* JSON Tree View Styling - Base */
 .json-view-lite,
 .json-view-lite *,
-.json-view-lite>*,
+.json-view-lite > *,
 .json-view-lite div,
 .json-view-lite span,
 .json-view-lite button {
@@ -117,11 +117,11 @@
 }
 
 /* Indentation and nesting structure */
-.json-view-lite>div {
+.json-view-lite > div {
   margin-left: 0 !important;
 }
 
-.json-view-lite div[style*="margin-left"] {
+.json-view-lite div[style*='margin-left'] {
   margin-left: 24px !important;
   position: relative;
 }
@@ -140,7 +140,7 @@
 }
 
 /* Add visual guides for nesting */
-.json-view-lite div[style*="margin-left"]::before {
+.json-view-lite div[style*='margin-left']::before {
   content: '';
   position: absolute;
   left: -12px;
@@ -151,7 +151,7 @@
   opacity: 0.3;
 }
 
-.dark .json-view-lite div[style*="margin-left"]::before {
+.dark .json-view-lite div[style*='margin-left']::before {
   background: hsl(var(--border));
   opacity: 0.5;
 }
@@ -171,60 +171,60 @@
 }
 
 :not(.dark) .json-view-lite .json-key,
-:not(.dark) .json-view-lite [class*="key"],
-:not(.dark) .json-view-lite [data-testid*="key"],
+:not(.dark) .json-view-lite [class*='key'],
+:not(.dark) .json-view-lite [data-testid*='key'],
 .light-theme .json-view-lite .json-key,
-.light-theme .json-view-lite [class*="key"],
-.light-theme .json-view-lite [data-testid*="key"] {
+.light-theme .json-view-lite [class*='key'],
+.light-theme .json-view-lite [data-testid*='key'] {
   color: #1e40af !important;
   font-weight: 500 !important;
 }
 
 :not(.dark) .json-view-lite .json-string,
-:not(.dark) .json-view-lite [class*="string"],
-:not(.dark) .json-view-lite [data-testid*="string"],
+:not(.dark) .json-view-lite [class*='string'],
+:not(.dark) .json-view-lite [data-testid*='string'],
 .light-theme .json-view-lite .json-string,
-.light-theme .json-view-lite [class*="string"],
-.light-theme .json-view-lite [data-testid*="string"] {
+.light-theme .json-view-lite [class*='string'],
+.light-theme .json-view-lite [data-testid*='string'] {
   color: #059669 !important;
 }
 
 :not(.dark) .json-view-lite .json-number,
-:not(.dark) .json-view-lite [class*="number"],
-:not(.dark) .json-view-lite [data-testid*="number"],
+:not(.dark) .json-view-lite [class*='number'],
+:not(.dark) .json-view-lite [data-testid*='number'],
 .light-theme .json-view-lite .json-number,
-.light-theme .json-view-lite [class*="number"],
-.light-theme .json-view-lite [data-testid*="number"] {
+.light-theme .json-view-lite [class*='number'],
+.light-theme .json-view-lite [data-testid*='number'] {
   color: #d97706 !important;
 }
 
 :not(.dark) .json-view-lite .json-boolean,
-:not(.dark) .json-view-lite [class*="boolean"],
-:not(.dark) .json-view-lite [data-testid*="boolean"],
+:not(.dark) .json-view-lite [class*='boolean'],
+:not(.dark) .json-view-lite [data-testid*='boolean'],
 .light-theme .json-view-lite .json-boolean,
-.light-theme .json-view-lite [class*="boolean"],
-.light-theme .json-view-lite [data-testid*="boolean"] {
+.light-theme .json-view-lite [class*='boolean'],
+.light-theme .json-view-lite [data-testid*='boolean'] {
   color: #dc2626 !important;
 }
 
 :not(.dark) .json-view-lite .json-null,
 :not(.dark) .json-view-lite .json-undefined,
-:not(.dark) .json-view-lite [class*="null"],
-:not(.dark) .json-view-lite [class*="undefined"],
+:not(.dark) .json-view-lite [class*='null'],
+:not(.dark) .json-view-lite [class*='undefined'],
 .light-theme .json-view-lite .json-null,
 .light-theme .json-view-lite .json-undefined,
-.light-theme .json-view-lite [class*="null"],
-.light-theme .json-view-lite [class*="undefined"] {
+.light-theme .json-view-lite [class*='null'],
+.light-theme .json-view-lite [class*='undefined'] {
   color: #6b7280 !important;
 }
 
 /* Array index styling - light theme */
-:not(.dark) .json-view-lite .json-key[data-testid*="["],
-:not(.dark) .json-view-lite [class*="key"][data-testid*="["],
-:not(.dark) .json-view-lite span:contains("["),
-.light-theme .json-view-lite .json-key[data-testid*="["],
-.light-theme .json-view-lite [class*="key"][data-testid*="["],
-.light-theme .json-view-lite span:contains("[") {
+:not(.dark) .json-view-lite .json-key[data-testid*='['],
+:not(.dark) .json-view-lite [class*='key'][data-testid*='['],
+:not(.dark) .json-view-lite span:contains('['),
+.light-theme .json-view-lite .json-key[data-testid*='['],
+.light-theme .json-view-lite [class*='key'][data-testid*='['],
+.light-theme .json-view-lite span:contains('[') {
   color: #7c3aed !important;
   font-weight: 600 !important;
 }
@@ -232,13 +232,13 @@
 /* Dark theme colors */
 .dark-theme .json-view-lite,
 .dark-theme .json-view-lite *,
-.dark-theme .json-view-lite>*,
+.dark-theme .json-view-lite > *,
 .dark-theme .json-view-lite div,
 .dark-theme .json-view-lite span,
 .dark-theme .json-view-lite button,
 .dark .json-view-lite,
 .dark .json-view-lite *,
-.dark .json-view-lite>*,
+.dark .json-view-lite > *,
 .dark .json-view-lite div,
 .dark .json-view-lite span,
 .dark .json-view-lite button {
@@ -248,59 +248,59 @@
 }
 
 .dark-theme .json-view-lite .json-key,
-.dark-theme .json-view-lite [class*="key"],
-.dark-theme .json-view-lite [data-testid*="key"],
+.dark-theme .json-view-lite [class*='key'],
+.dark-theme .json-view-lite [data-testid*='key'],
 .dark .json-view-lite .json-key,
-.dark .json-view-lite [class*="key"],
-.dark .json-view-lite [data-testid*="key"] {
+.dark .json-view-lite [class*='key'],
+.dark .json-view-lite [data-testid*='key'] {
   color: #60a5fa !important;
   font-weight: 500 !important;
 }
 
 .dark-theme .json-view-lite .json-string,
-.dark-theme .json-view-lite [class*="string"],
-.dark-theme .json-view-lite [data-testid*="string"],
+.dark-theme .json-view-lite [class*='string'],
+.dark-theme .json-view-lite [data-testid*='string'],
 .dark .json-view-lite .json-string,
-.dark .json-view-lite [class*="string"],
-.dark .json-view-lite [data-testid*="string"] {
+.dark .json-view-lite [class*='string'],
+.dark .json-view-lite [data-testid*='string'] {
   color: #34d399 !important;
 }
 
 .dark-theme .json-view-lite .json-number,
-.dark-theme .json-view-lite [class*="number"],
-.dark-theme .json-view-lite [data-testid*="number"],
+.dark-theme .json-view-lite [class*='number'],
+.dark-theme .json-view-lite [data-testid*='number'],
 .dark .json-view-lite .json-number,
-.dark .json-view-lite [class*="number"],
-.dark .json-view-lite [data-testid*="number"] {
+.dark .json-view-lite [class*='number'],
+.dark .json-view-lite [data-testid*='number'] {
   color: #fbbf24 !important;
 }
 
 .dark-theme .json-view-lite .json-boolean,
-.dark-theme .json-view-lite [class*="boolean"],
-.dark-theme .json-view-lite [data-testid*="boolean"],
+.dark-theme .json-view-lite [class*='boolean'],
+.dark-theme .json-view-lite [data-testid*='boolean'],
 .dark .json-view-lite .json-boolean,
-.dark .json-view-lite [class*="boolean"],
-.dark .json-view-lite [data-testid*="boolean"] {
+.dark .json-view-lite [class*='boolean'],
+.dark .json-view-lite [data-testid*='boolean'] {
   color: #f87171 !important;
 }
 
 .dark-theme .json-view-lite .json-null,
 .dark-theme .json-view-lite .json-undefined,
-.dark-theme .json-view-lite [class*="null"],
-.dark-theme .json-view-lite [class*="undefined"],
+.dark-theme .json-view-lite [class*='null'],
+.dark-theme .json-view-lite [class*='undefined'],
 .dark .json-view-lite .json-null,
 .dark .json-view-lite .json-undefined,
-.dark .json-view-lite [class*="null"],
-.dark .json-view-lite [class*="undefined"] {
+.dark .json-view-lite [class*='null'],
+.dark .json-view-lite [class*='undefined'] {
   color: #9ca3af !important;
 }
 
-.dark-theme .json-view-lite .json-key[data-testid*="["],
-.dark-theme .json-view-lite [class*="key"][data-testid*="["],
-.dark-theme .json-view-lite span:contains("["),
-.dark .json-view-lite .json-key[data-testid*="["],
-.dark .json-view-lite [class*="key"][data-testid*="["],
-.dark .json-view-lite span:contains("[") {
+.dark-theme .json-view-lite .json-key[data-testid*='['],
+.dark-theme .json-view-lite [class*='key'][data-testid*='['],
+.dark-theme .json-view-lite span:contains('['),
+.dark .json-view-lite .json-key[data-testid*='['],
+.dark .json-view-lite [class*='key'][data-testid*='['],
+.dark .json-view-lite span:contains('[') {
   color: #a78bfa !important;
   font-weight: 600 !important;
 }
@@ -308,8 +308,8 @@
 /* Arrows and expand/collapse buttons - Dark theme */
 .dark-theme .json-view-lite button,
 .dark-theme .json-view-lite button *,
-.dark-theme .json-view-lite [role="button"],
-.dark-theme .json-view-lite [role="button"] *,
+.dark-theme .json-view-lite [role='button'],
+.dark-theme .json-view-lite [role='button'] *,
 .dark-theme .json-view-lite .expand-icon,
 .dark-theme .json-view-lite .collapse-icon,
 .dark-theme .json-view-lite .toggle-icon,
@@ -317,8 +317,8 @@
 .dark-theme .json-view-lite .chevron,
 .dark .json-view-lite button,
 .dark .json-view-lite button *,
-.dark .json-view-lite [role="button"],
-.dark .json-view-lite [role="button"] *,
+.dark .json-view-lite [role='button'],
+.dark .json-view-lite [role='button'] *,
 .dark .json-view-lite .expand-icon,
 .dark .json-view-lite .collapse-icon,
 .dark .json-view-lite .toggle-icon,
@@ -336,26 +336,26 @@
 .dark-theme .json-view-lite .bracket,
 .dark-theme .json-view-lite .brace,
 .dark-theme .json-view-lite .quote,
-.dark-theme .json-view-lite [class*="punctuation"],
-.dark-theme .json-view-lite [class*="symbol"],
+.dark-theme .json-view-lite [class*='punctuation'],
+.dark-theme .json-view-lite [class*='symbol'],
 .dark .json-view-lite .punctuation,
 .dark .json-view-lite .colon,
 .dark .json-view-lite .comma,
 .dark .json-view-lite .bracket,
 .dark .json-view-lite .brace,
 .dark .json-view-lite .quote,
-.dark .json-view-lite [class*="punctuation"],
-.dark .json-view-lite [class*="symbol"] {
+.dark .json-view-lite [class*='punctuation'],
+.dark .json-view-lite [class*='symbol'] {
   color: #e5e7eb !important;
 }
 
 /* Target specific characters that might be styled - Dark theme */
-.dark-theme .json-view-lite span:contains(":"),
-.dark-theme .json-view-lite span:contains(","),
-.dark-theme .json-view-lite span:contains("{"),
-.dark-theme .json-view-lite span:contains("}"),
-.dark-theme .json-view-lite span:contains("["),
-.dark-theme .json-view-lite span:contains("]"),
+.dark-theme .json-view-lite span:contains(':'),
+.dark-theme .json-view-lite span:contains(','),
+.dark-theme .json-view-lite span:contains('{'),
+.dark-theme .json-view-lite span:contains('}'),
+.dark-theme .json-view-lite span:contains('['),
+.dark-theme .json-view-lite span:contains(']'),
 .dark-theme .json-view-lite span:contains('"') {
   color: #e5e7eb !important;
 }
@@ -389,7 +389,7 @@
 }
 
 /* Ultimate fallback for any missed elements - Dark theme */
-.dark-theme .json-view-lite [style*="color"] {
+.dark-theme .json-view-lite [style*='color'] {
   color: #e5e7eb !important;
 }
 
@@ -401,29 +401,29 @@
 }
 
 /* Specific targeting for common arrow characters - Dark theme */
-.dark-theme .json-view-lite span[title*="expand"],
-.dark-theme .json-view-lite span[title*="collapse"],
-.dark-theme .json-view-lite span[aria-label*="expand"],
-.dark-theme .json-view-lite span[aria-label*="collapse"] {
+.dark-theme .json-view-lite span[title*='expand'],
+.dark-theme .json-view-lite span[title*='collapse'],
+.dark-theme .json-view-lite span[aria-label*='expand'],
+.dark-theme .json-view-lite span[aria-label*='collapse'] {
   color: #e5e7eb !important;
 }
 
 /* Target any element that might contain arrow characters - Dark theme */
-.dark-theme .json-view-lite *:contains("▶"),
-.dark-theme .json-view-lite *:contains("▼"),
-.dark-theme .json-view-lite *:contains("►"),
-.dark-theme .json-view-lite *:contains("▲"),
-.dark-theme .json-view-lite *:contains("▽"),
-.dark-theme .json-view-lite *:contains("△"),
-.dark-theme .json-view-lite *:contains("→"),
-.dark-theme .json-view-lite *:contains("↓") {
+.dark-theme .json-view-lite *:contains('▶'),
+.dark-theme .json-view-lite *:contains('▼'),
+.dark-theme .json-view-lite *:contains('►'),
+.dark-theme .json-view-lite *:contains('▲'),
+.dark-theme .json-view-lite *:contains('▽'),
+.dark-theme .json-view-lite *:contains('△'),
+.dark-theme .json-view-lite *:contains('→'),
+.dark-theme .json-view-lite *:contains('↓') {
   color: #e5e7eb !important;
 }
 
 /* Fix checkboxes in all themes - ensure proper visibility and styling */
-[role="checkbox"],
-button[role="checkbox"],
-[data-radix-collection-item][role="checkbox"] {
+[role='checkbox'],
+button[role='checkbox'],
+[data-radix-collection-item][role='checkbox'] {
   position: relative !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -436,21 +436,21 @@ button[role="checkbox"],
   transition: all 0.2s ease !important;
 }
 
-[role="checkbox"]:hover,
-button[role="checkbox"]:hover {
+[role='checkbox']:hover,
+button[role='checkbox']:hover {
   background-color: hsl(var(--accent)) !important;
 }
 
-[role="checkbox"][data-state="checked"],
-button[role="checkbox"][data-state="checked"],
-[data-radix-collection-item][role="checkbox"][data-state="checked"] {
+[role='checkbox'][data-state='checked'],
+button[role='checkbox'][data-state='checked'],
+[data-radix-collection-item][role='checkbox'][data-state='checked'] {
   background-color: hsl(var(--primary)) !important;
   border-color: hsl(var(--primary)) !important;
 }
 
-[role="checkbox"] svg,
-button[role="checkbox"] svg,
-[data-radix-collection-item][role="checkbox"] svg {
+[role='checkbox'] svg,
+button[role='checkbox'] svg,
+[data-radix-collection-item][role='checkbox'] svg {
   width: 1rem !important;
   height: 1rem !important;
   color: transparent !important;
@@ -460,9 +460,9 @@ button[role="checkbox"] svg,
   transition: all 0.2s ease !important;
 }
 
-[role="checkbox"][data-state="checked"] svg,
-button[role="checkbox"][data-state="checked"] svg,
-[data-radix-collection-item][role="checkbox"][data-state="checked"] svg {
+[role='checkbox'][data-state='checked'] svg,
+button[role='checkbox'][data-state='checked'] svg,
+[data-radix-collection-item][role='checkbox'][data-state='checked'] svg {
   color: hsl(var(--primary-foreground)) !important;
   fill: currentColor !important;
   stroke: currentColor !important;
@@ -470,22 +470,22 @@ button[role="checkbox"][data-state="checked"] svg,
 }
 
 /* Dark mode specific adjustments */
-.dark [role="checkbox"],
-.dark button[role="checkbox"],
-.dark [data-radix-collection-item][role="checkbox"] {
+.dark [role='checkbox'],
+.dark button[role='checkbox'],
+.dark [data-radix-collection-item][role='checkbox'] {
   border-color: hsl(var(--border)) !important;
 }
 
-.dark [role="checkbox"][data-state="checked"],
-.dark button[role="checkbox"][data-state="checked"],
-.dark [data-radix-collection-item][role="checkbox"][data-state="checked"] {
+.dark [role='checkbox'][data-state='checked'],
+.dark button[role='checkbox'][data-state='checked'],
+.dark [data-radix-collection-item][role='checkbox'][data-state='checked'] {
   background-color: hsl(var(--primary)) !important;
   border-color: hsl(var(--primary)) !important;
 }
 
-.dark [role="checkbox"][data-state="checked"] svg,
-.dark button[role="checkbox"][data-state="checked"] svg,
-.dark [data-radix-collection-item][role="checkbox"][data-state="checked"] svg {
+.dark [role='checkbox'][data-state='checked'] svg,
+.dark button[role='checkbox'][data-state='checked'] svg,
+.dark [data-radix-collection-item][role='checkbox'][data-state='checked'] svg {
   color: hsl(var(--primary-foreground)) !important;
 }
 

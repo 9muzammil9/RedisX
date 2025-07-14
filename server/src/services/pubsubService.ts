@@ -1,6 +1,6 @@
 import { Redis } from 'ioredis';
-import { redisManager } from './redisManager';
 import { ChannelInfo, PubSubStats } from '../types';
+import { redisManager } from './redisManager';
 
 type MessageHandler = (channel: string, message: string) => void;
 
@@ -16,22 +16,25 @@ class PubSubService {
 
   async getChannels(connectionId: string, pattern = '*'): Promise<string[]> {
     const redis = redisManager.getConnection(connectionId);
-    if (!redis) throw new Error('Connection not found');
+    if (!redis) { throw new Error('Connection not found'); }
 
     const result = await redis.pubsub('CHANNELS', pattern);
     return result as string[];
   }
 
-  async getChannelStats(connectionId: string, channels?: string[]): Promise<PubSubStats> {
+  async getChannelStats(
+    connectionId: string,
+    channels?: string[],
+  ): Promise<PubSubStats> {
     const redis = redisManager.getConnection(connectionId);
-    if (!redis) throw new Error('Connection not found');
+    if (!redis) { throw new Error('Connection not found'); }
 
-    const allChannels = channels || await this.getChannels(connectionId);
+    const allChannels = channels ?? (await this.getChannels(connectionId));
 
     if (allChannels.length === 0) {
       return {
         totalChannels: 0,
-        channels: []
+        channels: [],
       };
     }
 
@@ -43,29 +46,40 @@ class PubSubService {
     for (let i = 0; i < subscriberCounts.length; i += 2) {
       channelInfos.push({
         channel: subscriberCounts[i] as string,
-        subscribers: parseInt(subscriberCounts[i + 1] as string, 10)
+        subscribers: parseInt(subscriberCounts[i + 1] as string, 10),
       });
     }
 
     return {
       totalChannels: channelInfos.length,
-      channels: channelInfos
+      channels: channelInfos,
     };
   }
 
-  async publishMessage(connectionId: string, channel: string, message: string): Promise<number> {
+  async publishMessage(
+    connectionId: string,
+    channel: string,
+    message: string,
+  ): Promise<number> {
     const redis = redisManager.getConnection(connectionId);
-    if (!redis) throw new Error('Connection not found');
+    if (!redis) { throw new Error('Connection not found'); }
 
     return await redis.publish(channel, message);
   }
 
-  async getPatternStats(connectionId: string, pattern: string): Promise<PubSubStats> {
+  async getPatternStats(
+    connectionId: string,
+    pattern: string,
+  ): Promise<PubSubStats> {
     const channels = await this.getChannels(connectionId, pattern);
     return await this.getChannelStats(connectionId, channels);
   }
 
-  async subscribe(connectionId: string, channel: string, handler: MessageHandler): Promise<void> {
+  async subscribe(
+    connectionId: string,
+    channel: string,
+    handler: MessageHandler,
+  ): Promise<void> {
     const subscriptionKey = `${connectionId}:${channel}`;
     console.log(`🔧 PubSubService: Subscribing to ${subscriptionKey}`);
 
@@ -75,11 +89,11 @@ class PubSubService {
       console.log(`📡 Creating new Redis subscription for ${subscriptionKey}`);
       // Create new subscriber connection for this channel
       const mainRedis = redisManager.getConnection(connectionId);
-      if (!mainRedis) throw new Error('Connection not found');
+      if (!mainRedis) { throw new Error('Connection not found'); }
 
       // Get connection details to create a duplicate for pub/sub
       const connectionDetails = redisManager.getConnectionDetails(connectionId);
-      if (!connectionDetails) throw new Error('Connection details not found');
+      if (!connectionDetails) { throw new Error('Connection details not found'); }
 
       // Create a duplicate connection for subscribing
       const subscriber = new Redis({
@@ -95,37 +109,53 @@ class PubSubService {
         connectionId,
         channel,
         handlers: new Set(),
-        subscriber
+        subscriber,
       };
 
       // Set up message handler
       subscriber.on('message', (receivedChannel: string, message: string) => {
-        console.log(`🎯 PubSubService: Received message on ${receivedChannel}: ${message}`);
+        console.log(
+          `🎯 PubSubService: Received message on ${receivedChannel}: ${message}`,
+        );
         if (receivedChannel === channel && subscription) {
-          console.log(`🔄 PubSubService: Calling ${subscription.handlers.size} handlers`);
-          subscription.handlers.forEach(h => h(receivedChannel, message));
+          console.log(
+            `🔄 PubSubService: Calling ${subscription.handlers.size} handlers`,
+          );
+          subscription.handlers.forEach((h) => h(receivedChannel, message));
         }
       });
 
       // Subscribe to the channel
-      console.log(`📡 PubSubService: Subscribing Redis client to channel: ${channel}`);
+      console.log(
+        `📡 PubSubService: Subscribing Redis client to channel: ${channel}`,
+      );
       await subscriber.subscribe(channel);
-      console.log(`✅ PubSubService: Redis subscription successful for: ${channel}`);
+      console.log(
+        `✅ PubSubService: Redis subscription successful for: ${channel}`,
+      );
 
       this.subscriptions.set(subscriptionKey, subscription);
     } else {
-      console.log(`🔄 Adding handler to existing subscription for ${subscriptionKey}`);
+      console.log(
+        `🔄 Adding handler to existing subscription for ${subscriptionKey}`,
+      );
     }
 
     subscription.handlers.add(handler);
-    console.log(`👥 Total handlers for ${subscriptionKey}: ${subscription.handlers.size}`);
+    console.log(
+      `👥 Total handlers for ${subscriptionKey}: ${subscription.handlers.size}`,
+    );
   }
 
-  async unsubscribe(connectionId: string, channel: string, handler?: MessageHandler): Promise<void> {
+  async unsubscribe(
+    connectionId: string,
+    channel: string,
+    handler?: MessageHandler,
+  ): Promise<void> {
     const subscriptionKey = `${connectionId}:${channel}`;
     const subscription = this.subscriptions.get(subscriptionKey);
 
-    if (!subscription) return;
+    if (!subscription) { return; }
 
     if (handler) {
       subscription.handlers.delete(handler);
@@ -156,7 +186,7 @@ class PubSubService {
       }
     }
 
-    keysToDelete.forEach(key => this.subscriptions.delete(key));
+    keysToDelete.forEach((key) => this.subscriptions.delete(key));
   }
 }
 

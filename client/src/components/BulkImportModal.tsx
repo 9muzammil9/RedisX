@@ -1,13 +1,24 @@
-import React, { useState, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, Upload, FileText, AlertCircle, CheckCircle, XCircle, Clock } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Upload,
+  X,
+  XCircle,
+} from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+import { keysApi } from '../services/api';
+import { useStore } from '../store/useStore';
+import {
+  ImportKeyData,
+  ImportOptions,
+  parseImportFile,
+} from '../utils/importUtils';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
-import { useStore } from '../store/useStore';
-import { keysApi } from '../services/api';
-import { parseImportFile, ImportKeyData, ImportOptions } from '../utils/importUtils';
-import toast from 'react-hot-toast';
 
 interface BulkImportModalProps {
   isOpen: boolean;
@@ -20,30 +31,42 @@ interface ImportResult {
   successful: number;
   failed: number;
   errors: Array<{ key: string; error: string }>;
-  results: Array<{ key: string; status: 'success' | 'failed' | 'skipped'; error?: string }>;
+  results: Array<{
+    key: string;
+    status: 'success' | 'failed' | 'skipped';
+    error?: string;
+  }>;
 }
 
-export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClose, onImportComplete }) => {
+export const BulkImportModal: React.FC<BulkImportModalProps> = ({
+  isOpen,
+  onClose,
+  onImportComplete,
+}) => {
   const { activeConnectionId } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'results'>('upload');
-  const [fileContent, setFileContent] = useState<string>('');
+  const [step, setStep] = useState<
+    'upload' | 'preview' | 'importing' | 'results'
+  >('upload');
+  const [, setFileContent] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
   const [parsedData, setParsedData] = useState<ImportKeyData[]>([]);
-  const [parseErrors, setParseErrors] = useState<Array<{ line?: number; message: string }>>([]);
+  const [parseErrors, setParseErrors] = useState<
+    Array<{ line?: number; message: string }>
+  >([]);
   const [selectedKeys, setSelectedKeys] = useState<Set<number>>(new Set());
   const [importOptions, setImportOptions] = useState<ImportOptions>({
     conflictResolution: 'skip',
-    batchSize: 100
+    batchSize: 100,
   });
-  const [importing, setImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState(0);
+  const [, setImporting] = useState(false);
+  const [, setImportProgress] = useState(0);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) { return;}
 
     setFileName(file.name);
     const reader = new FileReader();
@@ -55,10 +78,10 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
     reader.readAsText(file);
   };
 
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (event: React.DragEvent<HTMLButtonElement>) => {
     event.preventDefault();
     const file = event.dataTransfer.files[0];
-    if (!file) return;
+    if (!file) { return; }
 
     setFileName(file.name);
     const reader = new FileReader();
@@ -89,7 +112,9 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
       return;
     }
 
-    const keysToImport = parsedData.filter((_, index) => selectedKeys.has(index));
+    const keysToImport = parsedData.filter((_, index) =>
+      selectedKeys.has(index),
+    );
     if (keysToImport.length === 0) {
       toast.error('No keys selected for import');
       return;
@@ -100,7 +125,11 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
     setImportProgress(0);
 
     try {
-      const { data } = await keysApi.bulkImport(activeConnectionId, keysToImport, importOptions);
+      const { data } = await keysApi.bulkImport(
+        activeConnectionId,
+        keysToImport,
+        importOptions,
+      );
       setImportResult(data);
       setStep('results');
 
@@ -113,7 +142,8 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
         toast.error(`Failed to import ${data.failed} keys`);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Import failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Import failed';
       toast.error(`Import failed: ${errorMessage}`);
     } finally {
       setImporting(false);
@@ -154,22 +184,27 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
       <div className="text-center">
         <h3 className="text-lg font-semibold mb-2">Import Redis Keys</h3>
         <p className="text-muted-foreground">
-          Upload a file containing Redis keys to import. Supported formats: JSON, CSV, Redis CLI commands.
+          Upload a file containing Redis keys to import. Supported formats:
+          JSON, CSV, Redis CLI commands.
         </p>
       </div>
 
-      <div
-        className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+      <button
+        type="button"
+        className="w-full border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer bg-transparent"
+        aria-label="Upload file by clicking or dropping file here"
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
         onClick={() => fileInputRef.current?.click()}
       >
         <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <p className="text-lg font-medium mb-2">Drop your file here or click to browse</p>
+        <p className="text-lg font-medium mb-2">
+          Drop your file here or click to browse
+        </p>
         <p className="text-sm text-muted-foreground">
           Supports .json, .csv, .txt files up to 10MB
         </p>
-      </div>
+      </button>
 
       <input
         ref={fileInputRef}
@@ -182,9 +217,16 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-medium mb-2">Supported Formats:</h4>
         <ul className="text-sm text-muted-foreground space-y-1">
-          <li>• <strong>JSON:</strong> Export files from this application or custom JSON arrays</li>
-          <li>• <strong>CSV:</strong> Key,Type,Value,TTL format</li>
-          <li>• <strong>Redis CLI:</strong> SET, LPUSH, HMSET, SADD, ZADD commands</li>
+          <li>
+            • <strong>JSON:</strong> Export files from this application or
+            custom JSON arrays
+          </li>
+          <li>
+            • <strong>CSV:</strong> Key,Type,Value,TTL format
+          </li>
+          <li>
+            • <strong>Redis CLI:</strong> SET, LPUSH, HMSET, SADD, ZADD commands
+          </li>
         </ul>
       </div>
     </div>
@@ -199,12 +241,10 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
             {fileName} - {parsedData.length} keys found
           </p>
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={toggleAllKeys}
-        >
-          {selectedKeys.size === parsedData.length ? 'Deselect All' : 'Select All'}
+        <Button size="sm" variant="ghost" onClick={toggleAllKeys}>
+          {selectedKeys.size === parsedData.length
+            ? 'Deselect All'
+            : 'Select All'}
         </Button>
       </div>
 
@@ -216,8 +256,9 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
           </div>
           <ul className="text-sm space-y-1">
             {parseErrors.map((error, index) => (
-              <li key={index} className="text-destructive">
-                {error.line ? `Line ${error.line}: ` : ''}{error.message}
+              <li key={`parse-error-${index}-${error.line || 'no-line'}`} className="text-destructive">
+                {error.line ? `Line ${error.line}: ` : ''}
+                {error.message}
               </li>
             ))}
           </ul>
@@ -227,11 +268,15 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
       <div className="space-y-4">
         <div className="flex items-center gap-4">
           <div className="flex-1">
-            <label className="text-sm font-medium">Conflict Resolution</label>
+            <label htmlFor="conflict-resolution" className="text-sm font-medium">Conflict Resolution</label>
             <Select
+              id="conflict-resolution"
               value={importOptions.conflictResolution}
-              onValueChange={(value: 'skip' | 'overwrite') =>
-                setImportOptions({ ...importOptions, conflictResolution: value })
+              onValueChange={(value) =>
+                setImportOptions({
+                  ...importOptions,
+                  conflictResolution: value as 'skip' | 'overwrite',
+                })
               }
             >
               <option value="skip">Skip existing keys</option>
@@ -239,14 +284,18 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
             </Select>
           </div>
           <div className="flex-1">
-            <label className="text-sm font-medium">Batch Size</label>
+            <label htmlFor="batch-size" className="text-sm font-medium">Batch Size</label>
             <Input
+              id="batch-size"
               type="number"
               min="1"
               max="1000"
               value={importOptions.batchSize}
               onChange={(e) =>
-                setImportOptions({ ...importOptions, batchSize: parseInt(e.target.value) || 100 })
+                setImportOptions({
+                  ...importOptions,
+                  batchSize: parseInt(e.target.value) || 100,
+                })
               }
             />
           </div>
@@ -266,7 +315,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
           </thead>
           <tbody>
             {parsedData.map((keyData, index) => (
-              <tr key={index} className="border-t">
+              <tr key={`key-data-${index}-${keyData.key}`} className="border-t">
                 <td className="p-2">
                   <input
                     type="checkbox"
@@ -299,15 +348,22 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
         <Button variant="secondary" onClick={() => setStep('upload')}>
           Back
         </Button>
-        <Button
-          onClick={handleImport}
-          disabled={selectedKeys.size === 0}
-        >
+        <Button onClick={handleImport} disabled={selectedKeys.size === 0}>
           Import {selectedKeys.size} Keys
         </Button>
       </div>
     </div>
   );
+
+  const getImportStatusIcon = () => {
+    if (importResult!.failed === 0) {
+      return <CheckCircle className="h-16 w-16 text-green-500" />;
+    }
+    if (importResult!.successful === 0) {
+      return <XCircle className="h-16 w-16 text-destructive" />;
+    }
+    return <AlertCircle className="h-16 w-16 text-yellow-500" />;
+  };
 
   const renderImportingStep = () => (
     <div className="space-y-6 text-center">
@@ -325,13 +381,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
     <div className="space-y-6">
       <div className="text-center">
         <div className="flex justify-center mb-4">
-          {importResult!.failed === 0 ? (
-            <CheckCircle className="h-16 w-16 text-green-500" />
-          ) : importResult!.successful === 0 ? (
-            <XCircle className="h-16 w-16 text-destructive" />
-          ) : (
-            <AlertCircle className="h-16 w-16 text-yellow-500" />
-          )}
+          {getImportStatusIcon()}
         </div>
         <h3 className="text-lg font-semibold mb-2">Import Complete</h3>
       </div>
@@ -341,7 +391,9 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">
             {importResult!.successful}
           </div>
-          <div className="text-sm text-green-600 dark:text-green-400">Successful</div>
+          <div className="text-sm text-green-600 dark:text-green-400">
+            Successful
+          </div>
         </div>
         <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
           <div className="text-2xl font-bold text-red-600 dark:text-red-400">
@@ -365,7 +417,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
           </div>
           <ul className="text-sm space-y-1">
             {importResult!.errors.map((error, index) => (
-              <li key={index} className="text-destructive">
+              <li key={`import-error-${index}-${error.key}`} className="text-destructive">
                 <span className="font-mono">{error.key}</span>: {error.error}
               </li>
             ))}
@@ -374,9 +426,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
       )}
 
       <div className="flex justify-end">
-        <Button onClick={handleClose}>
-          Close
-        </Button>
+        <Button onClick={handleClose}>Close</Button>
       </div>
     </div>
   );

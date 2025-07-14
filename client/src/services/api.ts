@@ -1,21 +1,21 @@
-import axios from "axios";
+import axios from 'axios';
 import {
-  RedisConnection,
-  RedisValue,
   KeysResponse,
   PubSubStats,
   PublishResponse,
-} from "../types";
+  RedisConnection,
+  RedisValue,
+} from '../types';
 
 const api = axios.create({
-  baseURL: "/api",
+  baseURL: '/api',
 });
 
 export const connectionsApi = {
-  create: (connection: Omit<RedisConnection, "id"> | RedisConnection) =>
-    api.post<RedisConnection>("/connections", connection),
+  create: (connection: Omit<RedisConnection, 'id'> | RedisConnection) =>
+    api.post<RedisConnection>('/connections', connection),
 
-  getAll: () => api.get<RedisConnection[]>("/connections"),
+  getAll: () => api.get<RedisConnection[]>('/connections'),
 
   delete: (id: string) => api.delete(`/connections/${id}`),
 
@@ -25,13 +25,13 @@ export const connectionsApi = {
 };
 
 export const keysApi = {
-  getAll: (connectionId: string, pattern = "*", cursor = "0", count = 100) =>
-    api.get<KeysResponse>("/keys", {
+  getAll: (connectionId: string, pattern = '*', cursor = '0', count = 100) =>
+    api.get<KeysResponse>('/keys', {
       params: { connectionId, pattern, cursor, count },
     }),
 
   getValue: (connectionId: string, key: string) =>
-    api.get<RedisValue>("/keys/value", {
+    api.get<RedisValue>('/keys/value', {
       params: { connectionId, key },
     }),
 
@@ -40,16 +40,16 @@ export const keysApi = {
     key: string,
     value: any,
     type: string,
-    ttl?: number
-  ) => api.put("/keys/value", { connectionId, key, value, type, ttl }),
+    ttl?: number,
+  ) => api.put('/keys/value', { connectionId, key, value, type, ttl }),
 
   deleteKeys: (connectionId: string, keys: string[]) =>
-    api.delete<{ deletedCount: number }>("/keys", {
+    api.delete<{ deletedCount: number }>('/keys', {
       data: { connectionId, keys },
     }),
 
   renameKey: (connectionId: string, oldKey: string, newKey: string) =>
-    api.put("/keys/rename", { connectionId, oldKey, newKey }),
+    api.put('/keys/rename', { connectionId, oldKey, newKey }),
 
   bulkImport: (
     connectionId: string,
@@ -60,9 +60,9 @@ export const keysApi = {
       ttl?: number;
     }>,
     options?: {
-      conflictResolution?: "skip" | "overwrite";
+      conflictResolution?: 'skip' | 'overwrite';
       batchSize?: number;
-    }
+    },
   ) =>
     api.post<{
       total: number;
@@ -71,25 +71,25 @@ export const keysApi = {
       errors: Array<{ key: string; error: string }>;
       results: Array<{
         key: string;
-        status: "success" | "failed" | "skipped";
+        status: 'success' | 'failed' | 'skipped';
         error?: string;
       }>;
-    }>("/keys/bulk-import", { connectionId, keys, options }),
+    }>('/keys/bulk-import', { connectionId, keys, options }),
 };
 
 export const pubsubApi = {
-  getChannels: (connectionId: string, pattern = "*") =>
-    api.get<{ channels: string[] }>("/pubsub/channels", {
+  getChannels: (connectionId: string, pattern = '*') =>
+    api.get<{ channels: string[] }>('/pubsub/channels', {
       params: { connectionId, pattern },
     }),
 
   getStats: (connectionId: string, channels?: string[], pattern?: string) =>
-    api.get<PubSubStats>("/pubsub/stats", {
+    api.get<PubSubStats>('/pubsub/stats', {
       params: { connectionId, channels, pattern },
     }),
 
   publishMessage: (connectionId: string, channel: string, message: string) =>
-    api.post<PublishResponse>("/pubsub/publish", {
+    api.post<PublishResponse>('/pubsub/publish', {
       connectionId,
       channel,
       message,
@@ -101,16 +101,16 @@ export const instancesApi = {
     api.get<{
       redis: { installed: boolean; version: string | null };
       docker: { installed: boolean; version: string | null };
-    }>("/instances/check"),
+    }>('/instances/check'),
 
-  getAll: () => api.get<RedisInstance[]>("/instances"),
+  getAll: () => api.get<RedisInstance[]>('/instances'),
 
   getById: (id: string) => api.get<RedisInstance>(`/instances/${id}`),
 
   getLogs: (id: string) => api.get<{ logs: string[] }>(`/instances/${id}/logs`),
 
   create: (name: string, config: RedisInstanceConfig) =>
-    api.post<RedisInstance>("/instances", { name, config }),
+    api.post<RedisInstance>('/instances', { name, config }),
 
   start: (id: string) => api.post<RedisInstance>(`/instances/${id}/start`),
 
@@ -139,15 +139,15 @@ export interface RedisInstanceConfig {
   bind?: string;
   databases?: number;
   timeout?: number;
-  loglevel?: "debug" | "verbose" | "notice" | "warning";
-  executionMode: "native" | "docker";
+  loglevel?: 'debug' | 'verbose' | 'notice' | 'warning';
+  executionMode: 'native' | 'docker';
 }
 
 export interface RedisInstance {
   id: string;
   name: string;
   config: RedisInstanceConfig;
-  status: "running" | "stopped" | "error";
+  status: 'running' | 'stopped' | 'error';
   pid?: number;
   startedAt?: Date;
   logs: string[];

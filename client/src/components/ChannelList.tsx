@@ -1,12 +1,13 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, RefreshCw, Hash, Users } from 'lucide-react';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
-import { Checkbox } from './ui/Checkbox';
+import { Hash, RefreshCw, Search, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { useShiftMultiSelect } from '../hooks/useShiftMultiSelect';
 import { pubsubApi } from '../services/api';
 import { useStore } from '../store/useStore';
 import { ChannelInfo } from '../types';
+import { Button } from './ui/Button';
+import { Checkbox } from './ui/Checkbox';
+import { Input } from './ui/Input';
 
 interface ChannelListProps {
   readonly onChannelSelect?: (channel: string) => void;
@@ -20,17 +21,26 @@ export function ChannelList({ onChannelSelect, onRefresh }: ChannelListProps) {
     setChannelPattern,
     selectedChannels,
     toggleChannelSelection,
+    selectChannelRange,
     clearChannelSelection,
-    setPubsubStats
+    setPubsubStats,
   } = useStore();
 
   const [searchPattern, setSearchPattern] = useState(channelPattern);
 
-  const { data: statsData, isLoading, refetch } = useQuery({
+  const {
+    data: statsData,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['pubsub-stats', activeConnectionId, channelPattern],
     queryFn: async () => {
-      if (!activeConnectionId) return null;
-      const response = await pubsubApi.getStats(activeConnectionId, undefined, channelPattern);
+      if (!activeConnectionId) { return null; }
+      const response = await pubsubApi.getStats(
+        activeConnectionId,
+        undefined,
+        channelPattern,
+      );
       setPubsubStats(response.data);
       return response.data;
     },
@@ -52,8 +62,23 @@ export function ChannelList({ onChannelSelect, onRefresh }: ChannelListProps) {
     onChannelSelect?.(channel);
   };
 
-  const channels = statsData?.channels || [];
+  const channels = statsData?.channels ?? [];
   const selectedChannelsList = Array.from(selectedChannels);
+  const channelNames = channels.map(c => c.channel);
+
+  // Set up shift multi-select hook
+  const { handleItemClick } = useShiftMultiSelect({
+    items: channelNames,
+    selectedItems: selectedChannels,
+    onToggleSelection: toggleChannelSelection,
+    onSelectRange: selectChannelRange,
+  });
+
+  const handleChannelClickWithShift = (channel: string, event: React.MouseEvent) => {
+    const index = channelNames.indexOf(channel);
+    handleItemClick(channel, index, event);
+    onChannelSelect?.(channel);
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -70,7 +95,9 @@ export function ChannelList({ onChannelSelect, onRefresh }: ChannelListProps) {
             onClick={handleRefresh}
             disabled={isLoading}
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`}
+            />
           </Button>
         </div>
 
@@ -82,11 +109,7 @@ export function ChannelList({ onChannelSelect, onRefresh }: ChannelListProps) {
             placeholder="Channel pattern (e.g., user:*, news:*)"
             className="font-mono text-sm"
           />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePatternSearch}
-          >
+          <Button variant="outline" size="sm" onClick={handlePatternSearch}>
             <Search className="w-4 h-4" />
           </Button>
         </div>
@@ -122,18 +145,21 @@ export function ChannelList({ onChannelSelect, onRefresh }: ChannelListProps) {
           <div className="p-4 text-center text-muted-foreground">
             <Hash className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p>No active channels found</p>
-            <p className="text-xs mt-1">Try a different pattern or publish some messages</p>
+            <p className="text-xs mt-1">
+              Try a different pattern or publish some messages
+            </p>
           </div>
         ) : (
           <div className="p-2">
             {channels.map((channelInfo: ChannelInfo) => (
               <div
                 key={channelInfo.channel}
-                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors hover:bg-accent ${selectedChannels.has(channelInfo.channel)
-                  ? 'bg-accent border-accent-foreground/20'
-                  : 'border-transparent'
-                  }`}
-                onClick={() => handleChannelClick(channelInfo.channel)}
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors hover:bg-accent ${
+                  selectedChannels.has(channelInfo.channel)
+                    ? 'bg-accent border-accent-foreground/20'
+                    : 'border-transparent'
+                }`}
+                onClick={(event) => handleChannelClickWithShift(channelInfo.channel, event)}
               >
                 <Checkbox
                   checked={selectedChannels.has(channelInfo.channel)}

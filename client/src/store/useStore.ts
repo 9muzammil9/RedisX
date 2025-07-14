@@ -1,26 +1,26 @@
-import { create } from "zustand";
-import { RedisConnection, PubSubStats } from "../types";
-import * as persistence from "../services/persistence";
+import { create } from 'zustand';
+import * as persistence from '../services/persistence';
+import { PubSubStats, RedisConnection } from '../types';
 // Keep localStorage as primary storage with SQLite as backup/sync
 import {
-  saveConnections,
-  loadConnections,
-  saveActiveConnection,
   loadActiveConnection,
+  loadConnections,
   removeConnection as removeStoredConnection,
-} from "../utils/connectionStorage";
+  saveActiveConnection,
+  saveConnections,
+} from '../utils/connectionStorage';
 import {
-  saveSubscriptions,
-  loadSubscriptions,
-  removeSubscriptions,
-} from "../utils/subscriptionStorage";
-import {
-  saveChannelMessages,
   loadChannelMessages,
-  removeSpecificMessage,
   removeChannelMessages,
   removeConnectionMessages,
-} from "../utils/messageStorage";
+  removeSpecificMessage,
+  saveChannelMessages,
+} from '../utils/messageStorage';
+import {
+  loadSubscriptions,
+  removeSubscriptions,
+  saveSubscriptions,
+} from '../utils/subscriptionStorage';
 
 export interface PubSubMessage {
   id: string;
@@ -33,7 +33,7 @@ interface AppState {
   connections: RedisConnection[];
   activeConnectionId: string | null;
   selectedKeys: Set<string>;
-  theme: "light" | "dark";
+  theme: 'light' | 'dark';
   showConnectionsPanel: boolean;
   expandedValueItems: Set<string>;
 
@@ -54,6 +54,7 @@ interface AppState {
   refreshActiveConnection: () => void;
   toggleKeySelection: (key: string) => void;
   selectAllKeys: (keys: string[]) => void;
+  selectKeyRange: (keys: string[]) => void;
   clearSelection: () => void;
   toggleTheme: () => void;
   toggleConnectionsPanel: () => void;
@@ -65,6 +66,7 @@ interface AppState {
   setPubsubStats: (stats: PubSubStats | null) => void;
   toggleChannelSelection: (channel: string) => void;
   selectAllChannels: (channels: string[]) => void;
+  selectChannelRange: (channels: string[]) => void;
   clearChannelSelection: () => void;
   setChannelPattern: (pattern: string) => void;
 
@@ -96,7 +98,7 @@ const getInitialPubSubState = () => {
       if (persistMessages) {
         const channelMessages = loadChannelMessages(
           activeConnectionId,
-          channel
+          channel,
         );
         persistentMessages.push(...channelMessages);
       }
@@ -105,7 +107,7 @@ const getInitialPubSubState = () => {
     // Sort messages by timestamp (newest first)
     persistentMessages.sort(
       (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
 
     return {
@@ -126,15 +128,15 @@ export const useStore = create<AppState>((set, get) => ({
   connections: loadConnections(), // Load immediately from localStorage
   activeConnectionId: loadActiveConnection(), // Load immediately from localStorage
   selectedKeys: new Set(),
-  theme: (localStorage.getItem("theme") as "light" | "dark") || "light",
+  theme: (localStorage.getItem('theme') as 'light' | 'dark') || 'light',
   showConnectionsPanel:
-    localStorage.getItem("showConnectionsPanel") !== "false", // Default to true
+    localStorage.getItem('showConnectionsPanel') !== 'false', // Default to true
   expandedValueItems: new Set(),
 
   // Pub/Sub initial state - loaded from localStorage
   pubsubStats: null,
   selectedChannels: new Set(),
-  channelPattern: "*",
+  channelPattern: '*',
   subscribedChannels: initialPubSubState.subscribedChannels,
   messages: initialPubSubState.messages,
   maxMessages: 100,
@@ -145,7 +147,7 @@ export const useStore = create<AppState>((set, get) => ({
     // Save to localStorage (primary) and sync to SQLite (backup)
     saveConnections(connections);
     connections.forEach((conn) =>
-      persistence.saveConnection(conn).catch(console.error)
+      persistence.saveConnection(conn).catch(console.error),
     );
     set({ connections });
   },
@@ -168,7 +170,7 @@ export const useStore = create<AppState>((set, get) => ({
           ) {
             return persistence.saveSubscriptions(
               connection.id,
-              state.subscribedChannels
+              state.subscribedChannels,
             );
           }
         })
@@ -201,7 +203,7 @@ export const useStore = create<AppState>((set, get) => ({
     // Save to localStorage (primary) and sync to SQLite (backup)
     saveActiveConnection(id);
     persistence
-      .saveAppState("activeConnectionId", id || "")
+      .saveAppState('activeConnectionId', id ?? '')
       .catch(console.error);
 
     set((state) => {
@@ -230,7 +232,7 @@ export const useStore = create<AppState>((set, get) => ({
         // Sort messages by timestamp (newest first)
         persistentMessages.sort(
           (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
         );
 
         return {
@@ -250,10 +252,10 @@ export const useStore = create<AppState>((set, get) => ({
 
   refreshActiveConnection: () => {
     set((state) => {
-      if (!state.activeConnectionId) return state;
+      if (!state.activeConnectionId) { return state; }
 
       console.log(
-        `🔄 Refreshing subscriptions and messages for connection: ${state.activeConnectionId}`
+        `🔄 Refreshing subscriptions and messages for connection: ${state.activeConnectionId}`,
       );
 
       // Save current subscriptions first
@@ -271,7 +273,7 @@ export const useStore = create<AppState>((set, get) => ({
         if (persistMessages) {
           const channelMessages = loadChannelMessages(
             state.activeConnectionId!,
-            channel
+            channel,
           );
           persistentMessages.push(...channelMessages);
         }
@@ -280,11 +282,11 @@ export const useStore = create<AppState>((set, get) => ({
       // Sort messages by timestamp (newest first)
       persistentMessages.sort(
         (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       );
 
       console.log(
-        `✅ Refreshed ${channels.size} subscriptions and ${persistentMessages.length} messages`
+        `✅ Refreshed ${channels.size} subscriptions and ${persistentMessages.length} messages`,
       );
 
       return {
@@ -308,19 +310,26 @@ export const useStore = create<AppState>((set, get) => ({
 
   selectAllKeys: (keys) => set({ selectedKeys: new Set(keys) }),
 
+  selectKeyRange: (keys) =>
+    set((state) => {
+      const newSelection = new Set(state.selectedKeys);
+      keys.forEach((key) => newSelection.add(key));
+      return { selectedKeys: newSelection };
+    }),
+
   clearSelection: () => set({ selectedKeys: new Set() }),
 
   toggleTheme: () =>
     set((state) => {
-      const newTheme = state.theme === "light" ? "dark" : "light";
-      localStorage.setItem("theme", newTheme);
+      const newTheme = state.theme === 'light' ? 'dark' : 'light';
+      localStorage.setItem('theme', newTheme);
       return { theme: newTheme };
     }),
 
   toggleConnectionsPanel: () =>
     set((state) => {
       const newShowPanel = !state.showConnectionsPanel;
-      localStorage.setItem("showConnectionsPanel", newShowPanel.toString());
+      localStorage.setItem('showConnectionsPanel', newShowPanel.toString());
       return { showConnectionsPanel: newShowPanel };
     }),
 
@@ -356,6 +365,13 @@ export const useStore = create<AppState>((set, get) => ({
 
   selectAllChannels: (channels) => set({ selectedChannels: new Set(channels) }),
 
+  selectChannelRange: (channels) =>
+    set((state) => {
+      const newSelection = new Set(state.selectedChannels);
+      channels.forEach((channel) => newSelection.add(channel));
+      return { selectedChannels: newSelection };
+    }),
+
   clearChannelSelection: () => set({ selectedChannels: new Set() }),
 
   setChannelPattern: (pattern) => set({ channelPattern: pattern }),
@@ -369,13 +385,16 @@ export const useStore = create<AppState>((set, get) => ({
 
         // Ensure connection exists in SQLite before saving subscriptions
         const activeConnection = state.connections.find(
-          (c) => c.id === state.activeConnectionId
+          (c) => c.id === state.activeConnectionId,
         );
         if (activeConnection) {
           persistence
             .saveConnection(activeConnection)
             .then(() =>
-              persistence.saveSubscriptions(state.activeConnectionId!, channels)
+              persistence.saveSubscriptions(
+                state.activeConnectionId!,
+                channels,
+              ),
             )
             .catch(console.error);
         }
@@ -393,7 +412,7 @@ export const useStore = create<AppState>((set, get) => ({
 
         // Ensure connection exists in SQLite before saving subscriptions
         const activeConnection = state.connections.find(
-          (c) => c.id === state.activeConnectionId
+          (c) => c.id === state.activeConnectionId,
         );
         if (activeConnection) {
           persistence
@@ -401,8 +420,8 @@ export const useStore = create<AppState>((set, get) => ({
             .then(() =>
               persistence.saveSubscriptions(
                 state.activeConnectionId!,
-                newChannels
-              )
+                newChannels,
+              ),
             )
             .catch(console.error);
         }
@@ -432,7 +451,7 @@ export const useStore = create<AppState>((set, get) => ({
   toggleChannelPersistence: (channel) =>
     set((state) => {
       const newChannels = new Map(state.subscribedChannels);
-      const currentPersistence = newChannels.get(channel) || false;
+      const currentPersistence = newChannels.get(channel) ?? false;
       newChannels.set(channel, !currentPersistence);
 
       if (state.activeConnectionId) {
@@ -477,7 +496,7 @@ export const useStore = create<AppState>((set, get) => ({
       // Check if we've seen this message recently (within last 5 seconds)
       const recentTime = state.recentMessageIds.get(messageKey);
       if (recentTime && now - recentTime < 5000) {
-        console.log("🔄 Skipping duplicate message:", messageKey);
+        console.log('🔄 Skipping duplicate message:', messageKey);
         return state; // Don't add duplicate
       }
 
@@ -505,18 +524,18 @@ export const useStore = create<AppState>((set, get) => ({
         state.subscribedChannels.get(message.channel)
       ) {
         const channelMessages = newMessages.filter(
-          (msg) => msg.channel === message.channel
+          (msg) => msg.channel === message.channel,
         );
         saveChannelMessages(
           state.activeConnectionId,
           message.channel,
           channelMessages,
-          state.maxMessages
+          state.maxMessages,
         );
 
         // Ensure connection exists in SQLite before saving messages
         const activeConnection = state.connections.find(
-          (c) => c.id === state.activeConnectionId
+          (c) => c.id === state.activeConnectionId,
         );
         if (activeConnection) {
           persistence
@@ -526,8 +545,8 @@ export const useStore = create<AppState>((set, get) => ({
                 state.activeConnectionId!,
                 message.channel,
                 channelMessages,
-                state.maxMessages
-              )
+                state.maxMessages,
+              ),
             )
             .catch(console.error);
         }
@@ -543,25 +562,25 @@ export const useStore = create<AppState>((set, get) => ({
     set((state) => {
       // Remove message from the UI
       const updatedMessages = state.messages.filter(
-        (msg) => msg.id !== messageId
+        (msg) => msg.id !== messageId,
       );
 
       // Find the message to get its channel info
       const messageToDelete = state.messages.find(
-        (msg) => msg.id === messageId
+        (msg) => msg.id === messageId,
       );
 
       if (messageToDelete && state.activeConnectionId) {
         // Update persistent storage if the channel has persistence enabled
         const isPersistent = state.subscribedChannels.get(
-          messageToDelete.channel
+          messageToDelete.channel,
         );
         if (isPersistent) {
           // Update localStorage - remove specific message
           removeSpecificMessage(
             state.activeConnectionId,
             messageToDelete.channel,
-            messageId
+            messageId,
           );
 
           // Update SQLite - remove specific message
@@ -569,12 +588,12 @@ export const useStore = create<AppState>((set, get) => ({
             .removeSpecificMessage(
               state.activeConnectionId,
               messageToDelete.channel,
-              messageId
+              messageId,
             )
             .catch(console.error);
 
           console.log(
-            `🗑️ Deleted message ${messageId} from channel ${messageToDelete.channel}`
+            `🗑️ Deleted message ${messageId} from channel ${messageToDelete.channel}`,
           );
         }
       }
@@ -597,7 +616,7 @@ export const useStore = create<AppState>((set, get) => ({
           }
         });
 
-        console.log("🗑️ Cleared all persistent messages");
+        console.log('🗑️ Cleared all persistent messages');
       }
 
       return { messages: [] };
@@ -611,11 +630,11 @@ export const useStore = create<AppState>((set, get) => ({
   // Initialize and recover connections from server restart
   initializeFromDatabase: async () => {
     try {
-      console.log("🔄 Initializing and recovering connections...");
+      console.log('🔄 Initializing and recovering connections...');
       const state = get();
 
       // First, ensure all existing connections are saved to SQLite immediately
-      console.log("💾 Syncing existing connections to SQLite...");
+      console.log('💾 Syncing existing connections to SQLite...');
       for (const connection of state.connections) {
         try {
           await persistence.saveConnection(connection);
@@ -623,7 +642,7 @@ export const useStore = create<AppState>((set, get) => ({
         } catch (error) {
           console.error(
             `❌ Failed to sync connection ${connection.id}:`,
-            error
+            error,
           );
         }
       }
@@ -631,7 +650,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (state.connections.length > 0) {
         // Import recovery utilities
         const { recoverAllConnections } = await import(
-          "../utils/connectionRecovery"
+          '../utils/connectionRecovery'
         );
 
         // Recover connections (recreate any that don't exist on server with same IDs)
@@ -641,8 +660,8 @@ export const useStore = create<AppState>((set, get) => ({
         // Since we now preserve IDs, there should be no migrations needed
         if (connectionMigrations.length > 0) {
           console.warn(
-            "⚠️ Unexpected connection ID changes detected:",
-            connectionMigrations
+            '⚠️ Unexpected connection ID changes detected:',
+            connectionMigrations,
           );
         }
 
@@ -664,31 +683,31 @@ export const useStore = create<AppState>((set, get) => ({
         // Save app state
         if (updatedState.activeConnectionId) {
           await persistence.saveAppState(
-            "activeConnectionId",
-            updatedState.activeConnectionId
+            'activeConnectionId',
+            updatedState.activeConnectionId,
           );
 
           // Save subscriptions (connections are now guaranteed to exist in SQLite)
           if (updatedState.subscribedChannels.size > 0) {
             await persistence.saveSubscriptions(
               updatedState.activeConnectionId,
-              updatedState.subscribedChannels
+              updatedState.subscribedChannels,
             );
             console.log(
-              `✅ Synced ${updatedState.subscribedChannels.size} subscriptions to SQLite`
+              `✅ Synced ${updatedState.subscribedChannels.size} subscriptions to SQLite`,
             );
           }
         }
 
-        console.log("✅ Complete sync to SQLite finished");
+        console.log('✅ Complete sync to SQLite finished');
       } catch (syncError) {
         console.warn(
-          "⚠️ SQLite sync failed (continuing with localStorage):",
-          syncError
+          '⚠️ SQLite sync failed (continuing with localStorage):',
+          syncError,
         );
       }
     } catch (error) {
-      console.error("⚠️ Failed to initialize/recover connections:", error);
+      console.error('⚠️ Failed to initialize/recover connections:', error);
       // Continue with existing state if recovery fails
     }
   },

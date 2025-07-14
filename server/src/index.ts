@@ -1,18 +1,18 @@
-import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import express from 'express';
+import 'express-async-errors';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
-import 'express-async-errors';
-import { connectionsRouter } from './routes/connections';
-import { keysRouter } from './routes/keys';
-import { pubsubRouter } from './routes/pubsub';
-import { persistenceRouter } from './routes/persistence';
-import instancesRouter from './routes/instances';
-import settingsRouter from './routes/settings';
 import { errorHandler } from './middleware/errorHandler';
-import { initializeWebSocketServer } from './services/websocketService';
+import { connectionsRouter } from './routes/connections';
+import instancesRouter from './routes/instances';
+import { keysRouter } from './routes/keys';
+import { persistenceRouter } from './routes/persistence';
+import { pubsubRouter } from './routes/pubsub';
+import settingsRouter from './routes/settings';
 import { redisInstanceManager } from './services/redisInstanceManager';
+import { initializeWebSocketServer } from './services/websocketService';
 
 dotenv.config();
 

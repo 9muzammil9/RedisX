@@ -1,8 +1,8 @@
-import { connectionsApi } from "../services/api";
-import { RedisConnection } from "../types";
+import { connectionsApi } from '../services/api';
+import { RedisConnection } from '../types';
 
 export async function checkAndRecoverConnection(
-  connection: RedisConnection
+  connection: RedisConnection,
 ): Promise<RedisConnection> {
   try {
     // Check if connection exists on server
@@ -13,16 +13,16 @@ export async function checkAndRecoverConnection(
       return connection;
     } else {
       // Skip auto-recovery for local instance connections
-      if (connection.name.startsWith("Local -")) {
+      if (connection.name.startsWith('Local -')) {
         console.log(
-          `⏭️ Skipping auto-recovery for local instance connection: ${connection.name}`
+          `⏭️ Skipping auto-recovery for local instance connection: ${connection.name}`,
         );
         return connection;
       }
 
       // Connection doesn't exist on server, recreate it with the same ID
       console.log(
-        `🔄 Connection ${connection.id} not found on server, recreating with same ID...`
+        `🔄 Connection ${connection.id} not found on server, recreating with same ID...`,
       );
 
       const { data: restoredConnection } = await connectionsApi.create({
@@ -37,21 +37,21 @@ export async function checkAndRecoverConnection(
       });
 
       console.log(
-        `✅ Restored connection with original ID: ${restoredConnection.id}`
+        `✅ Restored connection with original ID: ${restoredConnection.id}`,
       );
       return restoredConnection;
     }
   } catch (error) {
     console.error(
       `❌ Failed to check/recover connection ${connection.id}:`,
-      error
+      error,
     );
     throw error;
   }
 }
 
 export async function recoverAllConnections(
-  connections: RedisConnection[]
+  connections: RedisConnection[],
 ): Promise<{
   recoveredConnections: RedisConnection[];
   connectionMigrations: Array<{ oldId: string; newId: string }>;

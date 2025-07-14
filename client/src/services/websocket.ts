@@ -1,20 +1,20 @@
 type MessageHandler = (
   channel: string,
   message: string,
-  timestamp: string
+  timestamp: string,
 ) => void;
 type ErrorHandler = (error: Error) => void;
 type ConnectionHandler = () => void;
 
 interface WSMessage {
-  type: "subscribe" | "unsubscribe" | "unsubscribeAll" | "ping";
+  type: 'subscribe' | 'unsubscribe' | 'unsubscribeAll' | 'ping';
   connectionId: string;
   channel?: string;
   channels?: string[];
 }
 
 interface WSResponse {
-  type: "subscribed" | "unsubscribed" | "message" | "error" | "pong";
+  type: 'subscribed' | 'unsubscribed' | 'message' | 'error' | 'pong';
   channel?: string;
   channels?: string[];
   message?: string;
@@ -39,26 +39,26 @@ export class WebSocketClient {
   private isReconnecting = false;
 
   constructor() {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host =
-      window.location.hostname === "localhost"
-        ? "localhost:4000"
+      window.location.hostname === 'localhost'
+        ? 'localhost:4000'
         : window.location.host;
     this.url = `${protocol}//${host}/ws`;
   }
 
   connect(): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      console.log("🔄 WebSocket already connected, skipping...");
+      console.log('🔄 WebSocket already connected, skipping...');
       return;
     }
 
     if (this.ws?.readyState === WebSocket.CONNECTING) {
-      console.log("🔄 WebSocket already connecting, skipping...");
+      console.log('🔄 WebSocket already connecting, skipping...');
       return;
     }
 
-    console.log("🚀 Creating new WebSocket connection...");
+    console.log('🚀 Creating new WebSocket connection...');
     try {
       // Close any existing connection first
       if (this.ws) {
@@ -68,23 +68,23 @@ export class WebSocketClient {
       this.ws = new WebSocket(this.url);
 
       this.ws.onopen = () => {
-        console.log("WebSocket connected to:", this.url);
+        console.log('WebSocket connected to:', this.url);
         this.isReconnecting = false;
         this.startPing();
 
         // Resubscribe to all channels after reconnection
         if (this.subscribedChannels.size > 0) {
-          console.log("🔄 Resubscribing to channels after reconnection");
+          console.log('🔄 Resubscribing to channels after reconnection');
           for (const [
             connectionId,
             channels,
           ] of this.subscribedChannels.entries()) {
             if (channels.size > 0) {
               console.log(
-                `🚀 Resubscribing to ${channels.size} channels for ${connectionId}`
+                `🚀 Resubscribing to ${channels.size} channels for ${connectionId}`,
               );
               this.send({
-                type: "subscribe",
+                type: 'subscribe',
                 connectionId,
                 channels: Array.from(channels),
               });
@@ -100,19 +100,19 @@ export class WebSocketClient {
           const response: WSResponse = JSON.parse(event.data);
           this.handleMessage(response);
         } catch (error) {
-          console.error("Failed to parse WebSocket message:", error);
+          console.error('Failed to parse WebSocket message:', error);
         }
       };
 
       this.ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
+        console.error('WebSocket error:', error);
         this.errorHandlers.forEach((handler) =>
-          handler(new Error("WebSocket error"))
+          handler(new Error('WebSocket error')),
         );
       };
 
       this.ws.onclose = () => {
-        console.log("WebSocket disconnected");
+        console.log('WebSocket disconnected');
         this.stopPing();
         this.disconnectHandlers.forEach((handler) => handler());
 
@@ -121,7 +121,7 @@ export class WebSocketClient {
         }
       };
     } catch (error) {
-      console.error("Failed to create WebSocket:", error);
+      console.error('Failed to create WebSocket:', error);
       this.scheduleReconnect();
     }
   }
@@ -129,7 +129,7 @@ export class WebSocketClient {
   private scheduleReconnect(): void {
     this.isReconnecting = true;
     this.reconnectTimer = setTimeout(() => {
-      console.log("Attempting to reconnect WebSocket...");
+      console.log('Attempting to reconnect WebSocket...');
       this.connect();
     }, this.reconnectInterval);
   }
@@ -137,7 +137,7 @@ export class WebSocketClient {
   private startPing(): void {
     this.pingTimer = setInterval(() => {
       if (this.ws?.readyState === WebSocket.OPEN) {
-        this.send({ type: "ping", connectionId: "" });
+        this.send({ type: 'ping', connectionId: '' });
       }
     }, this.pingInterval);
   }
@@ -151,34 +151,34 @@ export class WebSocketClient {
 
   private handleMessage(response: WSResponse): void {
     switch (response.type) {
-      case "message":
+      case 'message':
         if (response.channel && response.message && response.data?.timestamp) {
           console.log(
-            `🔔 Processing message: ${response.channel} -> ${response.message}`
+            `🔔 Processing message: ${response.channel} -> ${response.message}`,
           );
           this.messageHandlers.forEach((handler) =>
             handler(
               response.channel!,
               response.message!,
-              response.data!.timestamp
-            )
+              response.data!.timestamp,
+            ),
           );
         } else {
-          console.warn("⚠️ Message missing required fields:", response);
+          console.warn('⚠️ Message missing required fields:', response);
         }
         break;
-      case "error":
+      case 'error':
         if (response.error) {
           this.errorHandlers.forEach((handler) =>
-            handler(new Error(response.error!))
+            handler(new Error(response.error)),
           );
         }
         break;
-      case "subscribed":
-        console.log("Subscribed to channels:", response.channels);
+      case 'subscribed':
+        console.log('Subscribed to channels:', response.channels);
         break;
-      case "unsubscribed":
-        console.log("Unsubscribed from channels:", response.channels);
+      case 'unsubscribed':
+        console.log('Unsubscribed from channels:', response.channels);
         break;
     }
   }
@@ -191,10 +191,10 @@ export class WebSocketClient {
 
   subscribe(connectionId: string, channels: string[]): void {
     console.log(
-      "🚀 Subscribing to channels:",
+      '🚀 Subscribing to channels:',
       channels,
-      "for connection:",
-      connectionId
+      'for connection:',
+      connectionId,
     );
 
     if (!this.subscribedChannels.has(connectionId)) {
@@ -205,11 +205,11 @@ export class WebSocketClient {
     channels.forEach((channel) => channelSet.add(channel));
 
     const message: WSMessage = {
-      type: "subscribe",
+      type: 'subscribe',
       connectionId,
       channels,
     };
-    console.log("📤 Sending subscription message:", message);
+    console.log('📤 Sending subscription message:', message);
     this.send(message);
   }
 
@@ -223,7 +223,7 @@ export class WebSocketClient {
     }
 
     this.send({
-      type: "unsubscribe",
+      type: 'unsubscribe',
       connectionId,
       channels,
     });
@@ -233,7 +233,7 @@ export class WebSocketClient {
     this.subscribedChannels.delete(connectionId);
 
     this.send({
-      type: "unsubscribeAll",
+      type: 'unsubscribeAll',
       connectionId,
     });
   }

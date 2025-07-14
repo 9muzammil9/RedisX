@@ -1,18 +1,18 @@
 export interface ImportKeyData {
   key: string;
   value: any;
-  type: "string" | "list" | "set" | "hash" | "zset";
+  type: 'string' | 'list' | 'set' | 'hash' | 'zset';
   ttl?: number;
 }
 
 export interface ParsedImportData {
   keys: ImportKeyData[];
   errors: Array<{ line?: number; message: string }>;
-  format: "json" | "csv" | "redis-cli" | "unknown";
+  format: 'json' | 'csv' | 'redis-cli' | 'unknown';
 }
 
 export interface ImportOptions {
-  conflictResolution: "skip" | "overwrite";
+  conflictResolution: 'skip' | 'overwrite';
   batchSize: number;
 }
 
@@ -20,15 +20,15 @@ export interface ImportOptions {
  * Detects the file format based on content
  */
 export const detectFileFormat = (
-  content: string
-): "json" | "csv" | "redis-cli" | "unknown" => {
+  content: string,
+): 'json' | 'csv' | 'redis-cli' | 'unknown' => {
   const trimmed = content.trim();
 
   // Check for JSON
-  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
     try {
       JSON.parse(trimmed);
-      return "json";
+      return 'json';
     } catch {
       // Continue to other formats
     }
@@ -36,27 +36,27 @@ export const detectFileFormat = (
 
   // Check for Redis CLI commands
   if (/^(SET|GET|LPUSH|RPUSH|SADD|HMSET|ZADD|HSET|LSET)\s+/im.test(trimmed)) {
-    return "redis-cli";
+    return 'redis-cli';
   }
 
   // Check for CSV (look for comma-separated values and common headers)
-  const lines = trimmed.split("\n");
+  const lines = trimmed.split('\n');
   if (lines.length > 0) {
     const firstLine = lines[0].toLowerCase();
     if (
-      firstLine.includes("key") &&
-      firstLine.includes("type") &&
-      firstLine.includes("value")
+      firstLine.includes('key') &&
+      firstLine.includes('type') &&
+      firstLine.includes('value')
     ) {
-      return "csv";
+      return 'csv';
     }
     // Also check if it looks like CSV format
-    if (lines[0].split(",").length >= 3) {
-      return "csv";
+    if (lines[0].split(',').length >= 3) {
+      return 'csv';
     }
   }
 
-  return "unknown";
+  return 'unknown';
 };
 
 /**
@@ -66,7 +66,7 @@ export const parseJsonImport = (content: string): ParsedImportData => {
   const result: ParsedImportData = {
     keys: [],
     errors: [],
-    format: "json",
+    format: 'json',
   };
 
   try {
@@ -132,7 +132,7 @@ export const parseJsonImport = (content: string): ParsedImportData => {
   } catch (error) {
     result.errors.push({
       message: `JSON parsing error: ${
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : 'Unknown error'
       }`,
     });
   }
@@ -147,26 +147,26 @@ export const parseCsvImport = (content: string): ParsedImportData => {
   const result: ParsedImportData = {
     keys: [],
     errors: [],
-    format: "csv",
+    format: 'csv',
   };
 
-  const lines = content.trim().split("\n");
+  const lines = content.trim().split('\n');
   if (lines.length === 0) {
-    result.errors.push({ message: "Empty CSV file" });
+    result.errors.push({ message: 'Empty CSV file' });
     return result;
   }
 
   // Parse header
-  const header = lines[0].split(",").map((h) =>
+  const header = lines[0].split(',').map((h) =>
     h
       .trim()
-      .replace(/^"(.*)"$/, "$1")
-      .toLowerCase()
+      .replace(/^"(.*)"$/, '$1')
+      .toLowerCase(),
   );
-  const keyIndex = header.indexOf("key");
-  const typeIndex = header.indexOf("type");
-  const valueIndex = header.indexOf("value");
-  const ttlIndex = header.indexOf("ttl");
+  const keyIndex = header.indexOf('key');
+  const typeIndex = header.indexOf('type');
+  const valueIndex = header.indexOf('value');
+  const ttlIndex = header.indexOf('ttl');
 
   if (keyIndex === -1 || typeIndex === -1 || valueIndex === -1) {
     result.errors.push({
@@ -179,7 +179,7 @@ export const parseCsvImport = (content: string): ParsedImportData => {
   // Parse data rows
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (!line) continue;
+    if (!line) { continue; }
 
     try {
       const values = parseCsvLine(line);
@@ -187,13 +187,13 @@ export const parseCsvImport = (content: string): ParsedImportData => {
       if (values.length <= Math.max(keyIndex, typeIndex, valueIndex)) {
         result.errors.push({
           line: i + 1,
-          message: "Insufficient columns in row",
+          message: 'Insufficient columns in row',
         });
         continue;
       }
 
       const key = values[keyIndex];
-      const type = values[typeIndex] as ImportKeyData["type"];
+      const type = values[typeIndex] as ImportKeyData['type'];
       let value = values[valueIndex];
       const ttl =
         ttlIndex >= 0 && values[ttlIndex]
@@ -203,7 +203,7 @@ export const parseCsvImport = (content: string): ParsedImportData => {
       if (!key || !type || value === undefined) {
         result.errors.push({
           line: i + 1,
-          message: "Missing required fields (key, type, value)",
+          message: 'Missing required fields (key, type, value)',
         });
         continue;
       }
@@ -211,10 +211,10 @@ export const parseCsvImport = (content: string): ParsedImportData => {
       // Parse value based on type
       try {
         if (
-          type === "hash" ||
-          type === "list" ||
-          type === "set" ||
-          type === "zset"
+          type === 'hash' ||
+          type === 'list' ||
+          type === 'set' ||
+          type === 'zset'
         ) {
           value = JSON.parse(value);
         }
@@ -236,7 +236,7 @@ export const parseCsvImport = (content: string): ParsedImportData => {
       result.errors.push({
         line: i + 1,
         message: `Error parsing row: ${
-          error instanceof Error ? error.message : "Unknown error"
+          error instanceof Error ? error.message : 'Unknown error'
         }`,
       });
     }
@@ -250,7 +250,7 @@ export const parseCsvImport = (content: string): ParsedImportData => {
  */
 const parseCsvLine = (line: string): string[] => {
   const result: string[] = [];
-  let current = "";
+  let current = '';
   let inQuotes = false;
   let i = 0;
 
@@ -267,10 +267,10 @@ const parseCsvLine = (line: string): string[] => {
         inQuotes = !inQuotes;
         i++;
       }
-    } else if (char === "," && !inQuotes) {
+    } else if (char === ',' && !inQuotes) {
       // Field separator
       result.push(current.trim());
-      current = "";
+      current = '';
       i++;
     } else {
       current += char;
@@ -289,27 +289,27 @@ export const parseRedisCliImport = (content: string): ParsedImportData => {
   const result: ParsedImportData = {
     keys: [],
     errors: [],
-    format: "redis-cli",
+    format: 'redis-cli',
   };
 
-  const lines = content.trim().split("\n");
+  const lines = content.trim().split('\n');
   const keyMap = new Map<string, Partial<ImportKeyData>>();
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || line.startsWith("#")) continue;
+  for (const [i, lineContent] of lines.entries()) {
+    const line = lineContent.trim();
+    if (!line || line.startsWith('#')) { continue; }
 
     try {
       const parsed = parseRedisCommand(line);
-      if (!parsed) continue;
+      if (!parsed?.key) { continue; }
 
-      const existing = keyMap.get(parsed.key) || {};
+      const existing = keyMap.get(parsed.key) ?? {};
       keyMap.set(parsed.key, { ...existing, ...parsed });
     } catch (error) {
       result.errors.push({
         line: i + 1,
         message: `Error parsing command: ${
-          error instanceof Error ? error.message : "Unknown error"
+          error instanceof Error ? error.message : 'Unknown error'
         }`,
       });
     }
@@ -340,44 +340,44 @@ export const parseRedisCliImport = (content: string): ParsedImportData => {
  */
 const parseRedisCommand = (command: string): Partial<ImportKeyData> | null => {
   const parts = parseCommandArgs(command);
-  if (parts.length === 0) return null;
+  if (parts.length === 0) { return null; }
 
   const cmd = parts[0].toUpperCase();
 
   switch (cmd) {
-    case "SET":
+    case 'SET':
       if (parts.length >= 3) {
         return {
           key: parts[1],
           value: parts[2],
-          type: "string",
+          type: 'string',
         };
       }
       break;
 
-    case "LPUSH":
-    case "RPUSH":
+    case 'LPUSH':
+    case 'RPUSH':
       if (parts.length >= 3) {
         return {
           key: parts[1],
           value: parts.slice(2),
-          type: "list",
+          type: 'list',
         };
       }
       break;
 
-    case "SADD":
+    case 'SADD':
       if (parts.length >= 3) {
         return {
           key: parts[1],
           value: parts.slice(2),
-          type: "set",
+          type: 'set',
         };
       }
       break;
 
-    case "HMSET":
-    case "HSET":
+    case 'HMSET':
+    case 'HSET':
       if (parts.length >= 4 && parts.length % 2 === 0) {
         const value: Record<string, string> = {};
         for (let i = 2; i < parts.length; i += 2) {
@@ -386,12 +386,12 @@ const parseRedisCommand = (command: string): Partial<ImportKeyData> | null => {
         return {
           key: parts[1],
           value,
-          type: "hash",
+          type: 'hash',
         };
       }
       break;
 
-    case "ZADD":
+    case 'ZADD':
       if (parts.length >= 4 && parts.length % 2 === 0) {
         const value: Array<{ score: number; member: string }> = [];
         for (let i = 2; i < parts.length; i += 2) {
@@ -403,12 +403,12 @@ const parseRedisCommand = (command: string): Partial<ImportKeyData> | null => {
         return {
           key: parts[1],
           value,
-          type: "zset",
+          type: 'zset',
         };
       }
       break;
 
-    case "EXPIRE":
+    case 'EXPIRE':
       if (parts.length >= 3) {
         return {
           key: parts[1],
@@ -426,23 +426,21 @@ const parseRedisCommand = (command: string): Partial<ImportKeyData> | null => {
  */
 const parseCommandArgs = (command: string): string[] => {
   const args: string[] = [];
-  let current = "";
+  let current = '';
   let inQuotes = false;
-  let quoteChar = "";
+  let quoteChar = '';
 
-  for (let i = 0; i < command.length; i++) {
-    const char = command[i];
-
+  for (const char of command) {
     if ((char === '"' || char === "'") && !inQuotes) {
       inQuotes = true;
       quoteChar = char;
     } else if (char === quoteChar && inQuotes) {
       inQuotes = false;
-      quoteChar = "";
-    } else if (char === " " && !inQuotes) {
+      quoteChar = '';
+    } else if (char === ' ' && !inQuotes) {
       if (current.trim()) {
         args.push(current.trim());
-        current = "";
+        current = '';
       }
     } else {
       current += char;
@@ -460,31 +458,31 @@ const parseCommandArgs = (command: string): string[] => {
  * Validates import data
  */
 export const validateImportData = (
-  data: ImportKeyData[]
+  data: ImportKeyData[],
 ): Array<{ index: number; message: string }> => {
   const errors: Array<{ index: number; message: string }> = [];
 
   data.forEach((item, index) => {
     // Validate key
-    if (!item.key || typeof item.key !== "string") {
-      errors.push({ index, message: "Invalid or missing key" });
+    if (!item.key || typeof item.key !== 'string') {
+      errors.push({ index, message: 'Invalid or missing key' });
     }
 
     // Validate type
-    if (!["string", "list", "set", "hash", "zset"].includes(item.type)) {
+    if (!['string', 'list', 'set', 'hash', 'zset'].includes(item.type)) {
       errors.push({
         index,
-        message: "Invalid type. Must be one of: string, list, set, hash, zset",
+        message: 'Invalid type. Must be one of: string, list, set, hash, zset',
       });
     }
 
     // Validate value based on type
     if (item.value === undefined || item.value === null) {
-      errors.push({ index, message: "Missing value" });
+      errors.push({ index, message: 'Missing value' });
     } else {
       switch (item.type) {
-        case "list":
-        case "set":
+        case 'list':
+        case 'set':
           if (!Array.isArray(item.value)) {
             errors.push({
               index,
@@ -492,22 +490,22 @@ export const validateImportData = (
             });
           }
           break;
-        case "hash":
-          if (typeof item.value !== "object" || Array.isArray(item.value)) {
-            errors.push({ index, message: "Value for hash must be an object" });
+        case 'hash':
+          if (typeof item.value !== 'object' || Array.isArray(item.value)) {
+            errors.push({ index, message: 'Value for hash must be an object' });
           }
           break;
-        case "zset":
+        case 'zset':
           if (
             !Array.isArray(item.value) ||
             !item.value.every(
-              (v) => typeof v === "object" && "score" in v && "member" in v
+              (v) => typeof v === 'object' && 'score' in v && 'member' in v,
             )
           ) {
             errors.push({
               index,
               message:
-                "Value for zset must be an array of {score, member} objects",
+                'Value for zset must be an array of {score, member} objects',
             });
           }
           break;
@@ -517,9 +515,9 @@ export const validateImportData = (
     // Validate TTL
     if (
       item.ttl !== undefined &&
-      (typeof item.ttl !== "number" || item.ttl < 0)
+      (typeof item.ttl !== 'number' || item.ttl < 0)
     ) {
-      errors.push({ index, message: "TTL must be a positive number" });
+      errors.push({ index, message: 'TTL must be a positive number' });
     }
   });
 
@@ -531,22 +529,22 @@ export const validateImportData = (
  */
 export const parseImportFile = (
   content: string,
-  format?: string
+  format?: string,
 ): ParsedImportData => {
-  const detectedFormat = format || detectFileFormat(content);
+  const detectedFormat = format ?? detectFileFormat(content);
 
   switch (detectedFormat) {
-    case "json":
+    case 'json':
       return parseJsonImport(content);
-    case "csv":
+    case 'csv':
       return parseCsvImport(content);
-    case "redis-cli":
+    case 'redis-cli':
       return parseRedisCliImport(content);
     default:
       return {
         keys: [],
-        errors: [{ message: "Unknown or unsupported file format" }],
-        format: "unknown",
+        errors: [{ message: 'Unknown or unsupported file format' }],
+        format: 'unknown',
       };
   }
 };

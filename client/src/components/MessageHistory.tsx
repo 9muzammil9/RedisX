@@ -1,12 +1,26 @@
-import { useState, useEffect, useRef } from 'react';
-import { Trash2, Download, Copy, CheckCheck, Info, Database } from 'lucide-react';
+import {
+  CheckCheck,
+  Copy,
+  Database,
+  Download,
+  Info,
+  Trash2,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useStore } from '../store/useStore';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
-import { useStore } from '../store/useStore';
-import toast from 'react-hot-toast';
 
 export function MessageHistory() {
-  const { messages, clearMessages, deleteMessage, maxMessages, setMaxMessages, subscribedChannels } = useStore();
+  const {
+    messages,
+    clearMessages,
+    deleteMessage,
+    maxMessages,
+    setMaxMessages,
+    subscribedChannels,
+  } = useStore();
   const [filter, setFilter] = useState('');
   const [autoScroll, setAutoScroll] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -18,9 +32,10 @@ export function MessageHistory() {
     }
   }, [messages, autoScroll]);
 
-  const filteredMessages = messages.filter(msg =>
-    msg.channel.toLowerCase().includes(filter.toLowerCase()) ||
-    msg.message.toLowerCase().includes(filter.toLowerCase())
+  const filteredMessages = messages.filter(
+    (msg) =>
+      msg.channel.toLowerCase().includes(filter.toLowerCase()) ||
+      msg.message.toLowerCase().includes(filter.toLowerCase()),
   );
 
   const handleCopyMessage = (message: string, messageId: string) => {
@@ -51,13 +66,14 @@ export function MessageHistory() {
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', {
+    const time = date.toLocaleTimeString('en-US', {
       hour12: false,
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      fractionalSecondDigits: 3
     });
+    const milliseconds = date.getMilliseconds().toString().padStart(3, '0');
+    return `${time}.${milliseconds}`;
   };
 
   if (messages.length === 0) {
@@ -66,7 +82,9 @@ export function MessageHistory() {
         <div className="text-center">
           <Info className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p className="text-lg mb-2">No messages yet</p>
-          <p className="text-sm">Subscribe to channels to see real-time messages</p>
+          <p className="text-sm">
+            Subscribe to channels to see real-time messages
+          </p>
         </div>
       </div>
     );
@@ -77,7 +95,9 @@ export function MessageHistory() {
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">Message History ({filteredMessages.length})</h3>
+          <h3 className="font-semibold">
+            Message History ({filteredMessages.length})
+          </h3>
           <div className="flex items-center space-x-2">
             <Button
               size="sm"
@@ -134,7 +154,7 @@ export function MessageHistory() {
       {/* Messages */}
       <div className="flex-1 overflow-auto p-4 space-y-2">
         {filteredMessages.map((msg) => {
-          const isPersistent = subscribedChannels.get(msg.channel) || false;
+          const isPersistent = subscribedChannels.get(msg.channel) ?? false;
           return (
             <div
               key={msg.id}
@@ -149,7 +169,9 @@ export function MessageHistory() {
                     {msg.channel}
                   </span>
                   {isPersistent && (
-                    <Database className="w-3 h-3 text-blue-500" title="Message persisted to storage" />
+                    <span title="Message persisted to storage">
+                      <Database className="w-3 h-3 text-blue-500" />
+                    </span>
                   )}
                 </div>
                 <div className="flex items-center space-x-1">

@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Hash, Send, BarChart3, Radio, MessageSquare } from 'lucide-react';
-import { ChannelList } from './ChannelList';
-import { PublishMessage } from './PublishMessage';
-import { ChannelSubscriber } from './ChannelSubscriber';
-import { MessageHistory } from './MessageHistory';
-import { useStore, PubSubMessage } from '../store/useStore';
+import { BarChart3, Hash, MessageSquare, Radio, Send } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useSubscriptionRestore } from '../hooks/useSubscriptionRestore';
 import { wsClient } from '../services/websocket';
-import toast from 'react-hot-toast';
+import { PubSubMessage, useStore } from '../store/useStore';
+import { ChannelList } from './ChannelList';
+import { ChannelSubscriber } from './ChannelSubscriber';
+import { MessageHistory } from './MessageHistory';
+import { PublishMessage } from './PublishMessage';
 
 type PubSubView = 'channels' | 'publish' | 'stats' | 'subscribe' | 'messages';
 
@@ -27,8 +27,16 @@ const savePubSubView = (view: PubSubView) => {
 const loadPubSubView = (): PubSubView => {
   try {
     const saved = localStorage.getItem('redisx-pubsub-view');
-    const validViews: PubSubView[] = ['channels', 'publish', 'stats', 'subscribe', 'messages'];
-    return validViews.includes(saved as PubSubView) ? (saved as PubSubView) : 'channels';
+    const validViews: PubSubView[] = [
+      'channels',
+      'publish',
+      'stats',
+      'subscribe',
+      'messages',
+    ];
+    return validViews.includes(saved as PubSubView)
+      ? (saved as PubSubView)
+      : 'channels';
   } catch (error) {
     console.error('Failed to load pubsub view:', error);
     return 'channels';
@@ -37,14 +45,15 @@ const loadPubSubView = (): PubSubView => {
 
 export function PubSubPanel() {
   const [activeView, setActiveView] = useState<PubSubView>(loadPubSubView());
-  const [selectedChannelForPublish, setSelectedChannelForPublish] = useState<string>('');
+  const [selectedChannelForPublish, setSelectedChannelForPublish] =
+    useState<string>('');
   const {
     activeConnectionId,
     pubsubStats,
     subscribedChannels,
     messages,
     addMessage,
-    setWebSocketConnected
+    setWebSocketConnected,
   } = useStore();
 
   // Handle subscription restoration
@@ -52,7 +61,7 @@ export function PubSubPanel() {
 
   // Set up WebSocket connection and message handling for the entire PubSub panel
   useEffect(() => {
-    if (!activeConnectionId) return;
+    if (!activeConnectionId) { return; }
 
     // Connect WebSocket
     wsClient.connect();
@@ -68,15 +77,17 @@ export function PubSubPanel() {
       toast.error('WebSocket disconnected');
     });
 
-    const unsubscribeMessage = wsClient.onMessage((channel, message, timestamp) => {
-      const msg: PubSubMessage = {
-        id: `${timestamp}-${Math.random()}`,
-        channel,
-        message,
-        timestamp
-      };
-      addMessage(msg);
-    });
+    const unsubscribeMessage = wsClient.onMessage(
+      (channel, message, timestamp) => {
+        const msg: PubSubMessage = {
+          id: `${timestamp}-${Math.random()}`,
+          channel,
+          message,
+          timestamp,
+        };
+        addMessage(msg);
+      },
+    );
 
     const unsubscribeError = wsClient.onError((error) => {
       toast.error(`WebSocket error: ${error.message}`);
@@ -96,7 +107,9 @@ export function PubSubPanel() {
         <div className="text-center">
           <Hash className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>No active connection</p>
-          <p className="text-sm">Select a Redis connection to monitor pub/sub</p>
+          <p className="text-sm">
+            Select a Redis connection to monitor pub/sub
+          </p>
         </div>
       </div>
     );
@@ -122,10 +135,11 @@ export function PubSubPanel() {
       <div className="border-b border-border">
         <div className="flex">
           <button
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === 'channels'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeView === 'channels'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
+            }`}
             onClick={() => handleViewChange('channels')}
           >
             <Hash className="w-4 h-4 inline mr-2" />
@@ -138,10 +152,11 @@ export function PubSubPanel() {
           </button>
 
           <button
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === 'publish'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeView === 'publish'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
+            }`}
             onClick={() => handleViewChange('publish')}
           >
             <Send className="w-4 h-4 inline mr-2" />
@@ -149,10 +164,11 @@ export function PubSubPanel() {
           </button>
 
           <button
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === 'stats'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeView === 'stats'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
+            }`}
             onClick={() => handleViewChange('stats')}
           >
             <BarChart3 className="w-4 h-4 inline mr-2" />
@@ -160,10 +176,11 @@ export function PubSubPanel() {
           </button>
 
           <button
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === 'subscribe'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeView === 'subscribe'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
+            }`}
             onClick={() => handleViewChange('subscribe')}
           >
             <Radio className="w-4 h-4 inline mr-2" />
@@ -176,10 +193,11 @@ export function PubSubPanel() {
           </button>
 
           <button
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeView === 'messages'
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeView === 'messages'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
+            }`}
             onClick={() => handleViewChange('messages')}
           >
             <MessageSquare className="w-4 h-4 inline mr-2" />
@@ -189,8 +207,13 @@ export function PubSubPanel() {
                 {messages.length}
               </span>
             )}
-            {Array.from(subscribedChannels.values()).some(persist => persist) && (
-              <span className="ml-1 text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded-full" title="Some messages are being persisted">
+            {Array.from(subscribedChannels.values()).some(
+              (persist) => persist,
+            ) && (
+              <span
+                className="ml-1 text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded-full"
+                title="Some messages are being persisted"
+              >
                 P
               </span>
             )}
@@ -201,9 +224,7 @@ export function PubSubPanel() {
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {activeView === 'channels' && (
-          <ChannelList
-            onChannelSelect={handleChannelSelect}
-          />
+          <ChannelList onChannelSelect={handleChannelSelect} />
         )}
 
         {activeView === 'publish' && (
@@ -225,14 +246,23 @@ export function PubSubPanel() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-muted p-4 rounded-lg">
-                    <div className="text-2xl font-bold">{pubsubStats.totalChannels}</div>
-                    <div className="text-sm text-muted-foreground">Active Channels</div>
+                    <div className="text-2xl font-bold">
+                      {pubsubStats.totalChannels}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Active Channels
+                    </div>
                   </div>
                   <div className="bg-muted p-4 rounded-lg">
                     <div className="text-2xl font-bold">
-                      {pubsubStats.channels.reduce((sum, ch) => sum + ch.subscribers, 0)}
+                      {pubsubStats.channels.reduce(
+                        (sum, ch) => sum + ch.subscribers,
+                        0,
+                      )}
                     </div>
-                    <div className="text-sm text-muted-foreground">Total Subscribers</div>
+                    <div className="text-sm text-muted-foreground">
+                      Total Subscribers
+                    </div>
                   </div>
                 </div>
 
@@ -245,7 +275,9 @@ export function PubSubPanel() {
                           key={channel.channel}
                           className="flex justify-between items-center p-2 bg-muted rounded"
                         >
-                          <span className="font-mono text-sm">{channel.channel}</span>
+                          <span className="font-mono text-sm">
+                            {channel.channel}
+                          </span>
                           <span className="text-sm text-muted-foreground">
                             {channel.subscribers} subscriber(s)
                           </span>

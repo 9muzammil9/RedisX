@@ -1,4 +1,4 @@
-import { PubSubMessage } from "../store/useStore";
+import { PubSubMessage } from '../store/useStore';
 
 interface PersistedMessages {
   [connectionId: string]: {
@@ -10,7 +10,7 @@ interface PersistedMessages {
   };
 }
 
-const STORAGE_KEY = "redisx-messages";
+const STORAGE_KEY = 'redisx-messages';
 const MAX_MESSAGES_PER_CHANNEL = 50; // Limit to prevent storage bloat
 const MAX_AGE_HOURS = 24; // Keep messages for 24 hours
 
@@ -18,7 +18,7 @@ export function saveChannelMessages(
   connectionId: string,
   channel: string,
   messages: PubSubMessage[],
-  maxMessages: number = MAX_MESSAGES_PER_CHANNEL
+  maxMessages: number = MAX_MESSAGES_PER_CHANNEL,
 ): void {
   try {
     const existingData = getStoredMessages();
@@ -30,7 +30,7 @@ export function saveChannelMessages(
     // Keep only the latest messages within the limit
     const limitedMessages = messages.slice(
       0,
-      Math.min(maxMessages, MAX_MESSAGES_PER_CHANNEL)
+      Math.min(maxMessages, MAX_MESSAGES_PER_CHANNEL),
     );
 
     existingData[connectionId][channel] = {
@@ -41,18 +41,18 @@ export function saveChannelMessages(
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
     console.log(
-      `💾 Saved ${limitedMessages.length} messages for ${connectionId}:${channel}`
+      `💾 Saved ${limitedMessages.length} messages for ${connectionId}:${channel}`,
     );
   } catch (error) {
-    console.error("Failed to save channel messages:", error);
+    console.error('Failed to save channel messages:', error);
     // If storage is full, try to cleanup and retry
-    if (error instanceof Error && error.name === "QuotaExceededError") {
+    if (error instanceof Error && error.name === 'QuotaExceededError') {
       cleanupOldMessages();
       try {
         // Create minimal data to save after cleanup with limited messages
         const retryLimitedMessages = messages.slice(
           0,
-          Math.min(maxMessages, MAX_MESSAGES_PER_CHANNEL)
+          Math.min(maxMessages, MAX_MESSAGES_PER_CHANNEL),
         );
         const minimalData = getStoredMessages();
 
@@ -68,8 +68,8 @@ export function saveChannelMessages(
         localStorage.setItem(STORAGE_KEY, JSON.stringify(minimalData));
       } catch (retryError) {
         console.error(
-          "Failed to save messages even after cleanup:",
-          retryError
+          'Failed to save messages even after cleanup:',
+          retryError,
         );
       }
     }
@@ -78,7 +78,7 @@ export function saveChannelMessages(
 
 export function loadChannelMessages(
   connectionId: string,
-  channel: string
+  channel: string,
 ): PubSubMessage[] {
   try {
     const data = getStoredMessages();
@@ -93,19 +93,19 @@ export function loadChannelMessages(
     if (ageHours > MAX_AGE_HOURS) {
       console.log(
         `🗑️ Removing old messages for ${connectionId}:${channel} (${ageHours.toFixed(
-          1
-        )}h old)`
+          1,
+        )}h old)`,
       );
       removeChannelMessages(connectionId, channel);
       return [];
     }
 
     console.log(
-      `📥 Loaded ${channelData.messages.length} messages for ${connectionId}:${channel}`
+      `📥 Loaded ${channelData.messages.length} messages for ${connectionId}:${channel}`,
     );
     return channelData.messages;
   } catch (error) {
-    console.error("Failed to load channel messages:", error);
+    console.error('Failed to load channel messages:', error);
     return [];
   }
 }
@@ -113,7 +113,7 @@ export function loadChannelMessages(
 export function removeSpecificMessage(
   connectionId: string,
   channel: string,
-  messageId: string
+  messageId: string,
 ): void {
   try {
     const data = getStoredMessages();
@@ -121,7 +121,7 @@ export function removeSpecificMessage(
     if (data[connectionId]?.[channel]) {
       const channelData = data[connectionId][channel];
       const updatedMessages = channelData.messages.filter(
-        (msg: any) => msg.id !== messageId
+        (msg: any) => msg.id !== messageId,
       );
 
       if (updatedMessages.length === 0) {
@@ -143,17 +143,17 @@ export function removeSpecificMessage(
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       console.log(
-        `🗑️ Removed message ${messageId} from ${connectionId}:${channel}`
+        `🗑️ Removed message ${messageId} from ${connectionId}:${channel}`,
       );
     }
   } catch (error) {
-    console.error("Failed to remove specific message:", error);
+    console.error('Failed to remove specific message:', error);
   }
 }
 
 export function removeChannelMessages(
   connectionId: string,
-  channel: string
+  channel: string,
 ): void {
   try {
     const data = getStoredMessages();
@@ -170,7 +170,7 @@ export function removeChannelMessages(
       console.log(`🗑️ Removed messages for ${connectionId}:${channel}`);
     }
   } catch (error) {
-    console.error("Failed to remove channel messages:", error);
+    console.error('Failed to remove channel messages:', error);
   }
 }
 
@@ -181,7 +181,7 @@ export function removeConnectionMessages(connectionId: string): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     console.log(`🗑️ Removed all messages for connection ${connectionId}`);
   } catch (error) {
-    console.error("Failed to remove connection messages:", error);
+    console.error('Failed to remove connection messages:', error);
   }
 }
 
@@ -190,7 +190,7 @@ export function getPersistedChannels(connectionId: string): string[] {
     const data = getStoredMessages();
     return Object.keys(data[connectionId] || {});
   } catch (error) {
-    console.error("Failed to get persisted channels:", error);
+    console.error('Failed to get persisted channels:', error);
     return [];
   }
 }
@@ -207,7 +207,7 @@ export function cleanupOldMessages(): void {
           delete data[connectionId][channel];
           hasChanges = true;
           console.log(
-            `🧹 Cleaned up old messages for ${connectionId}:${channel}`
+            `🧹 Cleaned up old messages for ${connectionId}:${channel}`,
           );
         }
       }
@@ -221,10 +221,10 @@ export function cleanupOldMessages(): void {
 
     if (hasChanges) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      console.log("🧹 Message cleanup completed");
+      console.log('🧹 Message cleanup completed');
     }
   } catch (error) {
-    console.error("Failed to cleanup old messages:", error);
+    console.error('Failed to cleanup old messages:', error);
   }
 }
 
@@ -246,7 +246,7 @@ export function getStorageStats(): {
       }
     }
 
-    const storageData = localStorage.getItem(STORAGE_KEY) || "";
+    const storageData = localStorage.getItem(STORAGE_KEY) ?? '';
     const storageSize = `${(storageData.length / 1024).toFixed(1)} KB`;
 
     return {
@@ -256,12 +256,12 @@ export function getStorageStats(): {
       storageSize,
     };
   } catch (error) {
-    console.error("Failed to get storage stats:", error);
+    console.error('Failed to get storage stats:', error);
     return {
       totalConnections: 0,
       totalChannels: 0,
       totalMessages: 0,
-      storageSize: "0 KB",
+      storageSize: '0 KB',
     };
   }
 }
@@ -269,9 +269,9 @@ export function getStorageStats(): {
 export function clearAllMessages(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
-    console.log("🧹 Cleared all stored messages");
+    console.log('🧹 Cleared all stored messages');
   } catch (error) {
-    console.error("Failed to clear all messages:", error);
+    console.error('Failed to clear all messages:', error);
   }
 }
 
@@ -280,7 +280,7 @@ function getStoredMessages(): PersistedMessages {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored ? JSON.parse(stored) : {};
   } catch (error) {
-    console.error("Failed to parse stored messages:", error);
+    console.error('Failed to parse stored messages:', error);
     return {};
   }
 }

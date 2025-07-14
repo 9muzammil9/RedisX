@@ -1,15 +1,17 @@
-import React from 'react';
 import {
-  Download,
-  Copy,
-  Edit,
-  Trash2,
+  ChevronDown,
+  ChevronUp,
   Clipboard,
+  Copy,
+  Download,
+  Edit,
   FolderDown,
   FolderX,
-  ChevronDown,
-  ChevronUp
+  Trash2,
+  Files,
 } from 'lucide-react';
+import React from 'react';
+import { KeyTreeNode } from '../utils/keyTree';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -17,7 +19,6 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from './ui/ContextMenu';
-import { KeyTreeNode } from '../utils/keyTree';
 
 interface KeyContextMenuProps {
   children: React.ReactNode;
@@ -32,6 +33,7 @@ interface KeyContextMenuProps {
   onDeleteAllKeys?: (pattern: string) => void;
   onExpandGroup?: (nodeId: string) => void;
   onCollapseGroup?: (nodeId: string) => void;
+  onDuplicateKey?: (key: string) => void;
 }
 
 export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
@@ -47,6 +49,7 @@ export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
   onDeleteAllKeys,
   onExpandGroup,
   onCollapseGroup,
+  onDuplicateKey,
 }) => {
   const isKey = node.isKey && node.keyData;
   const isGroup = !node.isKey && node.children.length > 0;
@@ -83,6 +86,12 @@ export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
     }
   };
 
+  const handleDuplicateKey = () => {
+    if (isKey && onDuplicateKey) {
+      onDuplicateKey(node.keyData!.key);
+    }
+  };
+
   const handleDeleteKey = () => {
     if (isKey && onDeleteKey) {
       onDeleteKey(node.keyData!.key);
@@ -111,9 +120,7 @@ export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild>
-        {children}
-      </ContextMenuTrigger>
+      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 
       <ContextMenuContent className="w-56">
         {isKey && (
@@ -138,6 +145,10 @@ export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
               Edit Key
             </ContextMenuItem>
 
+            <ContextMenuItem onClick={handleDuplicateKey} icon={<Files />}>
+              Duplicate Key
+            </ContextMenuItem>
+
             <ContextMenuItem
               onClick={handleDeleteKey}
               icon={<Trash2 />}
@@ -151,11 +162,17 @@ export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
         {isGroup && (
           <>
             {isExpanded ? (
-              <ContextMenuItem onClick={handleCollapseGroup} icon={<ChevronUp />}>
+              <ContextMenuItem
+                onClick={handleCollapseGroup}
+                icon={<ChevronUp />}
+              >
                 Collapse Group
               </ContextMenuItem>
             ) : (
-              <ContextMenuItem onClick={handleExpandGroup} icon={<ChevronDown />}>
+              <ContextMenuItem
+                onClick={handleExpandGroup}
+                icon={<ChevronDown />}
+              >
                 Expand Group
               </ContextMenuItem>
             )}
@@ -183,9 +200,7 @@ export const KeyContextMenu: React.FC<KeyContextMenuProps> = ({
         )}
 
         {!isKey && !isGroup && (
-          <ContextMenuItem disabled>
-            No actions available
-          </ContextMenuItem>
+          <ContextMenuItem disabled>No actions available</ContextMenuItem>
         )}
       </ContextMenuContent>
     </ContextMenu>

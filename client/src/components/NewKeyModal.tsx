@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import React, { useState } from 'react';
+import toast from 'react-hot-toast';
+import { keysApi } from '../services/api';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Label } from './ui/Label';
 import { Select } from './ui/Select';
-import { keysApi } from '../services/api';
-import toast from 'react-hot-toast';
 
 interface NewKeyModalProps {
   isOpen: boolean;
@@ -46,14 +46,16 @@ export const NewKeyModal: React.FC<NewKeyModalProps> = ({
           if (!Array.isArray(processedValue)) {
             throw new Error('List must be a JSON array');
           }
-        } catch {
+        } catch (error) {
+          console.debug('List value not valid JSON, treating as single item:', error);
           // If not valid JSON, treat as single item array
           processedValue = [formData.value];
         }
       } else if (formData.type === 'hash' || formData.type === 'set') {
         try {
           processedValue = JSON.parse(formData.value);
-        } catch {
+        } catch (error) {
+          console.error(`${formData.type} JSON parse error:`, error);
           toast.error(`${formData.type} value must be valid JSON`);
           return;
         }
@@ -61,7 +63,13 @@ export const NewKeyModal: React.FC<NewKeyModalProps> = ({
 
       const ttl = formData.ttl ? parseInt(formData.ttl, 10) : undefined;
 
-      await keysApi.setValue(connectionId, formData.key, processedValue, formData.type, ttl);
+      await keysApi.setValue(
+        connectionId,
+        formData.key,
+        processedValue,
+        formData.type,
+        ttl,
+      );
       toast.success('Key created successfully');
 
       // Reset form
@@ -75,6 +83,7 @@ export const NewKeyModal: React.FC<NewKeyModalProps> = ({
       onKeyCreated();
       onClose();
     } catch (error) {
+      console.error('Failed to create key:', error);
       toast.error('Failed to create key');
     } finally {
       setIsSubmitting(false);
@@ -98,7 +107,7 @@ export const NewKeyModal: React.FC<NewKeyModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) { return null; }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -122,7 +131,9 @@ export const NewKeyModal: React.FC<NewKeyModalProps> = ({
               id="key"
               type="text"
               value={formData.key}
-              onChange={(e) => setFormData({ ...formData, key: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, key: e.target.value })
+              }
               placeholder="my:key:name"
               required
             />
@@ -132,7 +143,12 @@ export const NewKeyModal: React.FC<NewKeyModalProps> = ({
             <Label htmlFor="type">Type</Label>
             <Select
               value={formData.type}
-              onValueChange={(value) => setFormData({ ...formData, type: value as 'string' | 'list' | 'hash' | 'set' | 'zset' })}
+              onValueChange={(value) =>
+                setFormData({
+                  ...formData,
+                  type: value as 'string' | 'list' | 'hash' | 'set' | 'zset',
+                })
+              }
             >
               <option value="string">String</option>
               <option value="list">List</option>
@@ -147,7 +163,9 @@ export const NewKeyModal: React.FC<NewKeyModalProps> = ({
             <textarea
               id="value"
               value={formData.value}
-              onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, value: e.target.value })
+              }
               placeholder={getValuePlaceholder()}
               className="w-full min-h-[100px] px-3 py-2 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md resize-vertical"
               required
@@ -160,7 +178,9 @@ export const NewKeyModal: React.FC<NewKeyModalProps> = ({
               id="ttl"
               type="number"
               value={formData.ttl}
-              onChange={(e) => setFormData({ ...formData, ttl: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, ttl: e.target.value })
+              }
               placeholder="Leave empty for no expiry"
               min="1"
             />

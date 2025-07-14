@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { instancesApi, RedisInstanceConfig } from '../services/api';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Label } from './ui/Label';
 import { Select } from './ui/Select';
 import { Switch } from './ui/Switch';
-import { instancesApi, RedisInstanceConfig } from '../services/api';
-import toast from 'react-hot-toast';
 
 interface NewInstanceModalProps {
   onClose: () => void;
@@ -29,7 +29,10 @@ const LOG_LEVELS = [
   { value: 'warning', label: 'Warning' },
 ];
 
-export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onInstanceCreated }) => {
+export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({
+  onClose,
+  onInstanceCreated,
+}) => {
   const [name, setName] = useState('');
   const [config, setConfig] = useState<RedisInstanceConfig>({
     port: 6380,
@@ -48,15 +51,16 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
 
   useEffect(() => {
     // Check Redis and Docker availability on mount
-    instancesApi.checkRedisInstalled()
-      .then(response => {
+    instancesApi
+      .checkRedisInstalled()
+      .then((response) => {
         setAvailability(response.data);
         // Auto-select Docker if Redis is not available but Docker is
         if (!response.data.redis.installed && response.data.docker.installed) {
-          setConfig(prev => ({ ...prev, executionMode: 'docker' }));
+          setConfig((prev) => ({ ...prev, executionMode: 'docker' }));
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Failed to check availability:', error);
       });
   }, []);
@@ -77,11 +81,15 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
     // Check if selected execution mode is available
     if (availability) {
       if (config.executionMode === 'native' && !availability.redis.installed) {
-        toast.error('Native Redis is not available. Please install Redis or use Docker mode.');
+        toast.error(
+          'Native Redis is not available. Please install Redis or use Docker mode.',
+        );
         return;
       }
       if (config.executionMode === 'docker' && !availability.docker.installed) {
-        toast.error('Docker is not available. Please install Docker or use native mode.');
+        toast.error(
+          'Docker is not available. Please install Docker or use native mode.',
+        );
         return;
       }
     }
@@ -131,21 +139,26 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
                   name="executionMode"
                   value="native"
                   checked={config.executionMode === 'native'}
-                  onChange={() => setConfig({ ...config, executionMode: 'native' })}
+                  onChange={() =>
+                    setConfig({ ...config, executionMode: 'native' })
+                  }
                   disabled={availability?.redis.installed === false}
                   className="h-4 w-4"
                 />
                 <Label htmlFor="native" className="flex-1">
                   <div className="flex items-center justify-between">
                     <span>Native Redis ⚙️</span>
-                    <span className={`text-xs ${availability?.redis.installed ? 'text-green-600' : 'text-red-600'}`}>
+                    <span
+                      className={`text-xs ${availability?.redis.installed ? 'text-green-600' : 'text-red-600'}`}
+                    >
                       {availability?.redis.installed
                         ? `Available (v${availability.redis.version})`
                         : 'Not Available'}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Uses Redis installed on your system. Requires redis-server command.
+                    Uses Redis installed on your system. Requires redis-server
+                    command.
                   </p>
                 </Label>
               </div>
@@ -157,21 +170,26 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
                   name="executionMode"
                   value="docker"
                   checked={config.executionMode === 'docker'}
-                  onChange={() => setConfig({ ...config, executionMode: 'docker' })}
+                  onChange={() =>
+                    setConfig({ ...config, executionMode: 'docker' })
+                  }
                   disabled={availability?.docker.installed === false}
                   className="h-4 w-4"
                 />
                 <Label htmlFor="docker" className="flex-1">
                   <div className="flex items-center justify-between">
                     <span>Docker Container 🐳</span>
-                    <span className={`text-xs ${availability?.docker.installed ? 'text-green-600' : 'text-red-600'}`}>
+                    <span
+                      className={`text-xs ${availability?.docker.installed ? 'text-green-600' : 'text-red-600'}`}
+                    >
                       {availability?.docker.installed
                         ? `Available (v${availability.docker.version})`
                         : 'Not Available'}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Runs Redis in a Docker container. Recommended for Windows users - no Redis installation needed!
+                    Runs Redis in a Docker container. Recommended for Windows
+                    users - no Redis installation needed!
                   </p>
                 </Label>
               </div>
@@ -184,14 +202,17 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
               id="port"
               type="number"
               value={config.port}
-              onChange={(e) => setConfig({ ...config, port: parseInt(e.target.value) || 6379 })}
+              onChange={(e) =>
+                setConfig({ ...config, port: parseInt(e.target.value) || 6379 })
+              }
               placeholder="6380"
               min={1024}
               max={65535}
               required
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Default Redis port is 6379. Use a different port to avoid conflicts.
+              Default Redis port is 6379. Use a different port to avoid
+              conflicts.
             </p>
           </div>
 
@@ -211,7 +232,9 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
               id="password"
               type="password"
               value={config.password ?? ''}
-              onChange={(e) => setConfig({ ...config, password: e.target.value || undefined })}
+              onChange={(e) =>
+                setConfig({ ...config, password: e.target.value || undefined })
+              }
               placeholder="Leave empty for no password"
             />
           </div>
@@ -222,7 +245,12 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
               id="databases"
               type="number"
               value={config.databases}
-              onChange={(e) => setConfig({ ...config, databases: parseInt(e.target.value) || 16 })}
+              onChange={(e) =>
+                setConfig({
+                  ...config,
+                  databases: parseInt(e.target.value) || 16,
+                })
+              }
               min={1}
               max={512}
             />
@@ -233,7 +261,9 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
             <Input
               id="maxmemory"
               value={config.maxmemory ?? ''}
-              onChange={(e) => setConfig({ ...config, maxmemory: e.target.value || undefined })}
+              onChange={(e) =>
+                setConfig({ ...config, maxmemory: e.target.value || undefined })
+              }
               placeholder="e.g., 256mb, 1gb"
             />
           </div>
@@ -243,7 +273,12 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
             <Select
               id="maxmemoryPolicy"
               value={config.maxmemoryPolicy ?? ''}
-              onChange={(e) => setConfig({ ...config, maxmemoryPolicy: e.target.value || undefined })}
+              onChange={(e) =>
+                setConfig({
+                  ...config,
+                  maxmemoryPolicy: e.target.value || undefined,
+                })
+              }
             >
               <option value="">Default</option>
               {MEMORY_POLICIES.map((policy) => (
@@ -259,7 +294,9 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
             <Select
               id="loglevel"
               value={config.loglevel}
-              onChange={(e) => setConfig({ ...config, loglevel: e.target.value as any })}
+              onChange={(e) =>
+                setConfig({ ...config, loglevel: e.target.value as any })
+              }
             >
               {LOG_LEVELS.map((level) => (
                 <option key={level.value} value={level.value}>
@@ -273,8 +310,10 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
             <Label htmlFor="appendonly">Enable AOF (Append Only File)</Label>
             <Switch
               id="appendonly"
-              checked={config.appendonly || false}
-              onCheckedChange={(checked) => setConfig({ ...config, appendonly: checked })}
+              checked={config.appendonly ?? false}
+              onCheckedChange={(checked) =>
+                setConfig({ ...config, appendonly: checked })
+              }
             />
           </div>
 
@@ -283,7 +322,9 @@ export const NewInstanceModal: React.FC<NewInstanceModalProps> = ({ onClose, onI
             <Switch
               id="save"
               checked={config.save !== false}
-              onCheckedChange={(checked) => setConfig({ ...config, save: checked })}
+              onCheckedChange={(checked) =>
+                setConfig({ ...config, save: checked })
+              }
             />
           </div>
 

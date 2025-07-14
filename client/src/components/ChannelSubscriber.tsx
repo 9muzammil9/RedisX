@@ -1,11 +1,11 @@
+import { Circle, Database, Plus, Radio, Wifi, WifiOff, X } from 'lucide-react';
 import { useState } from 'react';
-import { Radio, Circle, Wifi, WifiOff, Plus, X, Database } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { wsClient } from '../services/websocket';
+import { useStore } from '../store/useStore';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Switch } from './ui/Switch';
-import { useStore } from '../store/useStore';
-import { wsClient } from '../services/websocket';
-import toast from 'react-hot-toast';
 
 export function ChannelSubscriber() {
   const {
@@ -15,7 +15,7 @@ export function ChannelSubscriber() {
     removeSubscribedChannel,
     toggleChannelPersistence,
     clearSubscribedChannels,
-    isWebSocketConnected
+    isWebSocketConnected,
   } = useStore();
 
   const [newChannel, setNewChannel] = useState('');
@@ -24,13 +24,13 @@ export function ChannelSubscriber() {
   // No longer need WebSocket setup here - moved to PubSubPanel
 
   const handleSubscribe = async (channels: string[]) => {
-    if (!activeConnectionId || channels.length === 0) return;
+    if (!activeConnectionId || channels.length === 0) { return; }
 
     // Attempting to subscribe to channels
     setIsSubscribing(true);
     try {
       wsClient.subscribe(activeConnectionId, channels);
-      channels.forEach(channel => addSubscribedChannel(channel, false)); // Default to no persistence
+      channels.forEach((channel) => addSubscribedChannel(channel, false)); // Default to no persistence
       toast.success(`Subscribed to ${channels.length} channel(s)`);
     } catch (error) {
       console.error('Subscription error:', error);
@@ -41,31 +41,33 @@ export function ChannelSubscriber() {
   };
 
   const handleUnsubscribe = async (channels: string[]) => {
-    if (!activeConnectionId || channels.length === 0) return;
+    if (!activeConnectionId || channels.length === 0) { return; }
 
     try {
       wsClient.unsubscribe(activeConnectionId, channels);
-      channels.forEach(channel => removeSubscribedChannel(channel));
+      channels.forEach((channel) => removeSubscribedChannel(channel));
       toast.success(`Unsubscribed from ${channels.length} channel(s)`);
     } catch (error) {
+      console.error('Unsubscribe error:', error);
       toast.error('Failed to unsubscribe from channels');
     }
   };
 
   const handleUnsubscribeAll = async () => {
-    if (!activeConnectionId || subscribedChannels.size === 0) return;
+    if (!activeConnectionId || subscribedChannels.size === 0) { return; }
 
     try {
       wsClient.unsubscribeAll(activeConnectionId);
       clearSubscribedChannels();
       toast.success('Unsubscribed from all channels');
     } catch (error) {
+      console.error('Unsubscribe all error:', error);
       toast.error('Failed to unsubscribe from all channels');
     }
   };
 
   const handleAddChannel = () => {
-    if (!newChannel.trim()) return;
+    if (!newChannel.trim()) { return; }
 
     const channelName = newChannel.trim();
     if (subscribedChannels.has(channelName)) {
@@ -108,7 +110,9 @@ export function ChannelSubscriber() {
                 • Restored
               </span>
             )}
-            {Array.from(subscribedChannels.values()).some(persist => persist) && (
+            {Array.from(subscribedChannels.values()).some(
+              (persist) => persist,
+            ) && (
               <span className="text-xs text-blue-600 dark:text-blue-400">
                 <Database className="w-3 h-3 inline mr-1" />
                 Persistent
@@ -131,12 +135,14 @@ export function ChannelSubscriber() {
             placeholder="Enter channel name..."
             value={newChannel}
             onChange={(e) => setNewChannel(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleAddChannel()}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddChannel()}
             disabled={!isWebSocketConnected || isSubscribing}
           />
           <Button
             onClick={handleAddChannel}
-            disabled={!isWebSocketConnected || isSubscribing || !newChannel.trim()}
+            disabled={
+              !isWebSocketConnected || isSubscribing || !newChannel.trim()
+            }
           >
             <Plus className="w-4 h-4 mr-2" />
             Subscribe
@@ -150,42 +156,51 @@ export function ChannelSubscriber() {
           <div className="text-center text-muted-foreground py-8">
             <Circle className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p>No active subscriptions</p>
-            <p className="text-sm mt-1">Subscribe to channels to receive real-time messages</p>
+            <p className="text-sm mt-1">
+              Subscribe to channels to receive real-time messages
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
-            {Array.from(subscribedChannels.entries()).sort().map(([channel, persistMessages]) => (
-              <div
-                key={channel}
-                className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
-              >
-                <div className="flex items-center space-x-2 flex-1">
-                  <Radio className="w-4 h-4 text-green-500" />
-                  <span className="font-mono text-sm flex-1">{channel}</span>
-                  {persistMessages && (
-                    <Database className="w-4 h-4 text-blue-500" title="Messages are being persisted" />
-                  )}
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-1">
-                    <span className="text-xs text-muted-foreground">Persist:</span>
-                    <Switch
-                      checked={persistMessages}
-                      onCheckedChange={() => toggleChannelPersistence(channel)}
-                      size="sm"
-                    />
+            {Array.from(subscribedChannels.entries())
+              .sort((a, b) => a[0].localeCompare(b[0]))
+              .map(([channel, persistMessages]) => (
+                <div
+                  key={channel}
+                  className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
+                >
+                  <div className="flex items-center space-x-2 flex-1">
+                    <Radio className="w-4 h-4 text-green-500" />
+                    <span className="font-mono text-sm flex-1">{channel}</span>
+                    {persistMessages && (
+                      <span title="Messages are being persisted">
+                        <Database className="w-4 h-4 text-blue-500" />
+                      </span>
+                    )}
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleUnsubscribe([channel])}
-                    className="h-8 w-8 p-0"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1">
+                      <span className="text-xs text-muted-foreground">
+                        Persist:
+                      </span>
+                      <Switch
+                        checked={persistMessages}
+                        onCheckedChange={() =>
+                          toggleChannelPersistence(channel)
+                        }
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleUnsubscribe([channel])}
+                      className="h-8 w-8 p-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         )}
       </div>

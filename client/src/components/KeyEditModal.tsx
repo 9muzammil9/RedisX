@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Save, X, Maximize2, Minimize2 } from 'lucide-react';
+import { Maximize2, Minimize2, Save, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 
@@ -40,12 +40,17 @@ export const KeyEditModal: React.FC<KeyEditModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) { return null; }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className={`bg-card border border-border rounded-lg shadow-lg p-6 ${isFullscreen ? 'w-full h-full max-w-none max-h-none m-4 flex flex-col' : 'w-96 max-w-[90vw]'
-        }`}>
+      <div
+        className={`bg-card border border-border rounded-lg shadow-lg p-6 ${
+          isFullscreen
+            ? 'w-full h-full max-w-none max-h-none m-4 flex flex-col'
+            : 'w-96 max-w-[90vw]'
+        }`}
+      >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">{title}</h3>
           <div className="flex items-center space-x-2">
@@ -55,7 +60,11 @@ export const KeyEditModal: React.FC<KeyEditModalProps> = ({
               onClick={() => setIsFullscreen(!isFullscreen)}
               title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
             >
-              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              {isFullscreen ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
+              )}
             </Button>
             <Button size="sm" variant="ghost" onClick={onClose}>
               <X className="h-4 w-4" />
@@ -63,9 +72,14 @@ export const KeyEditModal: React.FC<KeyEditModalProps> = ({
           </div>
         </div>
 
-        <div className={`space-y-4 ${isFullscreen ? 'flex-1 flex flex-col' : ''}`}>
+        <div
+          className={`space-y-4 ${isFullscreen ? 'flex-1 flex flex-col' : ''}`}
+        >
           <div className={isFullscreen ? 'flex-1 flex flex-col' : ''}>
-            <label htmlFor="key-name-input" className="text-sm font-medium text-muted-foreground block mb-2">
+            <label
+              htmlFor="key-name-input"
+              className="text-sm font-medium text-muted-foreground block mb-2"
+            >
               Key Name
             </label>
             {isFullscreen ? (

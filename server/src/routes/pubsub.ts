@@ -32,7 +32,8 @@ router.get('/channels', async (req, res) => {
     if (error instanceof Error && error.message === 'Connection not found') {
       return res.status(404).json({ error: 'Connection not found' });
     }
-    const message = error instanceof Error ? error.message : 'Failed to get channels';
+    const message =
+      error instanceof Error ? error.message : 'Failed to get channels';
     return res.status(500).json({ error: message });
   }
 });
@@ -51,28 +52,36 @@ router.get('/stats', async (req, res) => {
     if (error instanceof Error && error.message === 'Connection not found') {
       return res.status(404).json({ error: 'Connection not found' });
     }
-    const message = error instanceof Error ? error.message : 'Failed to get stats';
+    const message =
+      error instanceof Error ? error.message : 'Failed to get stats';
     return res.status(500).json({ error: message });
   }
 });
 
 // POST /api/pubsub/publish - Publish a message to a channel
 router.post('/publish', async (req, res) => {
-  const { connectionId, channel, message } = publishMessageSchema.parse(req.body);
+  const { connectionId, channel, message } = publishMessageSchema.parse(
+    req.body,
+  );
 
   try {
-    const subscriberCount = await pubsubService.publishMessage(connectionId, channel, message);
+    const subscriberCount = await pubsubService.publishMessage(
+      connectionId,
+      channel,
+      message,
+    );
 
     return res.json({
       success: true,
       subscriberCount,
-      message: `Message published to ${subscriberCount} subscriber(s)`
+      message: `Message published to ${subscriberCount} subscriber(s)`,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Connection not found') {
       return res.status(404).json({ error: 'Connection not found' });
     }
-    const message = error instanceof Error ? error.message : 'Failed to publish message';
+    const message =
+      error instanceof Error ? error.message : 'Failed to publish message';
     return res.status(500).json({ error: message });
   }
 });

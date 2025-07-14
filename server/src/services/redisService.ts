@@ -2,9 +2,13 @@ import { Redis } from 'ioredis';
 import { RedisKey, RedisValue } from '../types';
 
 export class RedisService {
-  constructor(readonly redis: Redis) { }
+  constructor(readonly redis: Redis) {}
 
-  async getAllKeys(pattern = '*', cursor = '0', count = 100): Promise<{
+  async getAllKeys(
+    pattern = '*',
+    cursor = '0',
+    count = 100,
+  ): Promise<{
     keys: RedisKey[];
     nextCursor: string;
   }> {
@@ -13,7 +17,7 @@ export class RedisService {
       'MATCH',
       pattern,
       'COUNT',
-      count
+      count,
     );
 
     const keys: RedisKey[] = await Promise.all(
@@ -28,7 +32,7 @@ export class RedisService {
           type,
           ttl,
         };
-      })
+      }),
     );
 
     return { keys, nextCursor };
@@ -59,7 +63,7 @@ export class RedisService {
         for (let i = 0; i < zsetData.length; i += 2) {
           value.push({
             member: zsetData[i],
-            score: parseFloat(zsetData[i + 1])
+            score: parseFloat(zsetData[i + 1]),
           });
         }
         break;
@@ -78,15 +82,16 @@ export class RedisService {
   }
 
   private async setStringValue(key: string, value: any): Promise<void> {
-    const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+    const stringValue =
+      typeof value === 'string' ? value : JSON.stringify(value);
     await this.redis.set(key, stringValue);
   }
 
   private async setListValue(key: string, value: any): Promise<void> {
     await this.redis.del(key);
     if (Array.isArray(value) && value.length > 0) {
-      const stringValues = value.map(item =>
-        typeof item === 'string' ? item : JSON.stringify(item)
+      const stringValues = value.map((item) =>
+        typeof item === 'string' ? item : JSON.stringify(item),
       );
       await this.redis.rpush(key, ...stringValues);
     }
@@ -95,8 +100,8 @@ export class RedisService {
   private async setSetValue(key: string, value: any): Promise<void> {
     await this.redis.del(key);
     if (Array.isArray(value) && value.length > 0) {
-      const stringValues = value.map(item =>
-        typeof item === 'string' ? item : JSON.stringify(item)
+      const stringValues = value.map((item) =>
+        typeof item === 'string' ? item : JSON.stringify(item),
       );
       await this.redis.sadd(key, ...stringValues);
     }
@@ -119,7 +124,10 @@ export class RedisService {
       const flatArgs: (string | number)[] = [];
       for (const item of value) {
         if (typeof item === 'object' && 'score' in item && 'member' in item) {
-          const memberString = typeof item.member === 'string' ? item.member : JSON.stringify(item.member);
+          const memberString =
+            typeof item.member === 'string'
+              ? item.member
+              : JSON.stringify(item.member);
           flatArgs.push(item.score, memberString);
         }
       }
@@ -129,7 +137,12 @@ export class RedisService {
     }
   }
 
-  async setValue(key: string, value: any, type: string, ttl?: number): Promise<void> {
+  async setValue(
+    key: string,
+    value: any,
+    type: string,
+    ttl?: number,
+  ): Promise<void> {
     switch (type) {
       case 'string':
         await this.setStringValue(key, value);
@@ -156,7 +169,9 @@ export class RedisService {
   }
 
   async deleteKeys(keys: string[]): Promise<number> {
-    if (keys.length === 0) return 0;
+    if (keys.length === 0) {
+      return 0;
+    }
     return await this.redis.del(...keys);
   }
 

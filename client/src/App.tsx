@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { Header } from './components/Header';
 import { ConnectionList } from './components/ConnectionList';
+import { Header } from './components/Header';
 import { KeyList } from './components/KeyList';
-import { ValueEditor } from './components/ValueEditor';
-import { PubSubPanel } from './components/PubSubPanel';
 import { LocalInstances } from './components/LocalInstances';
-import { useStore } from './store/useStore';
+import { PubSubPanel } from './components/PubSubPanel';
+import { ValueEditor } from './components/ValueEditor';
 import { useConnectionRestore } from './hooks/useConnectionRestore';
+import { useStore } from './store/useStore';
 
 const queryClient = new QueryClient();
 
@@ -30,7 +30,9 @@ const saveActiveTab = (tab: RightPanelTab) => {
 const loadActiveTab = (): RightPanelTab => {
   try {
     const saved = localStorage.getItem('redisx-active-tab');
-    return (saved === 'keys' || saved === 'pubsub' || saved === 'instances') ? saved : 'keys';
+    return saved === 'keys' || saved === 'pubsub' || saved === 'instances'
+      ? saved
+      : 'keys';
   } catch (error) {
     console.error('Failed to load active tab:', error);
     return 'keys';
@@ -61,8 +63,10 @@ function App() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [forceEditMode, setForceEditMode] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [activeRightTab, setActiveRightTab] = useState<RightPanelTab>(loadActiveTab());
-  const [keysPanelWidth, setKeysPanelWidth] = useState<number>(loadKeysPanelWidth());
+  const [activeRightTab, setActiveRightTab] =
+    useState<RightPanelTab>(loadActiveTab());
+  const [keysPanelWidth, setKeysPanelWidth] =
+    useState<number>(loadKeysPanelWidth());
   const [isResizing, setIsResizing] = useState(false);
   const { theme, showConnectionsPanel, initializeFromDatabase } = useStore();
 
@@ -79,7 +83,7 @@ function App() {
     setSelectedKey(key);
     setForceEditMode(false); // Reset edit mode when selecting normally
     // Always trigger a refresh, even if the same key is selected
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
     // Automatically switch to Keys & Values tab when a key is selected
     if (activeRightTab !== 'keys') {
       handleTabChange('keys');
@@ -120,7 +124,7 @@ function App() {
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
+      if (!isResizing) { return; }
 
       const connectionsPanelWidth = showConnectionsPanel ? 256 : 0; // w-64 = 256px
       const minWidth = 350; // Minimum width for keys panel to accommodate buttons and content
@@ -180,20 +184,31 @@ function App() {
               className="border-r border-border relative"
               style={{ width: keysPanelWidth }}
             >
-              <KeyList onKeySelect={handleKeySelect} onKeySelectForEdit={handleKeySelectForEdit} onKeyDeleted={handleKeyDeleted} />
+              <KeyList
+                onKeySelect={handleKeySelect}
+                onKeySelectForEdit={handleKeySelectForEdit}
+                onKeyDeleted={handleKeyDeleted}
+              />
 
               {/* Resize Handle */}
               <button
                 type="button"
                 aria-label="Resize keys panel"
-                className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors focus:outline-none focus:bg-primary/40 border-0 bg-transparent ${isResizing ? 'bg-primary/30' : ''
-                  }`}
+                className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors focus:outline-none focus:bg-primary/40 border-0 bg-transparent ${
+                  isResizing ? 'bg-primary/30' : ''
+                }`}
                 onMouseDown={handleMouseDown}
                 onKeyDown={(e) => {
                   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                     e.preventDefault();
                     const direction = e.key === 'ArrowLeft' ? -10 : 10;
-                    const newWidth = Math.max(350, Math.min(window.innerWidth * 0.6, keysPanelWidth + direction));
+                    const newWidth = Math.max(
+                      350,
+                      Math.min(
+                        window.innerWidth * 0.6,
+                        keysPanelWidth + direction,
+                      ),
+                    );
                     setKeysPanelWidth(newWidth);
                   }
                 }}
@@ -207,28 +222,31 @@ function App() {
               <div className="border-b border-border">
                 <div className="flex">
                   <button
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeRightTab === 'keys'
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                      activeRightTab === 'keys'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-muted-foreground hover:text-foreground'
-                      }`}
+                    }`}
                     onClick={() => handleTabChange('keys')}
                   >
                     Keys & Values
                   </button>
                   <button
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeRightTab === 'pubsub'
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                      activeRightTab === 'pubsub'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-muted-foreground hover:text-foreground'
-                      }`}
+                    }`}
                     onClick={() => handleTabChange('pubsub')}
                   >
                     Pub/Sub
                   </button>
                   <button
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeRightTab === 'instances'
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                      activeRightTab === 'instances'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-muted-foreground hover:text-foreground'
-                      }`}
+                    }`}
                     onClick={() => handleTabChange('instances')}
                   >
                     Local Instances

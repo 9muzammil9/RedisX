@@ -1,15 +1,21 @@
+import { HardDrive, Plus, RefreshCw, Server, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { Plus, Trash2, Server, RefreshCw, HardDrive } from 'lucide-react';
-import { Button } from './ui/Button';
-import { useStore } from '../store/useStore';
-import { ConnectionModal } from './ConnectionModal';
-import { ConfirmationModal } from './ConfirmationModal';
-import { connectionsApi } from '../services/api';
 import toast from 'react-hot-toast';
+import { connectionsApi } from '../services/api';
+import { useStore } from '../store/useStore';
 import { cn } from '../utils/cn';
+import { ConfirmationModal } from './ConfirmationModal';
+import { ConnectionModal } from './ConnectionModal';
+import { Button } from './ui/Button';
 
 export const ConnectionList: React.FC = () => {
-  const { connections, activeConnectionId, setActiveConnection, removeConnection, addConnection, refreshActiveConnection } = useStore();
+  const {
+    connections,
+    activeConnectionId,
+    setActiveConnection,
+    removeConnection,
+    refreshActiveConnection,
+  } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<any>(null);
   const [reconnectingId, setReconnectingId] = useState<string | null>(null);
@@ -39,7 +45,7 @@ export const ConnectionList: React.FC = () => {
   };
 
   const handleConfirmDelete = async () => {
-    if (!deleteConfirmation.connectionId) return;
+    if (!deleteConfirmation.connectionId) { return; }
 
     try {
       await connectionsApi.delete(deleteConfirmation.connectionId);
@@ -85,11 +91,20 @@ export const ConnectionList: React.FC = () => {
     } catch (error: any) {
       // Check if it's a local instance connection
       if (connection.name.startsWith('Local -')) {
-        toast.error('Local instance is not running. Please start it from the Local Instances tab.');
-      } else if (error.response?.data?.message?.includes('NOAUTH') || error.message?.includes('NOAUTH')) {
-        toast.error(`Authentication required for ${connection.name}. Please re-enter password.`);
+        toast.error(
+          'Local instance is not running. Please start it from the Local Instances tab.',
+        );
+      } else if (
+        error.response?.data?.message?.includes('NOAUTH') ||
+        error.message?.includes('NOAUTH')
+      ) {
+        toast.error(
+          `Authentication required for ${connection.name}. Please re-enter password.`,
+        );
       } else {
-        toast.error(`Reconnection failed for ${connection.name}. Please check connection details.`);
+        toast.error(
+          `Reconnection failed for ${connection.name}. Please check connection details.`,
+        );
       }
       // Only open modal for non-local instance connections
       if (!connection.name.startsWith('Local -')) {
@@ -141,7 +156,7 @@ export const ConnectionList: React.FC = () => {
                 'flex items-center justify-between p-3 rounded-md cursor-pointer transition-colors',
                 isConnected(connection.id)
                   ? 'bg-accent text-accent-foreground'
-                  : 'hover:bg-accent/50 opacity-70'
+                  : 'hover:bg-accent/50 opacity-70',
               )}
               onClick={() => {
                 if (isConnected(connection.id)) {
@@ -149,22 +164,36 @@ export const ConnectionList: React.FC = () => {
                   refreshActiveConnection();
                 } else {
                   // Try to reconnect if clicking on a disconnected connection
-                  handleReconnect(connection, { stopPropagation: () => { } } as React.MouseEvent);
+                  handleReconnect(connection, {
+                    stopPropagation: () => {},
+                  } as React.MouseEvent);
                 }
               }}
             >
               <div className="flex items-center space-x-2">
                 {connection.name.startsWith('Local -') ? (
-                  <HardDrive
-                    className={cn("h-4 w-4", isConnected(connection.id) ? "text-green-500" : "text-gray-400")}
-                    title="Local instance"
-                  />
+                  <span title="Local instance">
+                    <HardDrive
+                      className={cn(
+                        'h-4 w-4',
+                        isConnected(connection.id)
+                          ? 'text-green-500'
+                          : 'text-gray-400',
+                      )}
+                    />
+                  </span>
                 ) : (
-                  <Server
-                    className={cn("h-4 w-4 cursor-pointer hover:opacity-70", isConnected(connection.id) ? "text-green-500" : "text-gray-400")}
-                    onClick={(e) => handleEditClick(connection, e)}
-                    title="Edit connection"
-                  />
+                  <span title="Edit connection">
+                    <Server
+                      className={cn(
+                        'h-4 w-4 cursor-pointer hover:opacity-70',
+                        isConnected(connection.id)
+                          ? 'text-green-500'
+                          : 'text-gray-400',
+                      )}
+                      onClick={(e) => handleEditClick(connection, e)}
+                    />
+                  </span>
                 )}
                 <div>
                   <p className="text-sm font-medium">{connection.name}</p>
@@ -173,7 +202,9 @@ export const ConnectionList: React.FC = () => {
                   </p>
                   {!isConnected(connection.id) && (
                     <p className="text-xs text-orange-500">
-                      {connection.name.startsWith('Local -') ? 'Instance stopped' : 'Disconnected'}
+                      {connection.name.startsWith('Local -')
+                        ? 'Instance stopped'
+                        : 'Disconnected'}
                     </p>
                   )}
                 </div>
@@ -186,9 +217,18 @@ export const ConnectionList: React.FC = () => {
                   onClick={(e) => handleReconnect(connection, e)}
                   className="h-10 w-10 p-0"
                   disabled={reconnectingId === connection.id}
-                  title={isConnected(connection.id) ? "Refresh connection" : "Reconnect"}
+                  title={
+                    isConnected(connection.id)
+                      ? 'Refresh connection'
+                      : 'Reconnect'
+                  }
                 >
-                  <RefreshCw className={cn("h-5 w-5", reconnectingId === connection.id && "animate-spin")} />
+                  <RefreshCw
+                    className={cn(
+                      'h-5 w-5',
+                      reconnectingId === connection.id && 'animate-spin',
+                    )}
+                  />
                 </Button>
                 <Button
                   size="sm"
@@ -215,7 +255,13 @@ export const ConnectionList: React.FC = () => {
 
       <ConfirmationModal
         isOpen={deleteConfirmation.isOpen}
-        onClose={() => setDeleteConfirmation({ isOpen: false, connectionId: null, connectionName: null })}
+        onClose={() =>
+          setDeleteConfirmation({
+            isOpen: false,
+            connectionId: null,
+            connectionName: null,
+          })
+        }
         onConfirm={handleConfirmDelete}
         title="Delete Connection"
         message={`Are you sure you want to delete the connection "${deleteConfirmation.connectionName}"? This action cannot be undone.`}

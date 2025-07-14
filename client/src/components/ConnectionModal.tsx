@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
+import React, { useState } from 'react';
+import toast from 'react-hot-toast';
+import { connectionsApi } from '../services/api';
+import { useStore } from '../store/useStore';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
-import { useStore } from '../store/useStore';
-import { connectionsApi } from '../services/api';
-import toast from 'react-hot-toast';
 
 interface ConnectionModalProps {
   isOpen: boolean;
@@ -13,7 +13,11 @@ interface ConnectionModalProps {
   editingConnection?: any;
 }
 
-export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClose, editingConnection }) => {
+export const ConnectionModal: React.FC<ConnectionModalProps> = ({
+  isOpen,
+  onClose,
+  editingConnection,
+}) => {
   const { addConnection, setActiveConnection, removeConnection } = useStore();
   const [formData, setFormData] = useState({
     name: '',
@@ -63,7 +67,9 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
           name: formData.name,
           host: formData.host,
           port: parseInt(formData.port),
-          password: keepExistingPassword ? editingConnection.password : (formData.password || undefined),
+          password: keepExistingPassword
+            ? editingConnection.password
+            : formData.password || undefined,
           db: formData.db ? parseInt(formData.db) : undefined,
           username: formData.username || undefined,
           tls: formData.tls,
@@ -93,7 +99,10 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
 
       onClose();
     } catch (error) {
-      toast.error(editingConnection ? 'Failed to update connection' : 'Failed to connect');
+      console.error('Connection error:', error);
+      toast.error(
+        editingConnection ? 'Failed to update connection' : 'Failed to connect',
+      );
     }
   };
 
@@ -112,40 +121,49 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Connection Name</label>
+              <label htmlFor="connection-name" className="text-sm font-medium">Connection Name</label>
               <Input
+                id="connection-name"
                 required
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder="My Redis Server"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Host</label>
+                <label htmlFor="host" className="text-sm font-medium">Host</label>
                 <Input
+                  id="host"
                   required
                   value={formData.host}
-                  onChange={(e) => setFormData({ ...formData, host: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, host: e.target.value })
+                  }
                   placeholder="localhost"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium">Port</label>
+                <label htmlFor="port" className="text-sm font-medium">Port</label>
                 <Input
+                  id="port"
                   required
                   type="number"
                   value={formData.port}
-                  onChange={(e) => setFormData({ ...formData, port: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, port: e.target.value })
+                  }
                   placeholder="6379"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-sm font-medium">Password (optional)</label>
+              <label htmlFor="password" className="text-sm font-medium">Password (optional)</label>
               {editingConnection && (
                 <div className="flex items-center space-x-2 mb-2">
                   <input
@@ -160,36 +178,54 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
                     }}
                     className="rounded border-gray-300"
                   />
-                  <label htmlFor="keepPassword" className="text-sm text-muted-foreground">
+                  <label
+                    htmlFor="keepPassword"
+                    className="text-sm text-muted-foreground"
+                  >
                     Keep existing password
                   </label>
                 </div>
               )}
               <Input
+                id="password"
                 type="password"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder={editingConnection && keepExistingPassword ? "Using existing password" : "Password"}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                placeholder={
+                  editingConnection && keepExistingPassword
+                    ? 'Using existing password'
+                    : 'Password'
+                }
                 disabled={editingConnection && keepExistingPassword}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Username (optional)</label>
+                <label htmlFor="username" className="text-sm font-medium">
+                  Username (optional)
+                </label>
                 <Input
+                  id="username"
                   value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
                   placeholder="Username"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium">Database</label>
+                <label htmlFor="database" className="text-sm font-medium">Database</label>
                 <Input
+                  id="database"
                   type="number"
                   value={formData.db}
-                  onChange={(e) => setFormData({ ...formData, db: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, db: e.target.value })
+                  }
                   placeholder="0"
                 />
               </div>
@@ -200,7 +236,9 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
                 type="checkbox"
                 id="tls"
                 checked={formData.tls}
-                onChange={(e) => setFormData({ ...formData, tls: e.target.checked })}
+                onChange={(e) =>
+                  setFormData({ ...formData, tls: e.target.checked })
+                }
                 className="rounded border-gray-300"
               />
               <label htmlFor="tls" className="text-sm font-medium">

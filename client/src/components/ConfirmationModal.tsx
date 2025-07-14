@@ -1,6 +1,6 @@
-import React from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { AlertTriangle } from 'lucide-react';
+import React from 'react';
 import { Button } from './ui/Button';
 
 interface ConfirmationModalProps {
@@ -44,14 +44,11 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           </div>
 
           <div className="flex justify-end space-x-2 mt-6">
-            <Button
-              variant="secondary"
-              onClick={onClose}
-            >
+            <Button variant="secondary" onClick={onClose}>
               {cancelText}
             </Button>
             <Button
-              variant={isDestructive ? "destructive" : "default"}
+              variant={isDestructive ? 'destructive' : 'primary'}
               onClick={() => {
                 onConfirm();
                 onClose();

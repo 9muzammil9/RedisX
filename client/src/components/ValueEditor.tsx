@@ -1,15 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Save, X, Clock, Eye, Code, Maximize2, Minimize2, List, Pencil } from 'lucide-react';
+import {
+  Clock,
+  Code,
+  Eye,
+  List,
+  Maximize2,
+  Minimize2,
+  Pencil,
+  Save,
+  X,
+} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { JsonView } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
+import { keysApi } from '../services/api';
+import { useStore } from '../store/useStore';
+import { RedisValue } from '../types';
 import { ArrayObjectViewer } from './ArrayObjectViewer';
 import { KeyEditModal } from './KeyEditModal';
-import { useStore } from '../store/useStore';
-import { keysApi } from '../services/api';
-import { RedisValue } from '../types';
-import toast from 'react-hot-toast';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
 
 interface ValueEditorProps {
   selectedKey: string | null;
@@ -20,7 +30,12 @@ interface ValueEditorProps {
 
 type ViewMode = 'raw' | 'json' | 'formatted' | 'editor';
 
-export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEditMode, onForceEditModeUsed, refreshTrigger }) => {
+export const ValueEditor: React.FC<ValueEditorProps> = ({
+  selectedKey,
+  forceEditMode,
+  onForceEditModeUsed,
+  refreshTrigger,
+}) => {
   const { activeConnectionId, theme } = useStore();
   const [value, setValue] = useState<RedisValue | null>(null);
   const [editedValue, setEditedValue] = useState<string>('');
@@ -54,27 +69,57 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
       allElements.forEach((element: any) => {
         // Check if element is inside a json-tree-container but exclude checkboxes and buttons
         const isInsideJsonContainer = element.closest('.json-tree-container');
-        const isCheckboxOrChild = element.closest('[role="checkbox"]') ||
+        const isCheckboxOrChild =
+          element.closest('[role="checkbox"]') ||
           element.hasAttribute('data-state') ||
           element.getAttribute('role') === 'checkbox' ||
           element.parentElement?.getAttribute('role') === 'checkbox';
-        const isButton = element.tagName === 'BUTTON' || element.closest('button');
-        const isInsideModal = element.closest('.fixed.inset-0') || element.closest('[role="dialog"]') || element.closest('.z-50');
+        const isButton =
+          element.tagName === 'BUTTON' || element.closest('button');
+        const isInsideModal =
+          element.closest('.fixed.inset-0') ||
+          element.closest('[role="dialog"]') ||
+          element.closest('.z-50');
 
-        if (isInsideJsonContainer && !isCheckboxOrChild && !isButton && !isInsideModal) {
+        if (
+          isInsideJsonContainer &&
+          !isCheckboxOrChild &&
+          !isButton &&
+          !isInsideModal
+        ) {
           if (theme === 'dark') {
-            element.style.setProperty('background-color', 'transparent', 'important');
+            element.style.setProperty(
+              'background-color',
+              'transparent',
+              'important',
+            );
             element.style.setProperty('color', '#ffffff', 'important');
             element.style.setProperty('background', 'transparent', 'important');
             element.style.setProperty('fill', '#ffffff', 'important');
             element.style.setProperty('stroke', '#ffffff', 'important');
           } else {
             // Light mode - force transparent background like dark mode
-            element.style.setProperty('background-color', 'transparent', 'important');
+            element.style.setProperty(
+              'background-color',
+              'transparent',
+              'important',
+            );
             element.style.setProperty('background', 'transparent', 'important');
-            element.style.setProperty('color', 'hsl(var(--foreground))', 'important');
-            element.style.setProperty('fill', 'hsl(var(--foreground))', 'important');
-            element.style.setProperty('stroke', 'hsl(var(--foreground))', 'important');
+            element.style.setProperty(
+              'color',
+              'hsl(var(--foreground))',
+              'important',
+            );
+            element.style.setProperty(
+              'fill',
+              'hsl(var(--foreground))',
+              'important',
+            );
+            element.style.setProperty(
+              'stroke',
+              'hsl(var(--foreground))',
+              'important',
+            );
           }
         }
       });
@@ -93,7 +138,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['style', 'class']
+      attributeFilter: ['style', 'class'],
     });
 
     return () => {
@@ -102,9 +147,33 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
     };
   }, [theme, value, viewMode]);
 
+  const selectInitialViewMode = (data: any) => {
+    if (data.type === 'list') {
+      return 'editor';
+    }
+    if (data.type === 'hash') {
+      return shouldUseJsonView(data.value, data.type) ? 'json' : 'editor';
+    }
+    if (data.type === 'zset') {
+      return 'editor';
+    }
+    return shouldUseJsonView(data.value, data.type) ? 'json' : 'formatted';
+  };
+
+  const handleFetchError = (error: any) => {
+    if (
+      error.response?.status === 404 ||
+      error.message?.includes('not found')
+    ) {
+      setValue(null);
+      toast.error(`Key "${selectedKey}" not found`);
+    } else {
+      toast.error('Failed to fetch value');
+    }
+  };
 
   const fetchValue = async (resetViewMode = true) => {
-    if (!selectedKey || !activeConnectionId) return;
+    if (!selectedKey || !activeConnectionId) { return; }
 
     setLoading(true);
     try {
@@ -120,31 +189,10 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
 
       // Only auto-select view mode on initial load or when explicitly requested
       if (resetViewMode) {
-        if (data.type === 'list') {
-          // Always default to editor/list view for Redis lists
-          setViewMode('editor');
-        } else if (data.type === 'hash') {
-          // For hashes, prefer editor mode but still allow tree view for complex data
-          if (shouldUseJsonView(data.value, data.type)) {
-            setViewMode('json'); // Tree view for complex nested data
-          } else {
-            setViewMode('editor'); // Editor for simple hashes
-          }
-        } else if (data.type === 'zset') {
-          // Always default to editor view for Redis sorted sets
-          setViewMode('editor');
-        } else {
-          setViewMode(shouldUseJsonView(data.value, data.type) ? 'json' : 'formatted');
-        }
+        setViewMode(selectInitialViewMode(data));
       }
     } catch (error: any) {
-      // Check if it's a key not found error
-      if (error.response?.status === 404 || error.message?.includes('not found')) {
-        setValue(null);
-        toast.error(`Key "${selectedKey}" not found`);
-      } else {
-        toast.error('Failed to fetch value');
-      }
+      handleFetchError(error);
     } finally {
       setLoading(false);
     }
@@ -160,13 +208,16 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
       }
     }
     if (type === 'list' && Array.isArray(val)) {
-      return val.length > 5 || val.some(item => {
-        try {
-          return typeof JSON.parse(item) === 'object';
-        } catch {
-          return false;
-        }
-      });
+      return (
+        val.length > 5 ||
+        val.some((item) => {
+          try {
+            return typeof JSON.parse(item) === 'object';
+          } catch {
+            return false;
+          }
+        })
+      );
     }
     if (type === 'hash' && typeof val === 'object') {
       return Object.keys(val).length > 5;
@@ -236,7 +287,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
       case 'list':
       case 'set':
         return val.split('\n').filter((line) => line.trim());
-      case 'hash':
+      case 'hash': {
         const hash: Record<string, string> = {};
         val.split('\n').forEach((line) => {
           const [key, ...valueParts] = line.split(':');
@@ -245,13 +296,14 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
           }
         });
         return hash;
+      }
       default:
         return val;
     }
   };
 
   const handleSave = async () => {
-    if (!value || !activeConnectionId) return;
+    if (!value || !activeConnectionId) { return; }
 
     try {
       const parsedValue = parseEditedValue(editedValue, value.type);
@@ -262,19 +314,20 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
         value.key,
         parsedValue,
         value.type,
-        parsedTtl
+        parsedTtl,
       );
 
       toast.success('Value updated successfully');
       setIsEditing(false);
       fetchValue(false); // Don't reset view mode after saving
     } catch (error) {
+      console.error('Failed to update value:', error);
       toast.error('Failed to update value');
     }
   };
 
   const handleArrayObjectUpdate = async (newData: any) => {
-    if (!value || !activeConnectionId) return;
+    if (!value || !activeConnectionId) { return; }
 
     try {
       await keysApi.setValue(
@@ -282,18 +335,21 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
         value.key,
         newData,
         value.type,
-        value.ttl > 0 ? value.ttl : undefined
+        value.ttl > 0 ? value.ttl : undefined,
       );
 
       toast.success('Value updated successfully');
       fetchValue(false); // Refresh the data without resetting view mode
     } catch (error) {
+      console.error('Failed to update array/object value:', error);
       toast.error('Failed to update value');
     }
   };
 
   const handleKeyRename = async (newKey: string) => {
-    if (!value || !activeConnectionId || !newKey.trim() || newKey === value.key) return;
+    if (!value || !activeConnectionId || !newKey.trim() || newKey === value.key){
+      return;
+    }
 
     try {
       // First, get the current value and TTL
@@ -305,7 +361,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
         newKey,
         currentData.value,
         currentData.type,
-        currentData.ttl > 0 ? currentData.ttl : undefined
+        currentData.ttl > 0 ? currentData.ttl : undefined,
       );
 
       // Delete the old key
@@ -317,6 +373,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
       // Refresh the key list and navigate to the new key
       window.location.reload(); // This will refresh the entire app to update the key list
     } catch (error) {
+      console.error('Failed to rename key:', error);
       toast.error('Failed to rename key');
     }
   };
@@ -324,13 +381,13 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
   const getValueSize = (val: any, type: string): string => {
     const str = formatValueForDisplay(val, type);
     const bytes = new Blob([str]).size;
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024) { return `${bytes} B`; }
+    if (bytes < 1024 * 1024) { return `${(bytes / 1024).toFixed(1)} KB`; }
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const truncateKey = (key: string, maxLength: number = 30): string => {
-    if (key.length <= maxLength) return key;
+    if (key.length <= maxLength) { return key; }
     return key.substring(0, maxLength) + '...';
   };
 
@@ -361,10 +418,31 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
 
   const jsonData = parseValueForJsonView(value.value, value.type);
   const canShowJson = shouldUseJsonView(value.value, value.type);
-  const canShowEditor = value.type === 'list' || value.type === 'hash' || value.type === 'zset';
+  const canShowEditor =
+    value.type === 'list' || value.type === 'hash' || value.type === 'zset';
+
+  // Helper functions to avoid nested ternary operations
+  const getBackgroundColor = () => {
+    return theme === 'dark' ? 'bg-muted/30' : 'bg-background';
+  };
+
+  const getJsonThemeClass = () => {
+    return theme === 'dark' ? 'dark-theme' : 'light-theme';
+  };
+
+  const getJsonThemeStyle = () => {
+    return theme === 'dark'
+      ? {
+          backgroundColor: 'transparent',
+          color: '#ffffff',
+        }
+      : {};
+  };
 
   return (
-    <div className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'flex-1'} min-h-0`}>
+    <div
+      className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'flex-1'} min-h-0`}
+    >
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-4">
           <div className="flex-1 min-w-0">
@@ -392,10 +470,14 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
               <span>Type: {value.type}</span>
               <span>Size: {getValueSize(value.value, value.type)}</span>
-              {Array.isArray(value.value) && <span>Items: {value.value.length}</span>}
-              {typeof value.value === 'object' && value.value && !Array.isArray(value.value) && (
-                <span>Fields: {Object.keys(value.value).length}</span>
+              {Array.isArray(value.value) && (
+                <span>Items: {value.value.length}</span>
               )}
+              {typeof value.value === 'object' &&
+                value.value &&
+                !Array.isArray(value.value) && (
+                  <span>Fields: {Object.keys(value.value).length}</span>
+                )}
             </div>
           </div>
           <div className="flex items-center space-x-2 flex-shrink-0">
@@ -407,7 +489,11 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
                   variant="ghost"
                   onClick={() => setIsFullscreen(!isFullscreen)}
                 >
-                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  {isFullscreen ? (
+                    <Minimize2 className="h-4 w-4" />
+                  ) : (
+                    <Maximize2 className="h-4 w-4" />
+                  )}
                 </Button>
 
                 <div className="flex border border-border rounded-md">
@@ -504,64 +590,85 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({ selectedKey, forceEdit
             />
           </div>
         ) : (
-          <div className={`h-full overflow-auto min-w-0 ${theme === 'dark' ? 'bg-muted/30' : 'bg-background'}`}>
-            {viewMode === 'raw' ? (
-              <div className="h-full flex flex-col">
-                <div className="p-2 text-xs text-muted-foreground border-b flex-shrink-0">Raw JSON View</div>
-                <div className="flex-1 overflow-auto min-w-0">
-                  <pre className="p-4 font-mono text-sm whitespace-pre-wrap break-all overflow-wrap-anywhere bg-transparent w-full">
-                    {JSON.stringify(value.value, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            ) : viewMode === 'formatted' ? (
-              <div className="h-full flex flex-col">
-                <div className="p-2 text-xs text-muted-foreground border-b flex-shrink-0">Formatted View</div>
-                <div className="flex-1 overflow-auto min-w-0">
-                  <pre className="p-4 font-mono text-sm whitespace-pre-wrap break-all overflow-wrap-anywhere bg-transparent w-full">
-                    {formatValueForDisplay(value.value, value.type)}
-                  </pre>
-                </div>
-              </div>
-            ) : viewMode === 'json' && canShowJson ? (
-              <div className="h-full flex flex-col">
-                <div className="p-2 text-xs text-muted-foreground border-b flex-shrink-0">Tree View</div>
-                <div className="flex-1 overflow-auto min-w-0">
-                  <div className="p-4" ref={jsonViewRef}>
+          <div
+            className={`h-full overflow-auto min-w-0 ${getBackgroundColor()}`}
+          >
+            {(() => {
+              if (viewMode === 'raw') {
+                return (
+                  <div className="h-full flex flex-col">
+                    <div className="p-2 text-xs text-muted-foreground border-b flex-shrink-0">
+                      Raw JSON View
+                    </div>
+                    <div className="flex-1 overflow-auto min-w-0">
+                      <pre className="p-4 font-mono text-sm whitespace-pre-wrap break-all overflow-wrap-anywhere bg-transparent w-full">
+                        {JSON.stringify(value.value, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                );
+              }
+              if (viewMode === 'formatted') {
+                return (
+                  <div className="h-full flex flex-col">
+                    <div className="p-2 text-xs text-muted-foreground border-b flex-shrink-0">
+                      Formatted View
+                    </div>
+                    <div className="flex-1 overflow-auto min-w-0">
+                      <pre className="p-4 font-mono text-sm whitespace-pre-wrap break-all overflow-wrap-anywhere bg-transparent w-full">
+                        {formatValueForDisplay(value.value, value.type)}
+                      </pre>
+                    </div>
+                  </div>
+                );
+              }
+              if (viewMode === 'json' && canShowJson) {
+                return (
+                  <div className="h-full flex flex-col">
+                    <div className="p-2 text-xs text-muted-foreground border-b flex-shrink-0">
+                      Tree View
+                    </div>
+                    <div className="flex-1 overflow-auto min-w-0">
+                      <div className="p-4" ref={jsonViewRef}>
+                        <div
+                          className={`json-tree-container ${getJsonThemeClass()}`}
+                          style={getJsonThemeStyle()}
+                        >
+                          <JsonView data={jsonData} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              if (viewMode === 'editor' && canShowEditor) {
+                return (
+                  <div className="h-full p-4" ref={jsonViewRef}>
                     <div
-                      className={`json-tree-container ${theme === 'dark' ? 'dark-theme' : 'light-theme'}`}
-                      style={theme === 'dark' ? {
-                        backgroundColor: 'transparent',
-                        color: '#ffffff'
-                      } : {}}
+                      className={`json-tree-container ${getJsonThemeClass()}`}
                     >
-                      <JsonView
-                        data={jsonData}
+                      <ArrayObjectViewer
+                        data={value.value}
+                        type={value.type as 'list' | 'hash' | 'zset'}
+                        onUpdate={handleArrayObjectUpdate}
                       />
                     </div>
                   </div>
+                );
+              }
+              return (
+                <div className="h-full flex flex-col">
+                  <div className="p-2 text-xs text-muted-foreground border-b flex-shrink-0">
+                    No view available
+                  </div>
+                  <div className="flex-1 overflow-auto min-w-0">
+                    <pre className="p-4 font-mono text-sm whitespace-pre-wrap break-all overflow-wrap-anywhere bg-transparent w-full">
+                      {formatValueForDisplay(value.value, value.type)}
+                    </pre>
+                  </div>
                 </div>
-              </div>
-            ) : viewMode === 'editor' && canShowEditor ? (
-              <div className="h-full p-4" ref={jsonViewRef}>
-                <div className={`json-tree-container ${theme === 'dark' ? 'dark-theme' : 'light-theme'}`}>
-                  <ArrayObjectViewer
-                    data={value.value}
-                    type={value.type as 'list' | 'hash' | 'zset'}
-                    onUpdate={handleArrayObjectUpdate}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="h-full flex flex-col">
-                <div className="p-2 text-xs text-muted-foreground border-b flex-shrink-0">No view available</div>
-                <div className="flex-1 overflow-auto min-w-0">
-                  <pre className="p-4 font-mono text-sm whitespace-pre-wrap break-all overflow-wrap-anywhere bg-transparent w-full">
-                    {formatValueForDisplay(value.value, value.type)}
-                  </pre>
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
       </div>
@@ -597,14 +704,13 @@ function formatValueForDisplay(val: any, type: string): string {
       return val || '(empty string)';
     case 'list':
     case 'set':
-      return Array.isArray(val) && val.length > 0
-        ? val.join('\n')
-        : '(empty)';
-    case 'hash':
+      return Array.isArray(val) && val.length > 0 ? val.join('\n') : '(empty)';
+    case 'hash': {
       const entries = Object.entries(val || {});
       return entries.length > 0
         ? entries.map(([k, v]) => `${k}: ${v}`).join('\n')
         : '(empty)';
+    }
     default:
       return JSON.stringify(val, null, 2);
   }

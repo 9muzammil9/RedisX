@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { databaseService } from '../services/database';
 import { z } from 'zod';
+import { databaseService } from '../services/database';
 
 const router = Router();
 
@@ -13,7 +13,7 @@ const connectionSchema = z.object({
   password: z.string().optional(),
   username: z.string().optional(),
   db: z.number().default(0),
-  tls: z.boolean().default(false)
+  tls: z.boolean().default(false),
 });
 
 // Save connection
@@ -23,7 +23,8 @@ router.post('/connections', (req, res) => {
     databaseService.saveConnection(connection);
     res.json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to save connection';
+    const message =
+      error instanceof Error ? error.message : 'Failed to save connection';
     res.status(500).json({ error: message });
   }
 });
@@ -44,7 +45,7 @@ router.delete('/connections/:id', (req, res) => {
 // Subscription persistence
 const subscriptionsSchema = z.object({
   connectionId: z.string(),
-  subscriptions: z.record(z.string(), z.boolean())
+  subscriptions: z.record(z.string(), z.boolean()),
 });
 
 // Save subscriptions
@@ -74,40 +75,59 @@ router.delete('/subscriptions/:connectionId', (req, res) => {
 const messagesSchema = z.object({
   connectionId: z.string(),
   channel: z.string(),
-  messages: z.array(z.object({
-    id: z.string(),
-    channel: z.string(),
-    message: z.string(),
-    timestamp: z.string()
-  })),
-  maxMessages: z.number().optional().default(100)
+  messages: z.array(
+    z.object({
+      id: z.string(),
+      channel: z.string(),
+      message: z.string(),
+      timestamp: z.string(),
+    }),
+  ),
+  maxMessages: z.number().optional().default(100),
 });
 
 // Save channel messages
 router.post('/messages', (req, res) => {
-  const { connectionId, channel, messages, maxMessages } = messagesSchema.parse(req.body);
-  databaseService.saveChannelMessages(connectionId, channel, messages, maxMessages);
+  const { connectionId, channel, messages, maxMessages } = messagesSchema.parse(
+    req.body,
+  );
+  databaseService.saveChannelMessages(
+    connectionId,
+    channel,
+    messages,
+    maxMessages,
+  );
   res.json({ success: true });
 });
 
 // Get channel messages
 router.get('/messages/:connectionId/:channel', (req, res) => {
   const { connectionId, channel } = req.params;
-  const messages = databaseService.getChannelMessages(connectionId, decodeURIComponent(channel));
+  const messages = databaseService.getChannelMessages(
+    connectionId,
+    decodeURIComponent(channel),
+  );
   res.json(messages);
 });
 
 // Delete channel messages
 router.delete('/messages/:connectionId/:channel', (req, res) => {
   const { connectionId, channel } = req.params;
-  databaseService.removeChannelMessages(connectionId, decodeURIComponent(channel));
+  databaseService.removeChannelMessages(
+    connectionId,
+    decodeURIComponent(channel),
+  );
   res.json({ success: true });
 });
 
 // Delete specific message by ID
 router.delete('/messages/:connectionId/:channel/:messageId', (req, res) => {
   const { connectionId, channel, messageId } = req.params;
-  databaseService.removeSpecificMessage(connectionId, decodeURIComponent(channel), messageId);
+  databaseService.removeSpecificMessage(
+    connectionId,
+    decodeURIComponent(channel),
+    messageId,
+  );
   res.json({ success: true });
 });
 
@@ -121,7 +141,7 @@ router.delete('/messages/:connectionId', (req, res) => {
 // App state persistence
 const appStateSchema = z.object({
   key: z.string(),
-  value: z.string()
+  value: z.string(),
 });
 
 // Save app state

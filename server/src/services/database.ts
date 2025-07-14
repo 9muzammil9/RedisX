@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
-import path from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import path from 'path';
 
 export interface ConnectionRecord {
   id: string;
@@ -69,7 +69,7 @@ class DatabaseService {
   }
 
   private initializeTables() {
-    if (this.initialized) return;
+    if (this.initialized) { return; }
 
     // Connections table
     this.db.exec(`
@@ -147,7 +147,9 @@ class DatabaseService {
   }
 
   // Connection methods
-  saveConnection(connection: Omit<ConnectionRecord, 'created_at' | 'updated_at'>): void {
+  saveConnection(
+    connection: Omit<ConnectionRecord, 'created_at' | 'updated_at'>,
+  ): void {
     const now = new Date().toISOString();
     const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO connections 
@@ -166,17 +168,19 @@ class DatabaseService {
       connection.tls ? 1 : 0,
       connection.id,
       now,
-      now
+      now,
     );
   }
 
   getConnections(): ConnectionRecord[] {
-    const stmt = this.db.prepare('SELECT * FROM connections ORDER BY updated_at DESC');
+    const stmt = this.db.prepare(
+      'SELECT * FROM connections ORDER BY updated_at DESC',
+    );
     const rows = stmt.all() as any[];
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       ...row,
-      tls: Boolean(row.tls)
+      tls: Boolean(row.tls),
     }));
   }
 
@@ -186,17 +190,26 @@ class DatabaseService {
   }
 
   // Subscription methods
-  saveSubscriptions(connectionId: string, channels: Map<string, boolean>): void {
+  saveSubscriptions(
+    connectionId: string,
+    channels: Map<string, boolean>,
+  ): void {
     // Check if connection exists first
-    const connectionExists = this.db.prepare('SELECT COUNT(*) as count FROM connections WHERE id = ?').get(connectionId) as { count: number };
+    const connectionExists = this.db
+      .prepare('SELECT COUNT(*) as count FROM connections WHERE id = ?')
+      .get(connectionId) as { count: number };
 
     if (!connectionExists || connectionExists.count === 0) {
-      console.warn(`⚠️ Connection ${connectionId} does not exist in database, skipping subscription save`);
+      console.warn(
+        `⚠️ Connection ${connectionId} does not exist in database, skipping subscription save`,
+      );
       return;
     }
 
     // Start transaction
-    const deleteStmt = this.db.prepare('DELETE FROM subscriptions WHERE connection_id = ?');
+    const deleteStmt = this.db.prepare(
+      'DELETE FROM subscriptions WHERE connection_id = ?',
+    );
     const insertStmt = this.db.prepare(`
       INSERT INTO subscriptions (id, connection_id, channel, persist_messages, created_at)
       VALUES (?, ?, ?, ?, ?)
@@ -218,7 +231,9 @@ class DatabaseService {
   }
 
   getSubscriptions(connectionId: string): Map<string, boolean> {
-    const stmt = this.db.prepare('SELECT channel, persist_messages FROM subscriptions WHERE connection_id = ?');
+    const stmt = this.db.prepare(
+      'SELECT channel, persist_messages FROM subscriptions WHERE connection_id = ?',
+    );
     const rows = stmt.all(connectionId) as any[];
 
     const subscriptions = new Map<string, boolean>();
@@ -230,21 +245,34 @@ class DatabaseService {
   }
 
   removeSubscriptions(connectionId: string): void {
-    const stmt = this.db.prepare('DELETE FROM subscriptions WHERE connection_id = ?');
+    const stmt = this.db.prepare(
+      'DELETE FROM subscriptions WHERE connection_id = ?',
+    );
     stmt.run(connectionId);
   }
 
   // Message methods
-  saveChannelMessages(connectionId: string, channel: string, messages: any[], maxMessages: number = 100): void {
+  saveChannelMessages(
+    connectionId: string,
+    channel: string,
+    messages: any[],
+    maxMessages: number = 100,
+  ): void {
     // Check if connection exists first
-    const connectionExists = this.db.prepare('SELECT COUNT(*) as count FROM connections WHERE id = ?').get(connectionId) as { count: number };
+    const connectionExists = this.db
+      .prepare('SELECT COUNT(*) as count FROM connections WHERE id = ?')
+      .get(connectionId) as { count: number };
 
     if (!connectionExists || connectionExists.count === 0) {
-      console.warn(`⚠️ Connection ${connectionId} does not exist in database, skipping message save`);
+      console.warn(
+        `⚠️ Connection ${connectionId} does not exist in database, skipping message save`,
+      );
       return;
     }
 
-    const deleteStmt = this.db.prepare('DELETE FROM messages WHERE connection_id = ? AND channel = ?');
+    const deleteStmt = this.db.prepare(
+      'DELETE FROM messages WHERE connection_id = ? AND channel = ?',
+    );
     const insertStmt = this.db.prepare(`
       INSERT INTO messages (id, connection_id, channel, message, timestamp, created_at)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -259,7 +287,14 @@ class DatabaseService {
       const messagesToSave = messages.slice(0, maxMessages);
 
       for (const msg of messagesToSave) {
-        insertStmt.run(msg.id, connectionId, channel, msg.message, msg.timestamp, now);
+        insertStmt.run(
+          msg.id,
+          connectionId,
+          channel,
+          msg.message,
+          msg.timestamp,
+          now,
+        );
       }
     });
 
@@ -277,26 +312,39 @@ class DatabaseService {
     return stmt.all(connectionId, channel) as any[];
   }
 
-  removeSpecificMessage(connectionId: string, channel: string, messageId: string): void {
+  removeSpecificMessage(
+    connectionId: string,
+    channel: string,
+    messageId: string,
+  ): void {
     try {
-      const stmt = this.db.prepare('DELETE FROM messages WHERE connection_id = ? AND channel = ? AND id = ?');
+      const stmt = this.db.prepare(
+        'DELETE FROM messages WHERE connection_id = ? AND channel = ? AND id = ?',
+      );
       const result = stmt.run(connectionId, channel, messageId);
 
       if (result.changes > 0) {
         console.log(`🗑️ Deleted message ${messageId} from SQLite`);
       }
     } catch (error) {
-      console.warn(`⚠️ Failed to delete message ${messageId} from SQLite:`, error);
+      console.warn(
+        `⚠️ Failed to delete message ${messageId} from SQLite:`,
+        error,
+      );
     }
   }
 
   removeChannelMessages(connectionId: string, channel: string): void {
-    const stmt = this.db.prepare('DELETE FROM messages WHERE connection_id = ? AND channel = ?');
+    const stmt = this.db.prepare(
+      'DELETE FROM messages WHERE connection_id = ? AND channel = ?',
+    );
     stmt.run(connectionId, channel);
   }
 
   removeConnectionMessages(connectionId: string): void {
-    const stmt = this.db.prepare('DELETE FROM messages WHERE connection_id = ?');
+    const stmt = this.db.prepare(
+      'DELETE FROM messages WHERE connection_id = ?',
+    );
     stmt.run(connectionId);
   }
 
@@ -317,7 +365,9 @@ class DatabaseService {
   }
 
   // Instance methods
-  saveInstance(instance: Omit<InstanceRecord, 'created_at' | 'updated_at'>): void {
+  saveInstance(
+    instance: Omit<InstanceRecord, 'created_at' | 'updated_at'>,
+  ): void {
     const now = new Date().toISOString();
     const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO instances 
@@ -333,17 +383,19 @@ class DatabaseService {
       instance.was_running ? 1 : 0,
       instance.id,
       now,
-      now
+      now,
     );
   }
 
   getInstances(): InstanceRecord[] {
-    const stmt = this.db.prepare('SELECT * FROM instances ORDER BY created_at DESC');
+    const stmt = this.db.prepare(
+      'SELECT * FROM instances ORDER BY created_at DESC',
+    );
     const rows = stmt.all() as any[];
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       ...row,
-      was_running: Boolean(row.was_running)
+      was_running: Boolean(row.was_running),
     }));
   }
 
@@ -351,11 +403,11 @@ class DatabaseService {
     const stmt = this.db.prepare('SELECT * FROM instances WHERE id = ?');
     const row = stmt.get(id) as any;
 
-    if (!row) return null;
+    if (!row) { return null; }
 
     return {
       ...row,
-      was_running: Boolean(row.was_running)
+      was_running: Boolean(row.was_running),
     };
   }
 
@@ -387,7 +439,9 @@ class DatabaseService {
 
   // Cleanup methods
   cleanupOldMessages(maxAge: number = 7): void {
-    const cutoffDate = new Date(Date.now() - maxAge * 24 * 60 * 60 * 1000).toISOString();
+    const cutoffDate = new Date(
+      Date.now() - maxAge * 24 * 60 * 60 * 1000,
+    ).toISOString();
     const stmt = this.db.prepare('DELETE FROM messages WHERE created_at < ?');
     const result = stmt.run(cutoffDate);
 
@@ -401,7 +455,7 @@ class DatabaseService {
     const stmt = this.db.prepare('SELECT value FROM app_state WHERE key = ?');
     const row = stmt.get('default_redis_settings') as any;
 
-    if (!row) return null;
+    if (!row) { return null; }
 
     try {
       return JSON.parse(row.value);
