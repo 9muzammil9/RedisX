@@ -108,10 +108,14 @@ export const LocalInstances: React.FC = () => {
         if (associatedConnection) {
           try {
             await connectionsApi.delete(associatedConnection.id);
-            removeConnection(associatedConnection.id);
-          } catch (error) {
-            console.warn('Failed to remove associated connection - this is non-critical:', error);
+          } catch (error: any) {
+            // Connection might already be removed by backend, ignore 404 errors
+            if (error.response?.status !== 404) {
+              console.warn('Failed to remove associated connection:', error);
+            }
           }
+          // Always remove from frontend state regardless of backend response
+          removeConnection(associatedConnection.id);
         }
       }
 

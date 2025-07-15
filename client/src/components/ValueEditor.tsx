@@ -26,6 +26,7 @@ interface ValueEditorProps {
   forceEditMode?: boolean;
   onForceEditModeUsed?: () => void;
   refreshTrigger?: number;
+  onKeyDeleted?: (key: string) => void;
 }
 
 type ViewMode = 'raw' | 'json' | 'formatted' | 'editor';
@@ -35,6 +36,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   forceEditMode,
   onForceEditModeUsed,
   refreshTrigger,
+  onKeyDeleted,
 }) => {
   const { activeConnectionId, theme } = useStore();
   const [value, setValue] = useState<RedisValue | null>(null);
@@ -330,6 +332,12 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     if (!value || !activeConnectionId) { return; }
 
     try {
+      // Check if the collection will be empty after update
+      const isEmpty = (
+        (Array.isArray(newData) && newData.length === 0) ||
+        (typeof newData === 'object' && !Array.isArray(newData) && Object.keys(newData).length === 0)
+      );
+
       await keysApi.setValue(
         activeConnectionId,
         value.key,
@@ -338,8 +346,15 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
         value.ttl > 0 ? value.ttl : undefined,
       );
 
-      toast.success('Value updated successfully');
-      fetchValue(false); // Refresh the data without resetting view mode
+      if (isEmpty) {
+        // Collection is empty, key should be deleted
+        onKeyDeleted?.(value.key);
+        toast.success('Key deleted (empty collection)');
+      } else {
+        // Collection has data, refresh the view
+        toast.success('Value updated successfully');
+        fetchValue(false);
+      }
     } catch (error) {
       console.error('Failed to update array/object value:', error);
       toast.error('Failed to update value');

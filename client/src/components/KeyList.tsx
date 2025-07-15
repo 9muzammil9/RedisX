@@ -31,12 +31,14 @@ interface KeyListProps {
   onKeySelect: (key: string) => void;
   onKeySelectForEdit?: (key: string) => void;
   onKeyDeleted?: (key: string) => void;
+  deletedKey?: string;
 }
 
 export const KeyList: React.FC<KeyListProps> = ({
   onKeySelect,
   onKeySelectForEdit,
   onKeyDeleted,
+  deletedKey,
 }) => {
   const {
     activeConnectionId,
@@ -186,6 +188,26 @@ export const KeyList: React.FC<KeyListProps> = ({
       clearSelection();
     }
   }, [activeConnectionId]);
+
+  // Remove key from local state when deletedKey prop changes
+  useEffect(() => {
+    if (deletedKey) {
+      setKeys(prevKeys => {
+        const updatedKeys = prevKeys.filter(key => key.key !== deletedKey);
+        
+        // Rebuild tree structure with the updated keys
+        const tree = buildKeyTree(updatedKeys);
+        setKeyTree(tree);
+        
+        return updatedKeys;
+      });
+      
+      // Clear selection if the removed key was selected
+      if (selectedKeys.has(deletedKey)) {
+        toggleKeySelection(deletedKey);
+      }
+    }
+  }, [deletedKey]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

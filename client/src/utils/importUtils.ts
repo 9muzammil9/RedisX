@@ -141,6 +141,104 @@ export const parseJsonImport = (content: string): ParsedImportData => {
 };
 
 /**
+ * Parses CSV header and returns column indices
+ */
+const parseCsvHeader = (headerLine: string): {
+  keyIndex: number;
+  typeIndex: number;
+  valueIndex: number;
+  ttlIndex: number;
+} => {
+  const header = headerLine.split(',').map((h) =>
+    h
+      .trim()
+      .replace(/^"(.*)"$/, '$1')
+      .toLowerCase(),
+  );
+  
+  return {
+    keyIndex: header.indexOf('key'),
+    typeIndex: header.indexOf('type'),
+    valueIndex: header.indexOf('value'),
+    ttlIndex: header.indexOf('ttl'),
+  };
+};
+
+/**
+ * Validates CSV header has required columns
+ */
+const validateCsvHeader = (indices: {
+  keyIndex: number;
+  typeIndex: number;
+  valueIndex: number;
+}): boolean => {
+  return indices.keyIndex !== -1 && indices.typeIndex !== -1 && indices.valueIndex !== -1;
+};
+
+/**
+ * Parses a single CSV data row
+ */
+const parseCsvDataRow = (
+  values: string[],
+  indices: {
+    keyIndex: number;
+    typeIndex: number;
+    valueIndex: number;
+    ttlIndex: number;
+  },
+): { key: ImportKeyData; error?: string } => {
+  const { keyIndex, typeIndex, valueIndex, ttlIndex } = indices;
+  
+  if (values.length <= Math.max(keyIndex, typeIndex, valueIndex)) {
+    return { key: {} as ImportKeyData, error: 'Insufficient columns in row' };
+  }
+
+  const key = values[keyIndex];
+  const type = values[typeIndex] as ImportKeyData['type'];
+  let value = values[valueIndex];
+  const ttl = ttlIndex >= 0 && values[ttlIndex] ? parseInt(values[ttlIndex]) : undefined;
+
+  if (!key || !type || value === undefined) {
+    return { key: {} as ImportKeyData, error: 'Missing required fields (key, type, value)' };
+  }
+
+  // Parse value based on type
+  const parsedValue = parseValueByType(value, type);
+  if (parsedValue.error) {
+    return { key: {} as ImportKeyData, error: parsedValue.error };
+  }
+
+  return {
+    key: {
+      key,
+      value: parsedValue.value,
+      type,
+      ttl: ttl && ttl > 0 ? ttl : undefined,
+    },
+  };
+};
+
+/**
+ * Parses value based on Redis data type
+ */
+const parseValueByType = (
+  value: string,
+  type: ImportKeyData['type'],
+): { value: any; error?: string } => {
+  const complexTypes = ['hash', 'list', 'set', 'zset'];
+  
+  if (complexTypes.includes(type)) {
+    try {
+      return { value: JSON.parse(value) };
+    } catch {
+      return { value: null, error: `Invalid JSON value for type ${type}` };
+    }
+  }
+  
+  return { value };
+};
+
+/**
  * Parses CSV format import data
  */
 export const parseCsvImport = (content: string): ParsedImportData => {
@@ -156,19 +254,9 @@ export const parseCsvImport = (content: string): ParsedImportData => {
     return result;
   }
 
-  // Parse header
-  const header = lines[0].split(',').map((h) =>
-    h
-      .trim()
-      .replace(/^"(.*)"$/, '$1')
-      .toLowerCase(),
-  );
-  const keyIndex = header.indexOf('key');
-  const typeIndex = header.indexOf('type');
-  const valueIndex = header.indexOf('value');
-  const ttlIndex = header.indexOf('ttl');
-
-  if (keyIndex === -1 || typeIndex === -1 || valueIndex === -1) {
+  // Parse and validate header
+  const indices = parseCsvHeader(lines[0]);
+  if (!validateCsvHeader(indices)) {
     result.errors.push({
       line: 1,
       message: 'CSV header must contain "Key", "Type", and "Value" columns',
@@ -179,59 +267,21 @@ export const parseCsvImport = (content: string): ParsedImportData => {
   // Parse data rows
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (!line) { continue; }
+    if (!line) continue;
 
     try {
       const values = parseCsvLine(line);
-
-      if (values.length <= Math.max(keyIndex, typeIndex, valueIndex)) {
+      const parsed = parseCsvDataRow(values, indices);
+      
+      if (parsed.error) {
         result.errors.push({
           line: i + 1,
-          message: 'Insufficient columns in row',
+          message: parsed.error,
         });
         continue;
       }
 
-      const key = values[keyIndex];
-      const type = values[typeIndex] as ImportKeyData['type'];
-      let value = values[valueIndex];
-      const ttl =
-        ttlIndex >= 0 && values[ttlIndex]
-          ? parseInt(values[ttlIndex])
-          : undefined;
-
-      if (!key || !type || value === undefined) {
-        result.errors.push({
-          line: i + 1,
-          message: 'Missing required fields (key, type, value)',
-        });
-        continue;
-      }
-
-      // Parse value based on type
-      try {
-        if (
-          type === 'hash' ||
-          type === 'list' ||
-          type === 'set' ||
-          type === 'zset'
-        ) {
-          value = JSON.parse(value);
-        }
-      } catch {
-        result.errors.push({
-          line: i + 1,
-          message: `Invalid JSON value for type ${type}`,
-        });
-        continue;
-      }
-
-      result.keys.push({
-        key,
-        value,
-        type,
-        ttl: ttl && ttl > 0 ? ttl : undefined,
-      });
+      result.keys.push(parsed.key);
     } catch (error) {
       result.errors.push({
         line: i + 1,
@@ -336,89 +386,126 @@ export const parseRedisCliImport = (content: string): ParsedImportData => {
 };
 
 /**
+ * Parses SET command
+ */
+const parseSetCommand = (parts: string[]): Partial<ImportKeyData> | null => {
+  if (parts.length >= 3) {
+    return {
+      key: parts[1],
+      value: parts[2],
+      type: 'string',
+    };
+  }
+  return null;
+};
+
+/**
+ * Parses LPUSH/RPUSH command
+ */
+const parseListCommand = (parts: string[]): Partial<ImportKeyData> | null => {
+  if (parts.length >= 3) {
+    return {
+      key: parts[1],
+      value: parts.slice(2),
+      type: 'list',
+    };
+  }
+  return null;
+};
+
+/**
+ * Parses SADD command
+ */
+const parseSetAddCommand = (parts: string[]): Partial<ImportKeyData> | null => {
+  if (parts.length >= 3) {
+    return {
+      key: parts[1],
+      value: parts.slice(2),
+      type: 'set',
+    };
+  }
+  return null;
+};
+
+/**
+ * Parses HMSET/HSET command
+ */
+const parseHashCommand = (parts: string[]): Partial<ImportKeyData> | null => {
+  if (parts.length >= 4 && parts.length % 2 === 0) {
+    const value: Record<string, string> = {};
+    for (let i = 2; i < parts.length; i += 2) {
+      value[parts[i]] = parts[i + 1];
+    }
+    return {
+      key: parts[1],
+      value,
+      type: 'hash',
+    };
+  }
+  return null;
+};
+
+/**
+ * Parses ZADD command
+ */
+const parseZaddCommand = (parts: string[]): Partial<ImportKeyData> | null => {
+  if (parts.length >= 4 && parts.length % 2 === 0) {
+    const value: Array<{ score: number; member: string }> = [];
+    for (let i = 2; i < parts.length; i += 2) {
+      value.push({
+        score: parseFloat(parts[i]),
+        member: parts[i + 1],
+      });
+    }
+    return {
+      key: parts[1],
+      value,
+      type: 'zset',
+    };
+  }
+  return null;
+};
+
+/**
+ * Parses EXPIRE command
+ */
+const parseExpireCommand = (parts: string[]): Partial<ImportKeyData> | null => {
+  if (parts.length >= 3) {
+    return {
+      key: parts[1],
+      ttl: parseInt(parts[2]),
+    };
+  }
+  return null;
+};
+
+/**
  * Parses a single Redis command
  */
 const parseRedisCommand = (command: string): Partial<ImportKeyData> | null => {
   const parts = parseCommandArgs(command);
-  if (parts.length === 0) { return null; }
+  if (parts.length === 0) return null;
 
   const cmd = parts[0].toUpperCase();
 
   switch (cmd) {
     case 'SET':
-      if (parts.length >= 3) {
-        return {
-          key: parts[1],
-          value: parts[2],
-          type: 'string',
-        };
-      }
-      break;
-
+      return parseSetCommand(parts);
     case 'LPUSH':
     case 'RPUSH':
-      if (parts.length >= 3) {
-        return {
-          key: parts[1],
-          value: parts.slice(2),
-          type: 'list',
-        };
-      }
-      break;
-
+      return parseListCommand(parts);
     case 'SADD':
-      if (parts.length >= 3) {
-        return {
-          key: parts[1],
-          value: parts.slice(2),
-          type: 'set',
-        };
-      }
-      break;
-
+      return parseSetAddCommand(parts);
     case 'HMSET':
     case 'HSET':
-      if (parts.length >= 4 && parts.length % 2 === 0) {
-        const value: Record<string, string> = {};
-        for (let i = 2; i < parts.length; i += 2) {
-          value[parts[i]] = parts[i + 1];
-        }
-        return {
-          key: parts[1],
-          value,
-          type: 'hash',
-        };
-      }
-      break;
-
+      return parseHashCommand(parts);
     case 'ZADD':
-      if (parts.length >= 4 && parts.length % 2 === 0) {
-        const value: Array<{ score: number; member: string }> = [];
-        for (let i = 2; i < parts.length; i += 2) {
-          value.push({
-            score: parseFloat(parts[i]),
-            member: parts[i + 1],
-          });
-        }
-        return {
-          key: parts[1],
-          value,
-          type: 'zset',
-        };
-      }
-      break;
-
+      return parseZaddCommand(parts);
     case 'EXPIRE':
-      if (parts.length >= 3) {
-        return {
-          key: parts[1],
-          ttl: parseInt(parts[2]),
-        };
-      }
-      break;
+      return parseExpireCommand(parts);
+    default:
+      return null;
   }
-
-  return null;
 };
 
 /**
@@ -455,6 +542,82 @@ const parseCommandArgs = (command: string): string[] => {
 };
 
 /**
+ * Validates key field
+ */
+const validateKey = (item: ImportKeyData, index: number): { index: number; message: string } | null => {
+  if (!item.key || typeof item.key !== 'string') {
+    return { index, message: 'Invalid or missing key' };
+  }
+  return null;
+};
+
+/**
+ * Validates type field
+ */
+const validateType = (item: ImportKeyData, index: number): { index: number; message: string } | null => {
+  if (!['string', 'list', 'set', 'hash', 'zset'].includes(item.type)) {
+    return {
+      index,
+      message: 'Invalid type. Must be one of: string, list, set, hash, zset',
+    };
+  }
+  return null;
+};
+
+/**
+ * Validates value field based on type
+ */
+const validateValue = (item: ImportKeyData, index: number): { index: number; message: string } | null => {
+  if (item.value === undefined || item.value === null) {
+    return { index, message: 'Missing value' };
+  }
+
+  switch (item.type) {
+    case 'list':
+    case 'set':
+      if (!Array.isArray(item.value)) {
+        return {
+          index,
+          message: `Value for ${item.type} must be an array`,
+        };
+      }
+      break;
+    case 'hash':
+      if (typeof item.value !== 'object' || Array.isArray(item.value)) {
+        return { index, message: 'Value for hash must be an object' };
+      }
+      break;
+    case 'zset':
+      if (
+        !Array.isArray(item.value) ||
+        !item.value.every(
+          (v) => typeof v === 'object' && 'score' in v && 'member' in v,
+        )
+      ) {
+        return {
+          index,
+          message: 'Value for zset must be an array of {score, member} objects',
+        };
+      }
+      break;
+  }
+  return null;
+};
+
+/**
+ * Validates TTL field
+ */
+const validateTtl = (item: ImportKeyData, index: number): { index: number; message: string } | null => {
+  if (
+    item.ttl !== undefined &&
+    (typeof item.ttl !== 'number' || item.ttl < 0)
+  ) {
+    return { index, message: 'TTL must be a positive number' };
+  }
+  return null;
+};
+
+/**
  * Validates import data
  */
 export const validateImportData = (
@@ -463,61 +626,13 @@ export const validateImportData = (
   const errors: Array<{ index: number; message: string }> = [];
 
   data.forEach((item, index) => {
-    // Validate key
-    if (!item.key || typeof item.key !== 'string') {
-      errors.push({ index, message: 'Invalid or missing key' });
-    }
-
-    // Validate type
-    if (!['string', 'list', 'set', 'hash', 'zset'].includes(item.type)) {
-      errors.push({
-        index,
-        message: 'Invalid type. Must be one of: string, list, set, hash, zset',
-      });
-    }
-
-    // Validate value based on type
-    if (item.value === undefined || item.value === null) {
-      errors.push({ index, message: 'Missing value' });
-    } else {
-      switch (item.type) {
-        case 'list':
-        case 'set':
-          if (!Array.isArray(item.value)) {
-            errors.push({
-              index,
-              message: `Value for ${item.type} must be an array`,
-            });
-          }
-          break;
-        case 'hash':
-          if (typeof item.value !== 'object' || Array.isArray(item.value)) {
-            errors.push({ index, message: 'Value for hash must be an object' });
-          }
-          break;
-        case 'zset':
-          if (
-            !Array.isArray(item.value) ||
-            !item.value.every(
-              (v) => typeof v === 'object' && 'score' in v && 'member' in v,
-            )
-          ) {
-            errors.push({
-              index,
-              message:
-                'Value for zset must be an array of {score, member} objects',
-            });
-          }
-          break;
+    const validators = [validateKey, validateType, validateValue, validateTtl];
+    
+    for (const validator of validators) {
+      const error = validator(item, index);
+      if (error) {
+        errors.push(error);
       }
-    }
-
-    // Validate TTL
-    if (
-      item.ttl !== undefined &&
-      (typeof item.ttl !== 'number' || item.ttl < 0)
-    ) {
-      errors.push({ index, message: 'TTL must be a positive number' });
     }
   });
 

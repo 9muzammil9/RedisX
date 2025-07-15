@@ -44,6 +44,11 @@ export class RedisService {
       this.redis.ttl(key),
     ]);
 
+    // Handle non-existent keys
+    if (type === 'none') {
+      throw new Error(`Key "${key}" not found`);
+    }
+
     let value: any;
 
     switch (type) {

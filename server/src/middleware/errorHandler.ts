@@ -13,6 +13,11 @@ export function errorHandler(
     return;
   }
 
+  if (err.message.includes('not found')) {
+    res.status(404).json({ error: err.message });
+    return;
+  }
+
   if (
     err.message.includes('ECONNREFUSED') ||
     err.message.includes('ETIMEDOUT')

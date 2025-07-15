@@ -63,6 +63,7 @@ function App() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [forceEditMode, setForceEditMode] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [deletedKey, setDeletedKey] = useState<string | undefined>(undefined);
   const [activeRightTab, setActiveRightTab] =
     useState<RightPanelTab>(loadActiveTab());
   const [keysPanelWidth, setKeysPanelWidth] =
@@ -103,12 +104,16 @@ function App() {
     setForceEditMode(false);
   };
 
-  const handleKeyDeleted = (deletedKey: string) => {
+  const handleKeyDeleted = (keyName: string) => {
     // If the currently selected key was deleted, clear the selection
-    if (selectedKey === deletedKey) {
+    if (selectedKey === keyName) {
       setSelectedKey(null);
       setForceEditMode(false);
     }
+    // Set the deleted key to trigger removal from KeyList
+    setDeletedKey(keyName);
+    // Clear the deleted key after a short delay to reset the state
+    setTimeout(() => setDeletedKey(undefined), 100);
   };
 
   const handleTabChange = (tab: RightPanelTab) => {
@@ -188,6 +193,7 @@ function App() {
                 onKeySelect={handleKeySelect}
                 onKeySelectForEdit={handleKeySelectForEdit}
                 onKeyDeleted={handleKeyDeleted}
+                deletedKey={deletedKey}
               />
 
               {/* Resize Handle */}
@@ -262,6 +268,7 @@ function App() {
                     forceEditMode={forceEditMode}
                     onForceEditModeUsed={handleForceEditModeUsed}
                     refreshTrigger={refreshTrigger}
+                    onKeyDeleted={handleKeyDeleted}
                   />
                 )}
                 {activeRightTab === 'pubsub' && <PubSubPanel />}
