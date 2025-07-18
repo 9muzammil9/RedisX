@@ -87,6 +87,7 @@
 :not(.dark) .json-tree-container,
 .light-theme .json-tree-container {
   background: transparent !important;
+  color: #000000 !important;
 }
 
 /* Force dark mode for any json-view-lite inside dark theme */
@@ -229,7 +230,7 @@
   font-weight: 600 !important;
 }
 
-/* Dark theme colors */
+/* Dark theme colors - AGGRESSIVE STYLING */
 .dark-theme .json-view-lite,
 .dark-theme .json-view-lite *,
 .dark-theme .json-view-lite > *,
@@ -246,6 +247,139 @@
   background: transparent !important;
   background-color: transparent !important;
 }
+
+/* Only target the actual JSON content elements */
+
+/* Target specific react-json-view-lite elements - but exclude buttons and checkboxes */
+.dark .json-tree-container [data-testid]:not([role="checkbox"]):not(button),
+.dark-theme .json-tree-container [data-testid]:not([role="checkbox"]):not(button) {
+  color: #e5e7eb !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Remove aggressive nested targeting - let JavaScript handle it */
+
+/* Remove aggressive span targeting - let JavaScript handle it */
+
+/* Basic container theming */
+.dark .json-tree-container,
+.dark-theme .json-tree-container {
+  color: #e5e7eb !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Only target JSON content elements, not buttons or other UI elements */
+.dark .json-tree-container .json-view-lite,
+.dark-theme .json-tree-container .json-view-lite,
+.dark .json-tree-container .json-view-lite *:not([role="checkbox"]):not(button):not(svg),
+.dark-theme .json-tree-container .json-view-lite *:not([role="checkbox"]):not(button):not(svg) {
+  color: #e5e7eb !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  border-color: #4b5563 !important;
+  outline: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Ensure checkboxes inside JSON containers are never affected */
+.dark .json-tree-container [role="checkbox"],
+.dark-theme .json-tree-container [role="checkbox"],
+.dark .json-tree-container [role="checkbox"] *,
+.dark-theme .json-tree-container [role="checkbox"] * {
+  color: initial !important;
+  background: initial !important;
+  background-color: initial !important;
+  border-color: initial !important;
+  opacity: initial !important;
+  visibility: initial !important;
+}
+
+/* Force all text nodes to be white in dark mode */
+.dark .json-tree-container::before,
+.dark-theme .json-tree-container::before,
+.dark .json-tree-container::after,
+.dark-theme .json-tree-container::after,
+.dark .json-tree-container *::before,
+.dark-theme .json-tree-container *::before,
+.dark .json-tree-container *::after,
+.dark-theme .json-tree-container *::after {
+  color: #e5e7eb !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Target any inline styles that might override */
+.dark .json-tree-container [style*="color"],
+.dark-theme .json-tree-container [style*="color"],
+.dark .json-tree-container [style*="background"],
+.dark-theme .json-tree-container [style*="background"] {
+  color: #e5e7eb !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Force react-json-view-lite specific classes */
+.dark .json-tree-container [class*="json-view"],
+.dark-theme .json-tree-container [class*="json-view"],
+.dark .json-tree-container [class*="react-json"],
+.dark-theme .json-tree-container [class*="react-json"] {
+  color: #e5e7eb !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Override any CSS variables that might be used by the library */
+.dark .json-tree-container {
+  --json-view-color: #e5e7eb !important;
+  --json-view-background: transparent !important;
+  --json-view-foreground: #e5e7eb !important;
+  --text-color: #e5e7eb !important;
+  --background-color: transparent !important;
+  --foreground-color: #e5e7eb !important;
+}
+
+/* Target specific library elements that might have their own styles */
+.dark .json-tree-container [data-testid*="json"],
+.dark-theme .json-tree-container [data-testid*="json"],
+.dark .json-tree-container [id*="json"],
+.dark-theme .json-tree-container [id*="json"],
+.dark .json-tree-container [class*="json-view-lite"],
+.dark-theme .json-tree-container [class*="json-view-lite"] {
+  color: #e5e7eb !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  fill: #e5e7eb !important;
+  stroke: #e5e7eb !important;
+  border-color: #4b5563 !important;
+  outline: none !important;
+}
+
+/* Force all text content to be visible */
+.dark .json-tree-container *:not(input):not(textarea):not(button):not([role="checkbox"]) {
+  color: #e5e7eb !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  -webkit-text-fill-color: #e5e7eb !important;
+  text-fill-color: #e5e7eb !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  border-color: #4b5563 !important;
+  outline: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+  text-decoration: none !important;
+  -webkit-text-stroke: none !important;
+  text-stroke: none !important;
+}
+
+/* Remove global overrides that break UI elements */
+
+/* Remove all nuclear options that break UI elements */
 
 .dark-theme .json-view-lite .json-key,
 .dark-theme .json-view-lite [class*='key'],
@@ -469,24 +603,34 @@ button[role='checkbox'][data-state='checked'] svg,
   opacity: 1 !important;
 }
 
-/* Dark mode specific adjustments */
+/* Dark mode specific adjustments - more specific selectors */
 .dark [role='checkbox'],
 .dark button[role='checkbox'],
-.dark [data-radix-collection-item][role='checkbox'] {
-  border-color: hsl(var(--border)) !important;
+.dark [data-radix-collection-item][role='checkbox'],
+.dark .json-tree-container [role='checkbox'],
+.dark .json-tree-container button[role='checkbox'] {
+  border-color: #4b5563 !important;
+  background-color: transparent !important;
+  color: #e5e7eb !important;
 }
 
 .dark [role='checkbox'][data-state='checked'],
 .dark button[role='checkbox'][data-state='checked'],
-.dark [data-radix-collection-item][role='checkbox'][data-state='checked'] {
-  background-color: hsl(var(--primary)) !important;
-  border-color: hsl(var(--primary)) !important;
+.dark [data-radix-collection-item][role='checkbox'][data-state='checked'],
+.dark .json-tree-container [role='checkbox'][data-state='checked'],
+.dark .json-tree-container button[role='checkbox'][data-state='checked'] {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
 }
 
 .dark [role='checkbox'][data-state='checked'] svg,
 .dark button[role='checkbox'][data-state='checked'] svg,
-.dark [data-radix-collection-item][role='checkbox'][data-state='checked'] svg {
-  color: hsl(var(--primary-foreground)) !important;
+.dark [data-radix-collection-item][role='checkbox'][data-state='checked'] svg,
+.dark .json-tree-container [role='checkbox'][data-state='checked'] svg,
+.dark .json-tree-container button[role='checkbox'][data-state='checked'] svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
 }
 
 /* Custom Scrollbar Styles - Theme Aware */

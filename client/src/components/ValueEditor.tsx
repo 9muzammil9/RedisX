@@ -65,82 +65,76 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
 
   // Apply theme styles directly to JSON view elements
   useEffect(() => {
-    const applyThemeStyles = () => {
-      // Target everything possible
-      const allElements = document.querySelectorAll('*');
-      allElements.forEach((element: any) => {
-        // Check if element is inside a json-tree-container but exclude checkboxes and buttons
-        const isInsideJsonContainer = element.closest('.json-tree-container');
-        const isCheckboxOrChild =
-          element.closest('[role="checkbox"]') ||
-          element.hasAttribute('data-state') ||
-          element.getAttribute('role') === 'checkbox' ||
-          element.parentElement?.getAttribute('role') === 'checkbox';
-        const isButton =
-          element.tagName === 'BUTTON' || element.closest('button');
-        const isInsideModal =
-          element.closest('.fixed.inset-0') ||
-          element.closest('[role="dialog"]') ||
-          element.closest('.z-50');
-
-        if (
-          isInsideJsonContainer &&
-          !isCheckboxOrChild &&
-          !isButton &&
-          !isInsideModal
-        ) {
-          if (theme === 'dark') {
-            element.style.setProperty(
-              'background-color',
-              'transparent',
-              'important',
-            );
-            element.style.setProperty('color', '#ffffff', 'important');
-            element.style.setProperty('background', 'transparent', 'important');
-            element.style.setProperty('fill', '#ffffff', 'important');
-            element.style.setProperty('stroke', '#ffffff', 'important');
-          } else {
-            // Light mode - force transparent background like dark mode
-            element.style.setProperty(
-              'background-color',
-              'transparent',
-              'important',
-            );
-            element.style.setProperty('background', 'transparent', 'important');
-            element.style.setProperty(
-              'color',
-              'hsl(var(--foreground))',
-              'important',
-            );
-            element.style.setProperty(
-              'fill',
-              'hsl(var(--foreground))',
-              'important',
-            );
-            element.style.setProperty(
-              'stroke',
-              'hsl(var(--foreground))',
-              'important',
-            );
-          }
-        }
-      });
+    const shouldExcludeElement = (element: any) => {
+      return (
+        element.closest('[role="checkbox"]') ||
+        element.hasAttribute('data-state') ||
+        element.getAttribute('role') === 'checkbox' ||
+        element.parentElement?.getAttribute('role') === 'checkbox' ||
+        element.tagName === 'BUTTON' ||
+        element.closest('button') ||
+        element.closest('.fixed.inset-0') ||
+        element.closest('[role="dialog"]') ||
+        element.closest('.z-50') ||
+        element.classList?.contains('destructive') ||
+        element.closest('.destructive') ||
+        element.classList?.contains('btn') ||
+        element.closest('.btn') ||
+        element.getAttribute('class')?.includes('button') ||
+        element.getAttribute('class')?.includes('destructive') ||
+        // Additional checkbox exclusions
+        element.closest('[data-radix-collection-item]') ||
+        element.hasAttribute('data-radix-collection-item') ||
+        element.closest('svg') ||
+        element.tagName === 'SVG' ||
+        element.tagName === 'PATH' ||
+        element.tagName === 'CIRCLE' ||
+        element.tagName === 'RECT'
+      );
     };
 
-    // Apply immediately and repeatedly
+    const applyThemeToElement = (element: any, foregroundColor: string, backgroundColor: string) => {
+      if (!shouldExcludeElement(element)) {
+        // Only set essential properties for JSON content
+        element.style.setProperty('color', foregroundColor, 'important');
+        element.style.setProperty('background-color', backgroundColor, 'important');
+        element.style.setProperty('-webkit-text-fill-color', foregroundColor, 'important');
+        
+        // Add our own data attributes to track styling
+        element.setAttribute('data-theme-forced', theme);
+      }
+    };
+
+    const applyThemeStyles = () => {
+      const foregroundColor = theme === 'dark' ? '#e5e7eb' : '#000000';
+      const backgroundColor = 'transparent';
+      
+      // Target only JSON view elements specifically
+      const jsonContainers = document.querySelectorAll('.json-tree-container');
+      for (const container of jsonContainers) {
+        // Only target json-view-lite elements and their children
+        const jsonViewElements = container.querySelectorAll('.json-view-lite, .json-view-lite *');
+        for (const element of jsonViewElements) {
+          applyThemeToElement(element, foregroundColor, backgroundColor);
+        }
+      }
+    };
+
+    // Apply immediately and less frequently
     applyThemeStyles();
-    const interval = setInterval(applyThemeStyles, 100);
+    const interval = setInterval(applyThemeStyles, 200);
 
     // Also use MutationObserver to catch any new elements
     const observer = new MutationObserver(() => {
-      applyThemeStyles();
+      // Small delay to ensure DOM is fully updated
+      setTimeout(applyThemeStyles, 50);
     });
 
     observer.observe(document.body, {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['style', 'class'],
+      attributeFilter: ['style', 'class', 'data-testid'],
     });
 
     return () => {
@@ -446,12 +440,10 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   };
 
   const getJsonThemeStyle = () => {
-    return theme === 'dark'
-      ? {
-          backgroundColor: 'transparent',
-          color: '#ffffff',
-        }
-      : {};
+    return {
+      backgroundColor: 'transparent',
+      color: theme === 'dark' ? '#e5e7eb' : '#000000',
+    };
   };
 
   return (

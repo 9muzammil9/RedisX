@@ -376,11 +376,6 @@ export const ArrayObjectViewer: React.FC<ArrayObjectViewerProps> = ({
                   size="sm"
                   variant="destructive"
                   onClick={handleBulkDelete}
-                  className="!bg-red-600 hover:!bg-red-700 !text-white"
-                  style={{
-                    backgroundColor: '#dc2626 !important',
-                    color: 'white !important',
-                  }}
                 >
                   <Trash2 className="h-4 w-4 mr-1" />
                   Delete Selected

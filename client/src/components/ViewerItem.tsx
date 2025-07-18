@@ -148,10 +148,10 @@ export const ViewerItem: React.FC<ViewerItemProps> = ({
           {(() => {
             if (hasTreeView && isExpanded) {
               const themeClass = theme === 'dark' ? 'dark-theme' : 'light-theme';
-              const themeStyle = theme === 'dark' ? {
+              const themeStyle = {
                 backgroundColor: 'transparent',
-                color: '#ffffff',
-              } : {};
+                color: theme === 'dark' ? '#e5e7eb' : '#000000',
+              };
               
               return (
                 <div
